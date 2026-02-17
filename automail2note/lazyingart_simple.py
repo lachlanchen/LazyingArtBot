@@ -621,9 +621,20 @@ Field rules:
   - Keep the part after "Lazyingart/" flexible based on email context.
   - if unclear, use "Lazyingart/Inbox".
 - For decision=calendar/reminder/skip, set folder to empty string "".
+- For bank/payment/financial transaction emails (bank alerts, card spend, receipts, statements):
+  - prefer decision=note for bookkeeping, unless urgent action is required (then use reminder).
+  - use folder format: "Lazyingart/Finance/YYYY-MM-DD" (transaction date if available; otherwise received date).
+  - use title format: "Finance Ledger YYYY-MM-DD".
+  - include structured spending details in notes (merchant, amount, currency, channel/card, reference).
+  - if it is the same date as another finance record, keep the same folder and title so entries can be grouped in one daily ledger note if possible.
 - notes should summarize key details from the email.
 - reason should briefly justify decision.
 - Prefer calendar when event is related to the user personally, even if exact time is unclear.
+- For travel/flight/train/hotel itinerary emails:
+  - if email includes outbound + return, set calendar `start` to outbound departure datetime and `end` to return arrival datetime (trip range).
+  - if return arrival is missing, use return departure as `end`.
+  - if one-way with multiple legs, set `start` to first leg departure and `end` to final leg arrival.
+  - include both outbound and return segment details in `notes`.
 - If time is unclear but date is known for a calendar-worthy personal event, create a reasonable placeholder local time block and mention that in notes.
 - For mass/group/general events, prefer reminder; use note only when archival value exists and no reminder is needed.
 - If importance is low, avoid calendar unless there is clear personal impact.
