@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,7 @@ LOG_FILE = LOG_DIR / "lazyingart_simple.log"
 CALENDAR_SCRIPT = AUTOMATION_DIR / "create_calendar_event.applescript"
 REMINDER_SCRIPT = AUTOMATION_DIR / "create_reminder.applescript"
 NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
+FALLBACK_CALENDAR = "Lachlan"
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -43,7 +45,23 @@ def run_osascript(script_path: Path, args: list[str]) -> Dict[str, str]:
     return {"stdout": proc.stdout.strip(), "stderr": proc.stderr.strip()}
 
 
-def apply_calendar(action: Dict[str, Any]) -> Dict[str, Any]:
+def resolve_calendar_target(action: Dict[str, Any], default_calendar: str) -> str:
+    requested = str(action.get("calendar", "") or "").strip()
+    configured = (default_calendar or "").strip()
+
+    if configured:
+        # Treat "Lachlan" as prompt placeholder and use configured default calendar.
+        if not requested or requested.lower() == FALLBACK_CALENDAR.lower():
+            return configured
+    if requested:
+        return requested
+    if configured:
+        return configured
+    return FALLBACK_CALENDAR
+
+
+def apply_calendar(action: Dict[str, Any], default_calendar: str) -> Dict[str, Any]:
+    calendar_target = resolve_calendar_target(action, default_calendar)
     out = run_osascript(
         CALENDAR_SCRIPT,
         [
@@ -51,11 +69,17 @@ def apply_calendar(action: Dict[str, Any]) -> Dict[str, Any]:
             str(action.get("start", "")),
             str(action.get("end", "")),
             str(action.get("notes", "")),
-            str(action.get("calendar", "Lachlan") or "Lachlan"),
+            calendar_target,
             str(int(action.get("reminderMinutes", 0))),
         ],
     )
-    return {"status": "created", "target": "calendar", "id": out["stdout"], "stderr": out["stderr"]}
+    return {
+        "status": "created",
+        "target": "calendar",
+        "calendar": calendar_target,
+        "id": out["stdout"],
+        "stderr": out["stderr"],
+    }
 
 
 def apply_reminder(action: Dict[str, Any]) -> Dict[str, Any]:
@@ -88,6 +112,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apply Lazyingart action JSON")
     parser.add_argument("--action-json", required=True)
     parser.add_argument("--message-json", default="")
+    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", "Calendar"))
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
@@ -101,12 +126,14 @@ def main() -> None:
     action = load_json(action_path)
     decision = str(action.get("decision", "skip")).strip().lower()
     message_path = str(Path(args.message_json).expanduser()) if args.message_json else ""
+    default_calendar = str(args.default_calendar or "").strip()
 
     logging.info(
-        "apply_start decision=%s action_path=%s message_path=%s",
+        "apply_start decision=%s action_path=%s message_path=%s default_calendar=%s",
         decision,
         action_path,
         message_path,
+        default_calendar or "(none)",
     )
 
     if decision == "skip":
@@ -118,7 +145,7 @@ def main() -> None:
     else:
         try:
             if decision == "calendar":
-                result = apply_calendar(action)
+                result = apply_calendar(action, default_calendar)
             elif decision == "reminder":
                 result = apply_reminder(action)
             elif decision == "note":

@@ -35,11 +35,13 @@ LOG_DIR = WORKDIR / "logs"
 LOG_FILE = LOG_DIR / "lazyingart_simple.log"
 
 APPLY_SCRIPT = AUTOMATION_DIR / "lazyingart_apply_action.py"
+NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
 
 MODEL = "gpt-5.1-codex-mini"
 REASONING = "medium"
+LOG_NOTE_ROOT = "Lazyingart/Log"
 
-SCHEMA: Dict[str, Any] = {
+ACTION_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
@@ -80,7 +82,74 @@ SCHEMA: Dict[str, Any] = {
     },
 }
 
-REQUIRED_KEYS = set(SCHEMA["required"])
+SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["actions"],
+    "properties": {
+        "actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": ACTION_SCHEMA,
+        }
+    },
+}
+
+STRONG_SAVE_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["status", "mode", "actions_count", "created", "skipped", "failed", "item_results", "log_note_result", "summary"],
+    "properties": {
+        "status": {"type": "string", "enum": ["ok", "partial", "failed"]},
+        "mode": {"type": "string", "enum": ["strong_smart_save"]},
+        "actions_count": {"type": "integer", "minimum": 0},
+        "created": {"type": "integer", "minimum": 0},
+        "skipped": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "summary": {"type": "string"},
+        "item_results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["index", "decision", "title", "status", "target", "id", "fingerprint", "reason", "error"],
+                "properties": {
+                    "index": {"type": "integer", "minimum": 1},
+                    "decision": {"type": "string", "enum": ["calendar", "reminder", "note", "skip"]},
+                    "title": {"type": "string"},
+                    "status": {"type": "string", "enum": ["created", "skipped", "failed"]},
+                    "target": {"type": "string"},
+                    "id": {"type": "string"},
+                    "fingerprint": {"type": "string"},
+                    "reason": {"type": "string"},
+                    "error": {"type": "string"},
+                },
+            },
+        },
+        "log_note_result": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["status", "folder", "title", "id", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["created", "failed", "skipped"]},
+                "folder": {"type": "string"},
+                "title": {"type": "string"},
+                "id": {"type": "string"},
+                "error": {"type": "string"},
+            },
+        },
+    },
+}
+
+REQUIRED_ACTION_KEYS = set(ACTION_SCHEMA["required"])
+DEFAULT_FLAG_INDEX_BY_DECISION = {
+    "note": 2,  # Yellow
+    "calendar": 4,  # Blue
+    "reminder": 4,  # Blue
+    "skip": 6,  # Gray
+}
+ACTION_FINGERPRINTS_PATH = STATE_DIR / "action_fingerprints.json"
 
 
 def ensure_dirs() -> None:
@@ -143,6 +212,29 @@ def save_processed_ids(processed_ids: Dict[str, Dict[str, str]]) -> None:
     PROCESSED_IDS_PATH.write_text(json.dumps(processed_ids, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def load_action_fingerprints() -> Dict[str, Dict[str, str]]:
+    if not ACTION_FINGERPRINTS_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(ACTION_FINGERPRINTS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        logging.warning("action_fingerprints_read_failed path=%s", ACTION_FINGERPRINTS_PATH)
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    result: Dict[str, Dict[str, str]] = {}
+    for key, value in payload.items():
+        if not isinstance(key, str) or not isinstance(value, dict):
+            continue
+        result[key] = {str(k): str(v) for k, v in value.items() if isinstance(k, str)}
+    return result
+
+
+def save_action_fingerprints(fingerprints: Dict[str, Dict[str, str]]) -> None:
+    ACTION_FINGERPRINTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ACTION_FINGERPRINTS_PATH.write_text(json.dumps(fingerprints, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def safe_token(raw: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("._")
     if not cleaned:
@@ -181,8 +273,8 @@ def parse_codex_json_text(text: str) -> Dict[str, Any]:
 
 def normalize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     keys = set(action.keys())
-    missing = REQUIRED_KEYS - keys
-    extra = keys - REQUIRED_KEYS
+    missing = REQUIRED_ACTION_KEYS - keys
+    extra = keys - REQUIRED_ACTION_KEYS
     if missing:
         raise ValueError(f"Action JSON missing keys: {sorted(missing)}")
     if extra:
@@ -212,6 +304,21 @@ def normalize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     if normalized["reminderMinutes"] < 0:
         raise ValueError("reminderMinutes cannot be negative")
     return normalized
+
+
+def normalize_codex_actions(payload: Dict[str, Any]) -> list[Dict[str, Any]]:
+    # Backward compatibility: accept either {"actions":[...]} or one action object.
+    if "actions" in payload:
+        raw_actions = payload.get("actions")
+        if not isinstance(raw_actions, list) or not raw_actions:
+            raise ValueError("Codex output actions must be a non-empty array")
+        actions: list[Dict[str, Any]] = []
+        for idx, item in enumerate(raw_actions, start=1):
+            if not isinstance(item, dict):
+                raise ValueError(f"Action #{idx} is not an object")
+            actions.append(normalize_action(item))
+        return actions
+    return [normalize_action(payload)]
 
 
 def normalize_message(message: Dict[str, Any]) -> Dict[str, str]:
@@ -248,6 +355,446 @@ def parse_osascript_kv(text: str) -> Dict[str, str]:
         key, value = line.split("=", 1)
         payload[key.strip()] = value
     return payload
+
+
+def norm_token(value: str) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def resolve_effective_calendar(action: Dict[str, Any], default_calendar: str) -> str:
+    requested = str(action.get("calendar", "") or "").strip()
+    configured = (default_calendar or "").strip()
+    if configured:
+        if not requested or requested.lower() == "lachlan":
+            return configured
+    if requested:
+        return requested
+    if configured:
+        return configured
+    return "Lachlan"
+
+
+def action_fingerprint(action: Dict[str, Any], default_calendar: str) -> str:
+    decision = str(action.get("decision", "")).strip().lower()
+    title = norm_token(str(action.get("title", "")))
+    if decision == "calendar":
+        start = norm_token(str(action.get("start", "")))
+        end = norm_token(str(action.get("end", "")))
+        cal = norm_token(resolve_effective_calendar(action, default_calendar))
+        return f"calendar|{title}|{start}|{end}|{cal}"
+    if decision == "reminder":
+        due = norm_token(str(action.get("due", "")))
+        lst = norm_token(str(action.get("list", "")))
+        return f"reminder|{title}|{due}|{lst}"
+    if decision == "note":
+        folder = norm_token(str(action.get("folder", "")))
+        note_preview = norm_token(str(action.get("notes", "")))[:120]
+        return f"note|{title}|{folder}|{note_preview}"
+    if decision == "skip":
+        reason = norm_token(str(action.get("reason", "")))[:120]
+        return f"skip|{title}|{reason}"
+    return f"other|{decision}|{title}"
+
+
+def summarize_recent_items_for_prompt(fingerprints: Dict[str, Dict[str, str]], limit: int = 80) -> str:
+    rows = sorted(
+        fingerprints.values(),
+        key=lambda item: item.get("timestamp", ""),
+        reverse=True,
+    )
+    lines: list[str] = []
+    for item in rows[:limit]:
+        lines.append(
+            "- decision={decision}; title={title}; start={start}; end={end}; due={due}; calendar={calendar}; list={list}; folder={folder}".format(
+                decision=item.get("decision", ""),
+                title=item.get("title", ""),
+                start=item.get("start", ""),
+                end=item.get("end", ""),
+                due=item.get("due", ""),
+                calendar=item.get("calendar", ""),
+                list=item.get("list", ""),
+                folder=item.get("folder", ""),
+            )
+        )
+    return "\n".join(lines) if lines else "- (none)"
+
+
+def fetch_notes_index(account: str = "iCloud", limit: int = 200) -> list[Dict[str, str]]:
+    script = r"""
+on run argv
+	set accountName to item 1 of argv
+	set recSep to character id 30
+	set fieldSep to character id 31
+	set outText to ""
+	tell application "Notes"
+		set targetAccount to account accountName
+		repeat with f in folders of targetAccount
+			set folderName to name of f as text
+			if folderName is not "Recently Deleted" then
+				repeat with n in notes of f
+					set noteID to id of n as text
+					set noteTitle to name of n as text
+					set noteText to ""
+					try
+						set noteText to plaintext of n as text
+					end try
+					set outText to outText & noteID & fieldSep & folderName & fieldSep & noteTitle & fieldSep & noteText & recSep
+				end repeat
+			end if
+		end repeat
+	end tell
+	return outText
+end run
+""".strip()
+    try:
+        proc = subprocess.run(
+            ["osascript", "-", account],
+            input=script,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except Exception as exc:
+        logging.warning("notes_index_fetch_failed account=%s err=%s", account, exc)
+        return []
+
+    rec_sep = chr(30)
+    field_sep = chr(31)
+    rows: list[Dict[str, str]] = []
+    for rec in proc.stdout.split(rec_sep):
+        if not rec.strip():
+            continue
+        parts = rec.split(field_sep)
+        if len(parts) < 4:
+            continue
+        note_text = re.sub(r"\s+", " ", parts[3]).strip()
+        rows.append(
+            {
+                "id": parts[0],
+                "folder": parts[1],
+                "title": parts[2],
+                "preview": note_text[:200],
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def summarize_notes_for_prompt(notes: list[Dict[str, str]], limit: int = 120) -> str:
+    if not notes:
+        return "- (none)"
+    lines: list[str] = []
+    for row in notes[:limit]:
+        lines.append(
+            "- folder={folder}; title={title}; preview={preview}".format(
+                folder=row.get("folder", ""),
+                title=row.get("title", ""),
+                preview=row.get("preview", ""),
+            )
+        )
+    return "\n".join(lines)
+
+
+def summarize_item_counts(result_payload: Dict[str, Any]) -> tuple[int, int, int]:
+    item_results = result_payload.get("item_results")
+    if not isinstance(item_results, list):
+        apply_result = result_payload.get("apply_result", {})
+        if isinstance(apply_result, dict):
+            status = str(apply_result.get("status", ""))
+        else:
+            status = str(apply_result)
+        if status == "created":
+            return (1, 0, 0)
+        if status == "failed":
+            return (0, 0, 1)
+        return (0, 1, 0)
+
+    created = sum(1 for item in item_results if str(item.get("status", "")).strip() == "created")
+    failed = sum(1 for item in item_results if str(item.get("status", "")).strip() == "failed")
+    skipped = len(item_results) - created - failed
+    return (created, skipped, failed)
+
+
+def build_processing_log_text(
+    message: Dict[str, str],
+    result_payload: Dict[str, Any],
+    save_mode: str,
+    now_local: datetime,
+) -> str:
+    created, skipped, failed = summarize_item_counts(result_payload)
+    lines: list[str] = [
+        f"Run: {result_payload.get('run_id', '')}",
+        f"When: {now_local.isoformat(timespec='seconds')}",
+        f"Mode: {save_mode}",
+        f"MessageID: {message.get('messageID', '')}",
+        f"From: {message.get('sender', '')}",
+        f"Subject: {message.get('subject', '')}",
+        f"ReceivedAt: {message.get('receivedAt', '')}",
+        f"Decision: {result_payload.get('decision', '')}",
+        f"Actions: {result_payload.get('actions_count', 0)}",
+        f"Created: {created}  Skipped: {skipped}  Failed: {failed}",
+        f"Flag: {json.dumps(result_payload.get('flag_result', {}), ensure_ascii=False)}",
+    ]
+
+    item_results = result_payload.get("item_results")
+    if isinstance(item_results, list) and item_results:
+        lines.append("")
+        lines.append("Item results:")
+        for item in item_results:
+            lines.append(
+                "- #{idx} {decision} | {status} | {title}".format(
+                    idx=item.get("index", ""),
+                    decision=item.get("decision", ""),
+                    status=item.get("status", ""),
+                    title=item.get("title", ""),
+                )
+            )
+
+    return "\n".join(lines).strip()
+
+
+def write_processing_log_note(
+    message: Dict[str, str],
+    result_payload: Dict[str, Any],
+    save_mode: str,
+    local_tz: ZoneInfo,
+) -> Dict[str, Any]:
+    if not NOTE_SCRIPT.exists():
+        return {"status": "skipped", "reason": f"missing_note_script:{NOTE_SCRIPT}"}
+
+    now_local = datetime.now(local_tz)
+    day_key = now_local.date().isoformat()
+    folder = f"{LOG_NOTE_ROOT}/{day_key}"
+    title = f"Mail Log {day_key}"
+    body = build_processing_log_text(message, result_payload, save_mode, now_local)
+
+    try:
+        proc = subprocess.run(
+            ["osascript", str(NOTE_SCRIPT), title, body, folder, "prepend"],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        result: Dict[str, Any] = {
+            "status": "created",
+            "folder": folder,
+            "title": title,
+            "id": proc.stdout.strip(),
+        }
+        if proc.stderr.strip():
+            result["stderr"] = proc.stderr.strip()
+        return result
+    except subprocess.CalledProcessError as exc:
+        return {
+            "status": "failed",
+            "folder": folder,
+            "title": title,
+            "error": (exc.stderr or exc.stdout or str(exc)).strip(),
+        }
+
+
+def choose_flag_decision(actions: list[Dict[str, Any]]) -> str:
+    decisions = {str(item.get("decision", "")).strip().lower() for item in actions}
+    if "calendar" in decisions or "reminder" in decisions:
+        return "calendar"
+    if "note" in decisions:
+        return "note"
+    return "skip"
+
+
+def bootstrap_action_fingerprints_from_results(
+    fingerprints: Dict[str, Dict[str, str]],
+    default_calendar: str,
+    limit: int = 200,
+) -> int:
+    result_files = sorted(RESULT_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    added = 0
+    for result_path in result_files[:limit]:
+        try:
+            payload = json.loads(result_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        action_path_raw = str(payload.get("action_json_path", "")).strip()
+        if not action_path_raw:
+            continue
+        action_path = Path(action_path_raw)
+        if not action_path.exists():
+            continue
+        try:
+            action_payload = json.loads(action_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(action_payload, dict):
+            continue
+        try:
+            actions = normalize_codex_actions(action_payload)
+        except Exception:
+            continue
+        for action in actions:
+            if action.get("decision") == "skip":
+                continue
+            fp = action_fingerprint(action, default_calendar)
+            if fp in fingerprints:
+                continue
+            fingerprints[fp] = {
+                "timestamp": str(payload.get("timestamp", "")),
+                "run_id": str(payload.get("run_id", "")),
+                "message_id": str(payload.get("message_id", "")),
+                "decision": str(action.get("decision", "")),
+                "title": str(action.get("title", "")),
+                "start": str(action.get("start", "")),
+                "end": str(action.get("end", "")),
+                "due": str(action.get("due", "")),
+                "calendar": resolve_effective_calendar(action, default_calendar),
+                "list": str(action.get("list", "")),
+                "folder": str(action.get("folder", "")),
+            }
+            added += 1
+    return added
+
+
+def resolve_flag_index(decision: str) -> Optional[int]:
+    normalized = str(decision or "").strip().lower()
+    fallback = DEFAULT_FLAG_INDEX_BY_DECISION.get(normalized)
+    if fallback is None:
+        return None
+
+    env_key_by_decision = {
+        "note": "LAZYINGART_FLAG_NOTE_INDEX",
+        "calendar": "LAZYINGART_FLAG_CALENDAR_INDEX",
+        "reminder": "LAZYINGART_FLAG_REMINDER_INDEX",
+        "skip": "LAZYINGART_FLAG_SKIP_INDEX",
+    }
+    raw = os.environ.get(env_key_by_decision[normalized], "").strip()
+    if not raw:
+        return fallback
+    try:
+        val = int(raw)
+    except ValueError:
+        logging.warning("flag_index_env_invalid decision=%s value=%s using_default=%s", normalized, raw, fallback)
+        return fallback
+    if not (0 <= val <= 6):
+        logging.warning("flag_index_out_of_range decision=%s value=%s using_default=%s", normalized, val, fallback)
+        return fallback
+    return val
+
+
+def apply_decision_flag(message: Dict[str, str], decision: str) -> Dict[str, Any]:
+    flag_index = resolve_flag_index(decision)
+    if flag_index is None:
+        return {"status": "skipped", "reason": "unsupported_decision"}
+
+    message_id = str(message.get("messageID", "")).strip()
+    account_name = str(message.get("account", "")).strip()
+    mailbox_name = str(message.get("mailbox", "")).strip()
+    if not message_id or not account_name:
+        return {"status": "skipped", "reason": "missing_message_locator"}
+
+    script = r"""
+on run argv
+	if (count of argv) < 4 then return "status=invalid_args"
+	set messageIDRaw to (item 1 of argv) as text
+	set accountName to (item 2 of argv) as text
+	set mailboxName to (item 3 of argv) as text
+	set flagIndexText to (item 4 of argv) as text
+	try
+		set targetFlagIndex to flagIndexText as integer
+	on error
+		return "status=invalid_flag_index"
+	end try
+
+	tell application "Mail"
+		set targetAccount to missing value
+		repeat with a in accounts
+			if (name of a as text) is accountName then
+				set targetAccount to a
+				exit repeat
+			end if
+		end repeat
+		if targetAccount is missing value then return "status=account_not_found"
+
+		set mailboxCandidates to {}
+		if mailboxName is not "" then
+			repeat with mb in every mailbox of targetAccount
+				if (name of mb as text) is mailboxName then
+					set end of mailboxCandidates to mb
+				end if
+			end repeat
+		end if
+		if (count of mailboxCandidates) is 0 then
+			set mailboxCandidates to every mailbox of targetAccount
+		end if
+
+		set targetMsg to missing value
+		set idNum to missing value
+		try
+			set idNum to messageIDRaw as integer
+		end try
+
+		if idNum is not missing value then
+			repeat with mb in mailboxCandidates
+				try
+					set targetMsg to first message of mb whose id is idNum
+				end try
+				if targetMsg is not missing value then exit repeat
+			end repeat
+		end if
+
+		if targetMsg is missing value then
+			repeat with mb in mailboxCandidates
+				try
+					set targetMsg to first message of mb whose message id is messageIDRaw
+				end try
+				if targetMsg is not missing value then exit repeat
+			end repeat
+		end if
+
+		if targetMsg is missing value then return "status=message_not_found"
+
+		try
+			set flagged status of targetMsg to true
+			set flag index of targetMsg to targetFlagIndex
+		on error errMsg number errNum
+			return "status=flag_set_error" & linefeed & "error=" & errNum & ":" & errMsg
+		end try
+	end tell
+
+	set outLines to {"status=ok", "messageID=" & messageIDRaw, "flagIndex=" & (targetFlagIndex as text), "account=" & accountName, "mailbox=" & mailboxName}
+	set AppleScript's text item delimiters to linefeed
+	return outLines as text
+end run
+""".strip()
+
+    try:
+        proc = subprocess.run(
+            ["osascript", "-", message_id, account_name, mailbox_name, str(flag_index)],
+            input=script,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        err_text = (exc.stderr or exc.stdout or str(exc)).strip()
+        return {"status": "failed", "error": err_text}
+
+    payload = parse_osascript_kv(proc.stdout)
+    status = payload.get("status", "").strip() or "unknown"
+    result: Dict[str, Any] = {
+        "status": status,
+        "decision": decision,
+        "flagIndex": flag_index,
+        "messageID": message_id,
+        "account": account_name,
+        "mailbox": mailbox_name,
+    }
+    if proc.stderr.strip():
+        result["stderr"] = proc.stderr.strip()
+    if "error" in payload:
+        result["error"] = payload.get("error", "")
+    return result
 
 
 def fetch_latest_email_payload(skip_accounts: set[str]) -> Dict[str, str]:
@@ -584,12 +1131,26 @@ def resolve_node_bin(codex_bin: str) -> str:
     raise FileNotFoundError("node")
 
 
-def build_prompt(message: Dict[str, str], now_local: datetime, received_local: datetime) -> str:
+def build_prompt(
+    message: Dict[str, str],
+    now_local: datetime,
+    received_local: datetime,
+    default_calendar: str,
+    recent_items_text: str,
+) -> str:
+    prompt_default_calendar = default_calendar.strip() or "Calendar"
     return f"""
 You are an email triage assistant for Lazyingart.
 
 You must output EXACTLY one JSON object that matches this schema and contains no extra keys:
 {json.dumps(SCHEMA, indent=2)}
+
+Core requirement:
+- Extract ALL actionable items from this email exhaustively.
+- Return them in `actions` array (one item per action).
+- Mix action types when needed (calendar + reminder + note in the same output is allowed/expected).
+- If there is truly nothing useful, return one action with decision="skip".
+- Avoid duplicates against existing saved items below.
 
 Decision policy (strict):
 - decision=calendar: default for items related to the user's own plan/schedule, or important events that should appear on timeline view.
@@ -610,7 +1171,7 @@ Field rules:
 - For irrelevant fields, set empty string "".
 - reminderMinutes must be integer 0..240.
 - Default destinations unless email explicitly implies otherwise:
-  - calendar: "Lachlan"
+  - calendar: {json.dumps(prompt_default_calendar)}
   - list: "Reminders"
 - For decision=note, folder must be a nested path under Lazyingart in this format:
   - "Lazyingart/<Flexible>/<Flexible...>"
@@ -643,10 +1204,21 @@ Field rules:
 - For Chinese weekday phrases, treat "下周X" as weekday X in next calendar week.
 - Prefer local timezone offset in start/end/due (avoid UTC unless email explicitly uses UTC).
 
+Duplicate control (important):
+- Existing saved items are listed below.
+- Do NOT output an action if it is effectively the same task/event already saved.
+- For calendar duplication check: compare title + start + end + calendar.
+- For reminder duplication check: compare title + due + list.
+- For note duplication check: compare title + folder and same core content.
+- If email is forwarded/repeated, keep NEW items but skip already-saved duplicates.
+
 Current local datetime:
 - {now_local.isoformat(timespec="seconds")}
 Email received datetime in local timezone:
 - {received_local.isoformat(timespec="seconds")}
+
+Existing saved items (most recent first):
+{recent_items_text}
 
 Email metadata:
 - sender: {message['sender']}
@@ -660,19 +1232,170 @@ Email body (full text):
 """.strip()
 
 
-def run_codex(
+def build_smart_save_prompt(
+    message: Dict[str, str],
+    now_local: datetime,
+    received_local: datetime,
+    default_calendar: str,
+    candidate_actions: list[Dict[str, Any]],
+    recent_items_text: str,
+    notes_index_text: str,
+) -> str:
+    prompt_default_calendar = default_calendar.strip() or "Calendar"
+    candidate_json = json.dumps({"actions": candidate_actions}, ensure_ascii=False, indent=2)
+    return f"""
+You are the Smart Save planner for Lazyingart email automation.
+
+You must output EXACTLY one JSON object matching this schema, with no extra keys:
+{json.dumps(SCHEMA, indent=2)}
+
+Your job:
+1) Review candidate actions extracted from this email.
+2) Re-plan final save actions so they are deduplicated and organized.
+3) Use existing notes index to decide whether to append to an existing note (same title/folder) or create a new note.
+
+Rules:
+- Keep only actions that provide value.
+- Remove duplicates against existing saved items and against repeated forwarded email content.
+- Preserve all distinct actionable items.
+- If nothing should be saved, return exactly one action with decision="skip".
+- Prefer calendar for personal schedule/deadline/travel related to the user.
+- Use reminder for mass/broadcast/general notices that still need a nudge.
+- Use note for reference/bookkeeping.
+- For note actions, always use folder path starting with "Lazyingart/".
+- For finance/payment/bank emails:
+  - prefer note unless urgent action needed;
+  - group by day: folder "Lazyingart/Finance/YYYY-MM-DD", title "Finance Ledger YYYY-MM-DD";
+  - if a same-day ledger note already exists, reuse its exact title/folder.
+- For note content, produce structured text when useful:
+  - Summary
+  - Todo
+  - Cost Memo
+  - Key Dates
+  Include only non-empty sections.
+- Default calendar: {json.dumps(prompt_default_calendar)}
+- Default reminder list: "Reminders"
+
+Duplicate checks:
+- calendar duplicate key: title + start + end + calendar
+- reminder duplicate key: title + due + list
+- note duplicate key: title + folder + core content
+
+Current local datetime:
+- {now_local.isoformat(timespec="seconds")}
+Email received local datetime:
+- {received_local.isoformat(timespec="seconds")}
+
+Candidate actions from parser:
+{candidate_json}
+
+Existing saved items (recent first):
+{recent_items_text}
+
+Existing notes index (recent sample):
+{notes_index_text}
+
+Email metadata:
+- sender: {message['sender']}
+- subject: {message['subject']}
+- receivedAt: {message['receivedAt']}
+- mailbox: {message['mailbox']}
+- account: {message['account']}
+
+Email body (full text):
+{message['body']}
+""".strip()
+
+
+def build_strong_save_prompt(
+    message: Dict[str, str],
+    now_local: datetime,
+    received_local: datetime,
+    default_calendar: str,
+    actions: list[Dict[str, Any]],
+    recent_items_text: str,
+    notes_index_text: str,
+    run_id: str,
+) -> str:
+    prompt_default_calendar = default_calendar.strip() or "Calendar"
+    today = now_local.date().isoformat()
+    actions_json = json.dumps({"actions": actions}, ensure_ascii=False, indent=2)
+    return f"""
+You are the strong_smart_save executor for Lazyingart mail automation.
+
+You MUST execute saves yourself using shell commands (not just planning), then return one final JSON object matching this schema exactly:
+{json.dumps(STRONG_SAVE_SCHEMA, indent=2)}
+
+Execution requirements:
+1) Input actions to execute:
+{actions_json}
+2) Deduplicate:
+   - against existing saved items below
+   - within this run
+   - calendar duplicate key: title + start + end + calendar
+   - reminder duplicate key: title + due + list
+   - note duplicate key: title + folder + core content
+3) Save commands:
+   - calendar:
+     osascript {json.dumps(str(AUTOMATION_DIR / "create_calendar_event.applescript"))} "<title>" "<start>" "<end>" "<notes>" "<calendar>" "<reminderMinutes>"
+   - reminder:
+     osascript {json.dumps(str(AUTOMATION_DIR / "create_reminder.applescript"))} "<title>" "<due>" "<notes>" "<list>" "<reminderMinutes>"
+   - note:
+     osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "<title>" "<notes>" "<folder>" "prepend"
+4) For note actions, dynamically merge into existing knowledge:
+   - reuse same title/folder when semantically same topic
+   - prefer nested Lazyingart folders
+   - reorganize note body structure if needed (Summary / Todo / Cost Memo / Key Dates), newest first
+5) For finance/payment messages:
+   - prefer daily ledger note
+   - folder: Lazyingart/Finance/YYYY-MM-DD
+   - title: Finance Ledger YYYY-MM-DD
+6) After actions, create one processing log note:
+   - folder: Lazyingart/Log/{today}
+   - title: Mail Log {today}
+   - include run_id, message_id, subject, created/skipped/failed, and per-item summary
+   - command:
+     osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "Mail Log {today}" "<log_text>" "Lazyingart/Log/{today}" "prepend"
+7) Always return all items in item_results with status created/skipped/failed and concise reason.
+
+Defaults:
+- calendar default: {json.dumps(prompt_default_calendar)}
+- reminder list default: "Reminders"
+
+Run context:
+- run_id: {run_id}
+- now_local: {now_local.isoformat(timespec="seconds")}
+- received_local: {received_local.isoformat(timespec="seconds")}
+- message_id: {message.get('messageID', '')}
+- sender: {message.get('sender', '')}
+- subject: {message.get('subject', '')}
+
+Existing saved items:
+{recent_items_text}
+
+Existing notes index:
+{notes_index_text}
+
+Email body:
+{message.get('body', '')}
+""".strip()
+
+
+def run_codex_json(
     prompt: str,
     output_path: Path,
+    schema: Dict[str, Any],
     model: str,
     reasoning: str,
     codex_bin_override: str = "",
+    sandbox: str = "read-only",
 ) -> Dict[str, Any]:
     codex_bin = resolve_codex_bin(codex_bin_override)
     node_bin = resolve_node_bin(codex_bin)
     codex_dir = str(Path(codex_bin).resolve().parent)
     node_dir = str(Path(node_bin).resolve().parent)
     with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf-8") as schema_file:
-        schema_file.write(json.dumps(SCHEMA, indent=2))
+        schema_file.write(json.dumps(schema, indent=2))
         schema_path = Path(schema_file.name)
 
     cmd = [
@@ -681,6 +1404,8 @@ def run_codex(
         "exec",
         "--model",
         model,
+        "--sandbox",
+        sandbox,
         "-c",
         f'model_reasoning_effort="{reasoning}"',
         "--skip-git-repo-check",
@@ -714,9 +1439,29 @@ def run_codex(
 
     text = output_path.read_text(encoding="utf-8")
     parsed = parse_codex_json_text(text)
-    normalized = normalize_action(parsed)
-    write_json(output_path, normalized)
-    return normalized
+    write_json(output_path, parsed)
+    return parsed
+
+
+def run_codex(
+    prompt: str,
+    output_path: Path,
+    model: str,
+    reasoning: str,
+    codex_bin_override: str = "",
+) -> list[Dict[str, Any]]:
+    parsed = run_codex_json(
+        prompt=prompt,
+        output_path=output_path,
+        schema=SCHEMA,
+        model=model,
+        reasoning=reasoning,
+        codex_bin_override=codex_bin_override,
+        sandbox="read-only",
+    )
+    actions = normalize_codex_actions(parsed)
+    write_json(output_path, {"actions": actions})
+    return actions
 
 
 def enforce_low_importance_policy(action: Dict[str, Any], message: Dict[str, str]) -> Dict[str, Any]:
@@ -743,7 +1488,7 @@ def enforce_low_importance_policy(action: Dict[str, Any], message: Dict[str, str
     return action
 
 
-def apply_action(action_json_path: Path, message_json_path: Path) -> Dict[str, Any]:
+def apply_action(action_json_path: Path, message_json_path: Path, default_calendar: str) -> Dict[str, Any]:
     if not APPLY_SCRIPT.exists():
         raise FileNotFoundError(f"Missing action script: {APPLY_SCRIPT}")
     cmd = [
@@ -754,6 +1499,8 @@ def apply_action(action_json_path: Path, message_json_path: Path) -> Dict[str, A
         "--message-json",
         str(message_json_path),
     ]
+    if default_calendar.strip():
+        cmd.extend(["--default-calendar", default_calendar.strip()])
     proc = subprocess.run(cmd, text=True, capture_output=True, check=True)
     if proc.stderr.strip():
         logging.info("apply_stderr: %s", proc.stderr.strip()[:1000])
@@ -787,9 +1534,38 @@ def main() -> None:
     parser.add_argument("--model", default=MODEL)
     parser.add_argument("--reasoning", default=REASONING)
     parser.add_argument("--codex-bin", default="")
+    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", "Calendar"))
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--smart_save",
+        "--smart-save",
+        dest="smart_save",
+        action="store_true",
+        help="Use Codex smart-save planning before applying actions.",
+    )
+    mode_group.add_argument(
+        "--code_save",
+        "--code-save",
+        dest="code_save",
+        action="store_true",
+        help="Use code-only save flow after initial Codex extraction.",
+    )
+    mode_group.add_argument(
+        "--strong_smart_save",
+        "--strong-smart-save",
+        dest="strong_smart_save",
+        action="store_true",
+        help="Use Codex to execute save actions directly (calendar/reminder/note + dynamic merge) (default).",
+    )
     args = parser.parse_args()
 
     setup_logging(args.log_level)
+    if args.code_save:
+        save_mode = "code_save"
+    elif args.smart_save:
+        save_mode = "smart_save"
+    else:
+        save_mode = "strong_smart_save"
 
     source_ref = ""
     if args.latest_email:
@@ -821,11 +1597,18 @@ def main() -> None:
     message_token = safe_token(message.get("messageID", ""))
     run_id = f"{timestamp}-{message_token}"
     message_id = message.get("messageID", "")
+    local_tz = get_local_tz()
+    now_local = datetime.now(local_tz)
+    received_local = parse_iso_datetime(message.get("receivedAt", ""), local_tz) or now_local
+    default_calendar = str(args.default_calendar or "").strip() or "Calendar"
     processed_ids = load_processed_ids()
 
     inbound_path = INBOUND_DIR / f"{run_id}.json"
     prompt_path = PROMPT_DIR / f"{run_id}.txt"
-    codex_output_path = CODEX_DIR / f"{run_id}.json"
+    parser_output_path = CODEX_DIR / f"{run_id}.json"
+    smart_prompt_path = PROMPT_DIR / f"{run_id}-smart.txt"
+    smart_output_path = CODEX_DIR / f"{run_id}-smart.json"
+    final_output_path = parser_output_path
     result_path = RESULT_DIR / f"{run_id}.json"
 
     write_json(inbound_path, message)
@@ -837,6 +1620,9 @@ def main() -> None:
             "message_id": message_id,
             "decision": "skip",
             "importance": "low",
+            "decisions": ["skip"],
+            "actions_count": 0,
+            "save_mode": save_mode,
             "action_json_path": "",
             "apply_result": {
                 "status": "skipped_duplicate",
@@ -844,39 +1630,47 @@ def main() -> None:
                 "reason": "message_id already processed",
                 "first_run_id": processed_ids[message_id].get("run_id", ""),
             },
+            "flag_result": {"status": "skipped", "reason": "duplicate_message"},
             "timestamp": datetime.now().isoformat(),
         }
+        duplicate_result["log_note_result"] = write_processing_log_note(message, duplicate_result, save_mode, local_tz)
         write_json(result_path, duplicate_result)
         shutil.copyfile(result_path, RESULT_DIR / "latest.json")
         logging.info(
-            "pipeline_skip_duplicate run_id=%s message_id=%s first_run_id=%s",
+            "pipeline_skip_duplicate run_id=%s message_id=%s first_run_id=%s mode=%s",
             run_id,
             message_id,
             processed_ids[message_id].get("run_id", ""),
+            save_mode,
         )
         print(json.dumps(duplicate_result, ensure_ascii=False))
         return
 
-    local_tz = get_local_tz()
-    now_local = datetime.now(local_tz)
-    received_local = parse_iso_datetime(message.get("receivedAt", ""), local_tz) or now_local
+    action_fingerprints = load_action_fingerprints()
+    boot_added = bootstrap_action_fingerprints_from_results(action_fingerprints, default_calendar)
+    if boot_added:
+        save_action_fingerprints(action_fingerprints)
+        logging.info("action_fingerprint_bootstrap_added=%s", boot_added)
+    recent_items_text = summarize_recent_items_for_prompt(action_fingerprints)
 
-    prompt = build_prompt(message, now_local, received_local)
+    prompt = build_prompt(message, now_local, received_local, default_calendar, recent_items_text)
     prompt_path.write_text(prompt + "\n", encoding="utf-8")
     shutil.copyfile(prompt_path, PROMPT_DIR / "latest.txt")
 
     logging.info(
-        "pipeline_start run_id=%s message_id=%s source=%s inbound=%s codex_out=%s codex_bin=%s",
+        "pipeline_start run_id=%s mode=%s message_id=%s source=%s inbound=%s codex_out=%s codex_bin=%s default_calendar=%s",
         run_id,
+        save_mode,
         message.get("messageID", ""),
         source_ref,
         inbound_path,
-        codex_output_path,
+        parser_output_path,
         args.codex_bin or os.environ.get("LAZYINGART_CODEX_BIN", "") or "auto",
+        default_calendar or "(none)",
     )
 
     try:
-        action = run_codex(prompt, codex_output_path, args.model, args.reasoning, args.codex_bin)
+        parser_actions = run_codex(prompt, parser_output_path, args.model, args.reasoning, args.codex_bin)
     except subprocess.CalledProcessError as exc:
         logging.error("codex_exec_failed run_id=%s code=%s", run_id, exc.returncode)
         if exc.stderr:
@@ -886,54 +1680,324 @@ def main() -> None:
         logging.error("codex_output_invalid run_id=%s err=%s", run_id, exc)
         sys.exit(1)
 
-    action = enforce_low_importance_policy(action, message)
-    action = apply_weekday_correction(action, message, now_local, local_tz)
-    write_json(codex_output_path, action)
+    normalized_actions: list[Dict[str, Any]] = []
+    for action in parser_actions:
+        patched = enforce_low_importance_policy(action, message)
+        patched = apply_weekday_correction(patched, message, now_local, local_tz)
+        normalized_actions.append(patched)
+    write_json(parser_output_path, {"actions": normalized_actions})
 
-    shutil.copyfile(codex_output_path, CODEX_DIR / "latest.json")
+    if save_mode in {"smart_save", "strong_smart_save"}:
+        notes_index = fetch_notes_index(account="iCloud", limit=300)
+        notes_index_text = summarize_notes_for_prompt(notes_index, limit=160)
+        smart_prompt = build_smart_save_prompt(
+            message,
+            now_local,
+            received_local,
+            default_calendar,
+            normalized_actions,
+            recent_items_text,
+            notes_index_text,
+        )
+        smart_prompt_path.write_text(smart_prompt + "\n", encoding="utf-8")
+        shutil.copyfile(smart_prompt_path, PROMPT_DIR / "latest-smart.txt")
+        try:
+            smart_actions = run_codex(smart_prompt, smart_output_path, args.model, args.reasoning, args.codex_bin)
+        except subprocess.CalledProcessError as exc:
+            logging.error("smart_save_codex_exec_failed run_id=%s code=%s", run_id, exc.returncode)
+            if exc.stderr:
+                logging.error("smart_save_codex_stderr=%s", exc.stderr.strip()[:2000])
+            sys.exit(1)
+        except Exception as exc:
+            logging.error("smart_save_output_invalid run_id=%s err=%s", run_id, exc)
+            sys.exit(1)
+
+        smart_normalized: list[Dict[str, Any]] = []
+        for action in smart_actions:
+            patched = enforce_low_importance_policy(action, message)
+            patched = apply_weekday_correction(patched, message, now_local, local_tz)
+            smart_normalized.append(patched)
+        normalized_actions = smart_normalized
+        write_json(smart_output_path, {"actions": normalized_actions})
+        final_output_path = smart_output_path
+
+    shutil.copyfile(final_output_path, CODEX_DIR / "latest.json")
     logging.info(
-        "codex_action_ready run_id=%s decision=%s importance=%s action_path=%s",
+        "codex_action_ready run_id=%s mode=%s actions=%s action_path=%s",
         run_id,
-        action["decision"],
-        action["importance"],
-        codex_output_path,
+        save_mode,
+        len(normalized_actions),
+        final_output_path,
     )
 
-    try:
-        apply_result = apply_action(codex_output_path, inbound_path)
-    except subprocess.CalledProcessError as exc:
-        logging.error("apply_failed run_id=%s code=%s", run_id, exc.returncode)
-        if exc.stderr:
-            logging.error("apply_stderr=%s", exc.stderr.strip()[:2000])
-        sys.exit(1)
-    except Exception as exc:
-        logging.error("apply_exception run_id=%s err=%s", run_id, exc)
-        sys.exit(1)
+    item_results: list[Dict[str, Any]] = []
+    strong_log_note_result: Optional[Dict[str, Any]] = None
+    if save_mode == "strong_smart_save":
+        strong_prompt_path = PROMPT_DIR / f"{run_id}-strong.txt"
+        strong_output_path = CODEX_DIR / f"{run_id}-strong.json"
+        notes_index = fetch_notes_index(account="iCloud", limit=300)
+        notes_index_text = summarize_notes_for_prompt(notes_index, limit=200)
+        strong_prompt = build_strong_save_prompt(
+            message=message,
+            now_local=now_local,
+            received_local=received_local,
+            default_calendar=default_calendar,
+            actions=normalized_actions,
+            recent_items_text=recent_items_text,
+            notes_index_text=notes_index_text,
+            run_id=run_id,
+        )
+        strong_prompt_path.write_text(strong_prompt + "\n", encoding="utf-8")
+        shutil.copyfile(strong_prompt_path, PROMPT_DIR / "latest-strong.txt")
+        try:
+            strong_payload = run_codex_json(
+                prompt=strong_prompt,
+                output_path=strong_output_path,
+                schema=STRONG_SAVE_SCHEMA,
+                model=args.model,
+                reasoning=args.reasoning,
+                codex_bin_override=args.codex_bin,
+                sandbox="danger-full-access",
+            )
+        except subprocess.CalledProcessError as exc:
+            logging.error("strong_save_codex_exec_failed run_id=%s code=%s", run_id, exc.returncode)
+            if exc.stderr:
+                logging.error("strong_save_codex_stderr=%s", exc.stderr.strip()[:2000])
+            sys.exit(1)
+        except Exception as exc:
+            logging.error("strong_save_output_invalid run_id=%s err=%s", run_id, exc)
+            sys.exit(1)
+
+        final_output_path = strong_output_path
+        shutil.copyfile(final_output_path, CODEX_DIR / "latest.json")
+        logging.info("strong_save_done run_id=%s action_path=%s", run_id, final_output_path)
+
+        raw_results = strong_payload.get("item_results")
+        if not isinstance(raw_results, list):
+            raw_results = []
+
+        for raw in raw_results:
+            if not isinstance(raw, dict):
+                continue
+            idx = int(raw.get("index", 0) or 0)
+            action_ref: Dict[str, Any] = {}
+            if 1 <= idx <= len(normalized_actions):
+                action_ref = normalized_actions[idx - 1]
+            decision = str(raw.get("decision", action_ref.get("decision", "skip"))).strip().lower() or "skip"
+            title = str(raw.get("title", action_ref.get("title", "")))
+            status = str(raw.get("status", "failed")).strip() or "failed"
+            fingerprint = str(raw.get("fingerprint", "")).strip()
+            if not fingerprint and action_ref:
+                fingerprint = action_fingerprint(action_ref, default_calendar)
+            apply_result: Dict[str, Any] = {
+                "status": status,
+                "target": str(raw.get("target", decision)),
+                "id": str(raw.get("id", "")),
+                "reason": str(raw.get("reason", "")),
+            }
+            error_text = str(raw.get("error", "")).strip()
+            if error_text:
+                apply_result["error"] = error_text
+            item_result: Dict[str, Any] = {
+                "index": idx,
+                "decision": decision,
+                "importance": str(action_ref.get("importance", "medium")),
+                "title": title,
+                "fingerprint": fingerprint,
+                "status": status,
+                "apply_result": apply_result,
+            }
+            item_results.append(item_result)
+
+            if status == "created" and action_ref:
+                action_fingerprints[fingerprint] = {
+                    "timestamp": datetime.now().isoformat(),
+                    "run_id": run_id,
+                    "message_id": message_id,
+                    "decision": decision,
+                    "title": action_ref.get("title", ""),
+                    "start": action_ref.get("start", ""),
+                    "end": action_ref.get("end", ""),
+                    "due": action_ref.get("due", ""),
+                    "calendar": resolve_effective_calendar(action_ref, default_calendar),
+                    "list": action_ref.get("list", ""),
+                    "folder": action_ref.get("folder", ""),
+                }
+
+        if not item_results:
+            for idx, action in enumerate(normalized_actions, start=1):
+                fp = action_fingerprint(action, default_calendar)
+                item_results.append(
+                    {
+                        "index": idx,
+                        "decision": action["decision"],
+                        "importance": action["importance"],
+                        "title": action["title"],
+                        "fingerprint": fp,
+                        "status": "failed",
+                        "apply_result": {"status": "failed", "error": "strong_smart_save returned no item_results"},
+                    }
+                )
+
+        log_note_obj = strong_payload.get("log_note_result")
+        if isinstance(log_note_obj, dict):
+            strong_log_note_result = {str(k): v for k, v in log_note_obj.items()}
+    else:
+        seen_fingerprints_in_run: set[str] = set()
+        for idx, action in enumerate(normalized_actions, start=1):
+            decision = action["decision"]
+            fingerprint = action_fingerprint(action, default_calendar)
+            item_result: Dict[str, Any] = {
+                "index": idx,
+                "decision": decision,
+                "importance": action["importance"],
+                "title": action["title"],
+                "fingerprint": fingerprint,
+                "status": "",
+                "apply_result": {},
+            }
+
+            if fingerprint in seen_fingerprints_in_run:
+                item_result["status"] = "skipped_duplicate_in_output"
+                item_result["apply_result"] = {"status": "skipped_duplicate_in_output"}
+                item_results.append(item_result)
+                continue
+            seen_fingerprints_in_run.add(fingerprint)
+
+            if decision != "skip" and fingerprint in action_fingerprints:
+                item_result["status"] = "skipped_duplicate_saved"
+                item_result["apply_result"] = {
+                    "status": "skipped_duplicate_saved",
+                    "first_saved_at": action_fingerprints[fingerprint].get("timestamp", ""),
+                    "first_run_id": action_fingerprints[fingerprint].get("run_id", ""),
+                }
+                item_results.append(item_result)
+                continue
+
+            if decision == "skip":
+                item_result["status"] = "skipped"
+                item_result["apply_result"] = {"status": "skipped", "target": "none", "reason": action.get("reason", "")}
+                item_results.append(item_result)
+                continue
+
+            item_action_path = CODEX_DIR / f"{run_id}-item{idx}.json"
+            write_json(item_action_path, action)
+            try:
+                apply_result = apply_action(item_action_path, inbound_path, default_calendar)
+                item_result["status"] = str(apply_result.get("status", "unknown"))
+                item_result["apply_result"] = apply_result
+                if item_result["status"] == "created":
+                    action_fingerprints[fingerprint] = {
+                        "timestamp": datetime.now().isoformat(),
+                        "run_id": run_id,
+                        "message_id": message_id,
+                        "decision": decision,
+                        "title": action.get("title", ""),
+                        "start": action.get("start", ""),
+                        "end": action.get("end", ""),
+                        "due": action.get("due", ""),
+                        "calendar": resolve_effective_calendar(action, default_calendar),
+                        "list": action.get("list", ""),
+                        "folder": action.get("folder", ""),
+                    }
+            except subprocess.CalledProcessError as exc:
+                err_text = (exc.stderr or str(exc)).strip()
+                item_result["status"] = "failed"
+                item_result["apply_result"] = {"status": "failed", "error": err_text}
+                logging.error("apply_failed run_id=%s item=%s err=%s", run_id, idx, err_text[:1000])
+            except Exception as exc:
+                item_result["status"] = "failed"
+                item_result["apply_result"] = {"status": "failed", "error": str(exc)}
+                logging.error("apply_exception run_id=%s item=%s err=%s", run_id, idx, exc)
+            item_results.append(item_result)
+
+    save_action_fingerprints(action_fingerprints)
+
+    created_decisions = [item["decision"] for item in item_results if item["status"] == "created"]
+    flag_basis = [{"decision": d} for d in created_decisions] or [{"decision": "skip"}]
+    flag_decision = choose_flag_decision(flag_basis)
+    flag_result = apply_decision_flag(message, flag_decision)
+    flag_status = str(flag_result.get("status", "unknown"))
+    if flag_status == "ok":
+        logging.info(
+            "flag_applied run_id=%s decision=%s flag_index=%s message_id=%s",
+            run_id,
+            flag_decision,
+            flag_result.get("flagIndex", ""),
+            message_id,
+        )
+    else:
+        logging.warning(
+            "flag_apply_issue run_id=%s decision=%s status=%s detail=%s",
+            run_id,
+            flag_decision,
+            flag_status,
+            flag_result,
+        )
+
+    decision_values = [item["decision"] for item in normalized_actions]
+    importance_rank = {"low": 1, "medium": 2, "high": 3}
+    top_importance = "low"
+    for item in normalized_actions:
+        imp = str(item.get("importance", "low"))
+        if importance_rank.get(imp, 0) > importance_rank.get(top_importance, 0):
+            top_importance = imp
+    created_count = sum(1 for item in item_results if item["status"] == "created")
+    failed_count = sum(1 for item in item_results if item["status"] == "failed")
+    skipped_count = len(item_results) - created_count - failed_count
+    if len(decision_values) == 1:
+        decision_summary = decision_values[0]
+    elif decision_values:
+        decision_summary = "multi"
+    else:
+        decision_summary = "skip"
+    if len(item_results) == 1:
+        apply_result_summary: Dict[str, Any] = item_results[0]["apply_result"]
+    else:
+        apply_result_summary = {
+            "status": "multi",
+            "created": created_count,
+            "skipped": skipped_count,
+            "failed": failed_count,
+        }
 
     result_payload = {
         "run_id": run_id,
         "message_id": message_id,
-        "decision": action["decision"],
-        "importance": action["importance"],
-        "action_json_path": str(codex_output_path),
-        "apply_result": apply_result,
+        "decision": decision_summary,
+        "importance": top_importance,
+        "decisions": decision_values,
+        "actions_count": len(normalized_actions),
+        "save_mode": save_mode,
+        "action_json_path": str(final_output_path),
+        "item_results": item_results,
+        "apply_result": apply_result_summary,
+        "flag_result": flag_result,
         "timestamp": datetime.now().isoformat(),
     }
+    if strong_log_note_result:
+        result_payload["log_note_result"] = strong_log_note_result
+    else:
+        result_payload["log_note_result"] = write_processing_log_note(message, result_payload, save_mode, local_tz)
     if message_id:
         processed_ids[message_id] = {
             "timestamp": result_payload["timestamp"],
             "run_id": run_id,
-            "decision": action["decision"],
+            "decision": decision_summary,
         }
         save_processed_ids(processed_ids)
     write_json(result_path, result_payload)
     shutil.copyfile(result_path, RESULT_DIR / "latest.json")
 
     logging.info(
-        "pipeline_done run_id=%s decision=%s result=%s",
+        "pipeline_done run_id=%s mode=%s decision=%s actions=%s created=%s skipped=%s failed=%s",
         run_id,
-        action["decision"],
-        apply_result,
+        save_mode,
+        decision_summary,
+        len(normalized_actions),
+        created_count,
+        skipped_count,
+        failed_count,
     )
     print(json.dumps(result_payload, ensure_ascii=False))
 
