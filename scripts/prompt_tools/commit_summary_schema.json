@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommitSummary",
+  "type": "object",
+  "properties": {
+    "commit_summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "details": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    }
+  },
+  "required": ["commit_summary", "details", "confidence"],
+  "additionalProperties": false
+}
