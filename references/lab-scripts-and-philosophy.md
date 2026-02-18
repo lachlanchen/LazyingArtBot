@@ -33,9 +33,13 @@ LAB automation follows these rules:
 
 ## Script inventory (LAB custom)
 
+All Codex prompt-driven scripts now live in:
+
+- `scripts/prompt_tools/`
+
 ### 1) Codex non-interactive wrapper
 
-- Path: `scripts/codex-noninteractive.sh`
+- Path: `scripts/prompt_tools/codex-noninteractive.sh`
 - Purpose: stable shell wrapper around `codex exec` with explicit model/reasoning.
 - Key options:
   - `--model <name>`
@@ -48,7 +52,7 @@ LAB automation follows these rules:
 Example:
 
 ```bash
-./scripts/codex-noninteractive.sh \
+./scripts/prompt_tools/codex-noninteractive.sh \
   --model gpt-5.1-codex-mini \
   --reasoning medium \
   --prompt "Reply with exactly: OK"
@@ -56,7 +60,7 @@ Example:
 
 ### 2) Codex email CLI (Apple Mail sender)
 
-- Path: `scripts/codex-email-cli.py`
+- Path: `scripts/prompt_tools/codex-email-cli.py`
 - Purpose: use Codex to draft structured email, then optionally send via macOS Mail.
 - Behavior:
   - Uses strict JSON output schema.
@@ -74,7 +78,7 @@ Key options:
 Dry-run:
 
 ```bash
-./scripts/codex-email-cli.py \
+./scripts/prompt_tools/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -84,7 +88,7 @@ Dry-run:
 Send now:
 
 ```bash
-./scripts/codex-email-cli.py \
+./scripts/prompt_tools/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -92,7 +96,44 @@ Send now:
   --send
 ```
 
-### 3) Prompt tools (reusable prompt components)
+### 3) Standardized JSON runner (common Codex practice)
+
+- Path: `scripts/prompt_tools/codex-json-runner.py`
+- Purpose: run any JSON-in / JSON-out Codex task with standardized artifacts.
+- Required input contract:
+  - `--input-json <path>`
+  - `--output-dir <path>`
+- Optional enforcement:
+  - `--schema <path>`
+
+Example:
+
+```bash
+python3 scripts/prompt_tools/codex-json-runner.py \
+  --input-json /tmp/task.json \
+  --output-dir /tmp/codex-runs \
+  --schema scripts/prompt_tools/email_send_schema.json \
+  --model gpt-5.1-codex-mini \
+  --reasoning medium
+```
+
+Standardized outputs per run:
+
+- `request.json`
+- `input.json`
+- `prompt.txt`
+- `result.raw.json`
+- `result.json`
+- `meta.json`
+- `codex.stdout.log`
+- `codex.stderr.log`
+
+Shared latest pointers:
+
+- `<output-dir>/latest-run.txt`
+- `<output-dir>/latest-result.json`
+
+### 4) Prompt tools (reusable prompt components)
 
 - Directory: `scripts/prompt_tools/`
 - Files:
@@ -105,7 +146,7 @@ Design goal:
 - Keep prompts modular and reusable.
 - Make schema the contract between model output and execution code.
 
-### 4) Upstream sync policy
+### 5) Upstream sync policy
 
 - Path: `references/upstream-sync-local-first.md`
 - Purpose: merge/fetch upstream without losing LAB customizations.

@@ -17,7 +17,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_PROMPT_TOOLS = SCRIPT_DIR / "prompt_tools"
+DEFAULT_PROMPT_TOOLS = SCRIPT_DIR
 DEFAULT_MODEL = "gpt-5.1-codex-mini"
 DEFAULT_REASONING = "medium"
 

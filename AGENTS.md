@@ -105,6 +105,7 @@
 
 - `sync`: if working tree is dirty, commit all changes (pick a sensible Conventional Commit message), then `git pull --rebase`; if rebase conflicts and cannot resolve, stop; otherwise `git push`.
 - Before any upstream fetch/merge/rebase from `openclaw/openclaw`, read `references/upstream-sync-local-first.md` first and follow its local-first conflict policy.
+- LAB Codex prompt tooling must stay under `scripts/prompt_tools/`; do not add new LAB Codex helper scripts at the top level `scripts/`.
 
 ## Security & Configuration Tips
 

@@ -75,6 +75,7 @@ Automation workspace (local):
 
 - `~/.openclaw/workspace/automation/`
 - Script references in repo: `references/lab-scripts-and-philosophy.md`
+- Dedicated Codex prompt tools: `scripts/prompt_tools/`
 
 ---
 
