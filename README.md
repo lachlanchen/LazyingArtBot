@@ -25,6 +25,42 @@ LAB focuses on practical personal productivity:
 
 In short: less busywork, better execution.
 
+### Who is this for?
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│   Knowledge workers whose minds run faster than their hands │
+│                                                             │
+│   · Tracking 5-15 directions simultaneously                  │
+│     (research / projects / relationships / self)            │
+│   · Lots of fragmented time, little deep work time          │
+│   · Ideas come quickly, disappear even faster               │
+│   · Hate formatting, but regret not recording later         │
+│   · Believe "System > Willpower"                            │
+│                                                             │
+│   Current pain points:                                      │
+│   Thought of it ──→ Didn't record ──→ Gone                  │
+│   Recorded  ──→ Didn't organize ──→ Dead in notes          │
+│   Organized ──→ Didn't follow up ──→ Forever in TODO       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Typical Behavior Patterns:**
+
+```
+Coffee Shop          Office               Before Bed
+─────────            ─────────            ─────────
+Saw a paper          After meeting        Mind racing
+  ↓                    ↓                    ↓
+Want to save it      Need to follow up    Many things undone
+  ↓                    ↓                    ↓
+Too lazy for Notion  Forgot to record     Anxious, can't sleep
+  ↓                    ↓                    ↓
+Telegram myself      Remember next meeting Rely on memory
+```
+
 ---
 
 ## Core capabilities
@@ -37,6 +73,32 @@ In short: less busywork, better execution.
   - classify action type
   - save to Notes / Reminders / Calendar
   - log every action for review and debugging
+
+### How it works: Input → Processing → Storage
+
+**INPUT Layer - Capture from anywhere:**
+
+```
+[User's World]
+
+  🗣  Voice         📝  Text          📸  Image         🎬  Video
+  ─────────        ─────────        ─────────        ─────────
+  "I think this    "Paper seen,     Screenshot /     Video demo +
+   direction is     deadline 3/15    photo of         voice explanation
+   interesting"     → task"          whiteboard
+
+  Colloquial/      Multi-line/       4 subtypes       Screen + audio
+  pause words      mixed Chinese     OCR/semantic     Timeline markers
+  Emotional cues   Hard command detect description
+
+                  ↓  ↓  ↓  ↓
+            ┌──────────────────────┐
+            │   Telegram / Feishu   │
+            │   (LAB Gateway)       │
+            └──────────┬───────────┘
+                       │
+                       ▼
+```
 
 ---
 
@@ -76,6 +138,71 @@ Automation workspace (local):
 - `~/.openclaw/workspace/automation/`
 - Script references in repo: `references/lab-scripts-and-philosophy.md`
 - Dedicated Codex prompt tools: `scripts/prompt_tools/`
+
+### System Architecture
+
+**BRAIN · Capture Agent Inference Layer:**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     CAPTURE AGENT (Inference Core)                   │
+│                                                                     │
+│  ① Multimodal Preprocessing                                          │
+│     Voice transcription  │  Image subtype 判断  │  Video timeline     │
+│                                                                     │
+│  ② Merge Judgment                                                    │
+│     Same media_group_id? ──→ Must merge                             │
+│     Highly consistent semantics? ──→ append_existing                │
+│     Uncertain? ──→ New + possible_duplicate                         │
+│                                                                     │
+│  ③ Intent Inference (10 types)                                       │
+│     action / timeline / watch / idea / question /                   │
+│     belief / memory / highlight / reference / person                │
+│                                                                     │
+│  ④ Confidence Governance                                             │
+│     ≥ 0.85  ──→ Structured card, hide menu                          │
+│     0.65~   ──→ Structured card, show menu                          │
+│     < 0.65  ──→ Only daily_log, no independent card                 │
+│                                                                     │
+│  ⑤ Time Structure Detection                                          │
+│     Has deadline + No task command ──→ watch + remind_schedule      │
+│                                                                     │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+                           ▼
+```
+
+**STORAGE · assistant_hub File System:**
+
+```
+assistant_hub/
+│
+├── 00_inbox/          ◀─── All original text, never deleted
+│   └── 2026-02-18_telegram_inbox.md
+│
+├── 02_work/           ◀─── Action Layer
+│   ├── tasks/         ·  ⚡ action cards
+│   ├── projects/      ·  📍 timeline cards
+│   ├── waiting.md     ·  👀 watch summary (with checkpoints)
+│   ├── today.md       ·  Today's tasks (Cron auto-merge)
+│   ├── calendar.md    ·  Weekly/Monthly calendar (Cron daily rebuild)
+│   ├── tasks_master.md·  action index
+│   └── done.md        ·  Completion archive
+│
+├── 03_life/           ◀─── Life Layer
+│   ├── daily_logs/    ·  📝 memory (by day)
+│   ├── ideas/         ·  💡 idea cards
+│   └── highlights/    ·  ✨ highlight cards
+│
+├── 04_knowledge/      ◀─── Knowledge Layer
+│   ├── references/    ·  📖 Papers/materials/URLs
+│   └── questions/     ·  ❓ Cognitive gaps (AI research orders)
+│
+└── 05_meta/           ◀─── System Itself
+    ├── reasoning_queue.jsonl      Capture→Reasoning interface
+    ├── feedback_signals.jsonl     All feedback events
+    └── capture_agent_weekly_review.md  Self-reflection output
+```
 
 ---
 
