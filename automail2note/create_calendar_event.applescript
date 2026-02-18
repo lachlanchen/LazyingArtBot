@@ -46,6 +46,16 @@ on run argv
 	tell application "Calendar"
 		if calendarText is "" then
 			set targetCal to first calendar
+		else if calendarText starts with "id:" then
+			set calendarID to ""
+			if (length of calendarText) > 3 then set calendarID to text 4 thru -1 of calendarText
+			if calendarID is not "" and (exists calendar id calendarID) then
+				set targetCal to calendar id calendarID
+			else if (exists calendar calendarText) then
+				set targetCal to calendar calendarText
+			else
+				set targetCal to first calendar
+			end if
 		else if (exists calendar calendarText) then
 			set targetCal to calendar calendarText
 		else

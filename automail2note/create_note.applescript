@@ -45,6 +45,59 @@ on trimText(inputText)
 	return t
 end trimText
 
+on isLikelyHTML(notesText)
+	set t to my trimText(notesText)
+	if t is "" then return false
+	if t contains "<" and t contains ">" then
+		set lowerText to do shell script "printf '%s' " & quoted form of t & " | tr '[:upper:]' '[:lower:]'"
+		set htmlHints to {"<div", "<p", "<br", "<ul", "<ol", "<li", "<table", "<tr", "<td", "<th", "<h1", "<h2", "<h3", "<h4"}
+		repeat with marker in htmlHints
+			if lowerText contains (marker as text) then return true
+		end repeat
+	end if
+	return false
+end isLikelyHTML
+
+on htmlEscape(sourceText)
+	set escapedText to sourceText as text
+	set escapedText to my replaceText(escapedText, "&", "&amp;")
+	set escapedText to my replaceText(escapedText, "<", "&lt;")
+	set escapedText to my replaceText(escapedText, ">", "&gt;")
+	set escapedText to my replaceText(escapedText, "\"", "&quot;")
+	set escapedText to my replaceText(escapedText, return, "<br/>")
+	set escapedText to my replaceText(escapedText, linefeed, "<br/>")
+	return escapedText
+end htmlEscape
+
+on formatNotesHTML(notesText)
+	set rawText to notesText as text
+	if my isLikelyHTML(rawText) then
+		set htmlText to rawText
+		if (htmlText contains "☐") or (htmlText contains "☑") then
+			-- Checklist glyphs should render without list bullets; flatten list tags to div blocks.
+			set htmlText to my replaceText(htmlText, "<ul>", "<div>")
+			set htmlText to my replaceText(htmlText, "</ul>", "</div>")
+			set htmlText to my replaceText(htmlText, "<ol>", "<div>")
+			set htmlText to my replaceText(htmlText, "</ol>", "</div>")
+			set htmlText to my replaceText(htmlText, "<li>", "<div>")
+			set htmlText to my replaceText(htmlText, "</li>", "</div>")
+		end if
+		return htmlText
+	end if
+
+	-- Normalize markdown-style checklist markers into visible checkbox glyphs.
+	set normalized to rawText
+	set normalized to my replaceText(normalized, "- [ ] ", "☐ ")
+	set normalized to my replaceText(normalized, "- [x] ", "☑ ")
+	set normalized to my replaceText(normalized, "- [X] ", "☑ ")
+	set normalized to my replaceText(normalized, "[ ] ", "☐ ")
+	set normalized to my replaceText(normalized, "[x] ", "☑ ")
+	set normalized to my replaceText(normalized, "[X] ", "☑ ")
+
+	set escaped to my htmlEscape(normalized)
+	return "<div style=\"white-space: pre-wrap;\">" & escaped & "</div>"
+end formatNotesHTML
+
 on parseFolderPath(folderPath)
 	set normalizedPath to my replaceText(folderPath as text, ">", "/")
 	set normalizedPath to my replaceText(normalizedPath, "\\", "/")
@@ -130,6 +183,7 @@ on run argv
 	if titleValue is "" then set titleValue to "Lazyingart note"
 	if folderPath is "" then set folderPath to "Lazyingart/Inbox"
 	if insertMode is "" then set insertMode to "prepend"
+	set notesHTML to my formatNotesHTML(notesValue)
 
 	set targetFolder to my ensureNestedFolder(folderPath)
 
@@ -141,12 +195,12 @@ on run argv
 		end try
 
 		if existingNote is missing value then
-			set noteBody to "<html><body><h3>" & titleValue & "</h3><p>" & notesValue & "</p></body></html>"
+			set noteBody to "<html><body><h3>" & titleValue & "</h3>" & notesHTML & "</body></html>"
 			set newNote to make new note at targetFolder with properties {name:titleValue, body:noteBody}
 			return (id of newNote) as text
 		else
 			set stampText to do shell script "date '+%Y-%m-%d %H:%M:%S'"
-			set newEntry to "<div><p><b>" & stampText & "</b></p><p>" & notesValue & "</p><hr/></div>"
+			set newEntry to "<div><p><b>" & stampText & "</b></p>" & notesHTML & "<hr/></div>"
 			set oldBody to body of existingNote as text
 			if insertMode is "append" then
 				set updatedBody to oldBody & newEntry
