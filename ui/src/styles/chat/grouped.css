@@ -8,8 +8,9 @@
   gap: 12px;
   align-items: flex-start;
   margin-bottom: 16px;
-  margin-left: 4px;
-  margin-right: 16px;
+  margin-left: 0;
+  margin-right: 8px;
+  position: relative;
 }
 
 /* User messages on right */
@@ -22,12 +23,14 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: min(900px, calc(100% - 60px));
+  max-width: min(900px, calc(100% - 52px));
+  min-width: 0;
 }
 
 /* User messages align content right */
 .chat-group.user .chat-group-messages {
   align-items: flex-end;
+  max-width: min(900px, calc(100% - 52px));
 }
 
 .chat-group.user .chat-group-footer {
@@ -94,6 +97,31 @@
   flex-shrink: 0;
   align-self: flex-end; /* Align with last message in group */
   margin-bottom: 4px; /* Optical alignment */
+}
+
+/* Assistant/system avatar anchored on the bubble corner instead of taking a full left column */
+.chat-group:not(.user) {
+  gap: 0;
+}
+
+.chat-group:not(.user) .chat-avatar {
+  position: absolute;
+  top: -6px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  align-self: flex-start;
+  margin-bottom: 0;
+  z-index: 2;
+}
+
+.chat-group:not(.user) .chat-group-messages {
+  max-width: min(900px, 100%);
+}
+
+.chat-group:not(.user) .chat-bubble:first-of-type {
+  padding-top: 22px;
 }
 
 .chat-avatar.user {
@@ -266,6 +294,36 @@ img.chat-avatar {
 
 .chat-group.user .chat-bubble:hover {
   background: rgba(255, 77, 77, 0.15);
+}
+
+@media (max-width: 600px) {
+  .chat-group {
+    margin-right: 0;
+    gap: 8px;
+  }
+
+  .chat-group-messages {
+    max-width: calc(100% - 42px);
+  }
+
+  .chat-group.user .chat-group-messages {
+    max-width: calc(100% - 42px);
+  }
+
+  .chat-group:not(.user) .chat-group-messages {
+    max-width: 100%;
+  }
+
+  .chat-group:not(.user) .chat-avatar {
+    left: 6px;
+    top: -4px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .chat-group:not(.user) .chat-bubble:first-of-type {
+    padding-top: 20px;
+  }
 }
 
 /* Streaming animation */

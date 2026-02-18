@@ -216,7 +216,9 @@
 
   .chat-thread {
     margin-top: 8px;
-    padding: 12px 8px;
+    padding: 10px 0;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .chat-msg {
