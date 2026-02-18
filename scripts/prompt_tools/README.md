@@ -71,3 +71,5 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --model gpt-5.1-codex-mini \
   --reasoning medium
 ```
+
+- `AUTOLIFE_PHILOSOPHY.md` – AutoLife capture/automation philosophy and folder layout.

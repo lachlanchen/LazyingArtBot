@@ -8,5 +8,6 @@ Rules:
 - Default calendar is "AutoLife" unless another is specified.
 - Default reminder list is "AutoLife" as well.
 - Prefer reminders for flexible tasks; calendar events for time-specific commitments.
+- When adding supporting note text, include emoji + bilingual (EN/中文/日本語) labels so entries are easy to scan (e.g., "🗓️ Review / レビュー").
 
 Return JSON via auto_ops_schema with `summary`, optional `calendar_events`, `reminders`, and supporting `notes` entries if extra detail is helpful.

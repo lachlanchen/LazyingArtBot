@@ -12,3 +12,4 @@
   - Migration notes for iCloud `LazyingArt` reminder/calendar routing.
 - `references/agent-tutorial-icloud-calendar-autolife.md`
   - Step-by-step tutorial for agents to create and verify iCloud `AutoLife` calendar.
+- `references/icloud-autolife-calendar-setup.md` - AutoLife calendar migration (EventKit/JXA runbook).

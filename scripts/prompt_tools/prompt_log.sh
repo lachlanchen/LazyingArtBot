@@ -83,10 +83,10 @@ on ensureLogFolder()
 	tell application "Notes"
 		set icloudAccount to account "iCloud"
 		set autoFolder to folder "AutoLife" of icloudAccount
-		if not (exists folder "Log" of autoFolder) then
+		if not (exists folder "🪵 Log" of autoFolder) then
 			make new folder at autoFolder with properties {name:"Log"}
 		end if
-		return folder "Log" of autoFolder
+		return folder "🪵 Log" of autoFolder
 	end tell
 end ensureLogFolder
 
