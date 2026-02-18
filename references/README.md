@@ -8,3 +8,5 @@
   - Upstream merge strategy that preserves local branding/custom behavior.
 - `references/ngrok-remote-dashboard.md`
   - Remote dashboard/tunnel notes.
+- `references/icloud-lazyingart-routing-2026-02-18.md`
+  - Migration notes for iCloud `LazyingArt` reminder/calendar routing.
