@@ -44,6 +44,17 @@ def parse_email_tokens(items: list[str] | None) -> list[str]:
     return out
 
 
+def parse_single_email(value: str | None) -> str | None:
+    if value is None:
+        return None
+    v = value.strip().lower()
+    if not v:
+        return None
+    if not EMAIL_RE.match(v):
+        raise ValueError(f"Invalid email address: {value}")
+    return v
+
+
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
@@ -54,6 +65,7 @@ def build_prompt(
     to_hint: list[str],
     cc_hint: list[str],
     bcc_hint: list[str],
+    from_hint: str | None,
     prompt_tools_dir: Path,
 ) -> str:
     base_prompt = read_text(prompt_tools_dir / "email_send_prompt.md")
@@ -63,6 +75,7 @@ def build_prompt(
     payload = {
         "now_local_iso": now_iso,
         "instruction": instruction,
+        "from_hint": from_hint,
         "recipient_hints": {"to": to_hint, "cc": cc_hint, "bcc": bcc_hint},
     }
 
@@ -166,10 +179,11 @@ def normalize_action(
     }
 
 
-def send_via_mail(action: dict[str, Any]) -> str:
+def send_via_mail(action: dict[str, Any], from_address: str | None = None) -> str:
     to_text = "\n".join(action["to"])
     cc_text = "\n".join(action["cc"])
     bcc_text = "\n".join(action["bcc"])
+    from_text = from_address or ""
 
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as subj_file:
         subj_file.write(action["subject"])
@@ -201,30 +215,63 @@ on parseRecipients(rawText)
 	return outList
 end parseRecipients
 
+using terms from application "Mail"
 on addRecipients(msg, rawText, recipientKind)
 	set addrs to my parseRecipients(rawText)
 	repeat with addr in addrs
 		if recipientKind is "to" then
-			tell msg to make new to recipient at end of to recipients with properties {address:(addr as text)}
+			tell msg
+				make new to recipient at end of to recipients of msg with properties {address:(addr as text)}
+			end tell
 		else if recipientKind is "cc" then
-			tell msg to make new cc recipient at end of cc recipients with properties {address:(addr as text)}
+			tell msg
+				make new cc recipient at end of cc recipients of msg with properties {address:(addr as text)}
+			end tell
 		else if recipientKind is "bcc" then
-			tell msg to make new bcc recipient at end of bcc recipients with properties {address:(addr as text)}
+			tell msg
+				make new bcc recipient at end of bcc recipients of msg with properties {address:(addr as text)}
+			end tell
 		end if
 	end repeat
 end addRecipients
+end using terms from
+
+on findAccountByAddress(fromAddr)
+	if fromAddr is "" then return missing value
+	tell application "Mail"
+		repeat with acc in every account
+			try
+				set addrList to email addresses of acc
+				repeat with addr in addrList
+					if (addr as text) is equal to fromAddr then return acc
+				end repeat
+			end try
+		end repeat
+	end tell
+	return missing value
+end findAccountByAddress
 
 on run argv
 	set toRaw to item 1 of argv
 	set ccRaw to item 2 of argv
 	set bccRaw to item 3 of argv
-	set subjectPath to item 4 of argv
-	set bodyPath to item 5 of argv
+	set fromRaw to item 4 of argv
+	set subjectPath to item 5 of argv
+	set bodyPath to item 6 of argv
 	set subjectText to read (POSIX file subjectPath) as «class utf8»
 	set bodyText to read (POSIX file bodyPath) as «class utf8»
 
 	tell application "Mail"
 		set msg to make new outgoing message with properties {subject:subjectText, content:bodyText & return & return, visible:false}
+		if fromRaw is not "" then
+			set sender of msg to fromRaw
+			set matchedAccount to my findAccountByAddress(fromRaw)
+			if matchedAccount is not missing value then
+				try
+					set account of msg to matchedAccount
+				end try
+			end if
+		end if
 		my addRecipients(msg, toRaw, "to")
 		my addRecipients(msg, ccRaw, "cc")
 		my addRecipients(msg, bccRaw, "bcc")
@@ -236,7 +283,7 @@ end run
 '''
 
     proc = subprocess.run(
-        ["osascript", "-", to_text, cc_text, bcc_text, subject_path, body_path],
+        ["osascript", "-", to_text, cc_text, bcc_text, from_text, subject_path, body_path],
         input=applescript,
         text=True,
         capture_output=True,
@@ -257,6 +304,7 @@ def main() -> int:
     parser.add_argument("--to", action="append", help="To recipient(s), comma-separated or repeated")
     parser.add_argument("--cc", action="append", help="CC recipient(s), comma-separated or repeated")
     parser.add_argument("--bcc", action="append", help="BCC recipient(s), comma-separated or repeated")
+    parser.add_argument("--from", dest="from_address", help="Sender email address to use")
     parser.add_argument("--subject", help="Force subject override")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--reasoning", default=DEFAULT_REASONING)
@@ -278,6 +326,7 @@ def main() -> int:
     to_hint = parse_email_tokens(args.to)
     cc_hint = parse_email_tokens(args.cc)
     bcc_hint = parse_email_tokens(args.bcc)
+    from_hint = parse_single_email(args.from_address)
 
     prompt_tools_dir = Path(args.prompt_tools_dir).expanduser().resolve()
     schema_path = prompt_tools_dir / "email_send_schema.json"
@@ -289,6 +338,7 @@ def main() -> int:
         to_hint=to_hint,
         cc_hint=cc_hint,
         bcc_hint=bcc_hint,
+        from_hint=from_hint,
         prompt_tools_dir=prompt_tools_dir,
     )
 
@@ -316,6 +366,8 @@ def main() -> int:
         )
 
     print("=== Email Action ===")
+    if from_hint:
+        print(f"from: {from_hint}")
     print(f"to: {', '.join(action['to'])}")
     if action["cc"]:
         print(f"cc: {', '.join(action['cc'])}")
@@ -332,7 +384,7 @@ def main() -> int:
         print("Dry run complete. Re-run with --send to send via Apple Mail.")
         return 0
 
-    result = send_via_mail(action)
+    result = send_via_mail(action, from_address=from_hint)
     print(f"Mail result: {result}")
     return 0
 
