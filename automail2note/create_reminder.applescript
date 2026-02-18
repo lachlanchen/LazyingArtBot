@@ -33,7 +33,7 @@ on run argv
 	if (count of argv) ≥ 4 then
 		set listName to (item 4 of argv) as text
 	else
-		set listName to "Reminders"
+		set listName to "LazyingArt"
 	end if
 	if (count of argv) ≥ 5 then
 		set reminderMinutes to (item 5 of argv) as integer
@@ -42,7 +42,7 @@ on run argv
 	end if
 
 	if titleValue is "" then set titleValue to "Lazyingart reminder"
-	if listName is "" then set listName to "Reminders"
+	if listName is "" then set listName to "LazyingArt"
 
 	set reminderBody to notesValue
 	if reminderMinutes > 0 then

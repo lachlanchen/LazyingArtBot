@@ -40,6 +40,9 @@ NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
 MODEL = "gpt-5.1-codex-mini"
 REASONING = "medium"
 LOG_NOTE_ROOT = "Lazyingart/Log"
+DEFAULT_CALENDAR = "LazyingArt"
+DEFAULT_REMINDER_LIST = "LazyingArt"
+LEGACY_CALENDAR_PLACEHOLDERS = {"lachlan", "calendar"}
 
 ACTION_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -678,13 +681,13 @@ def resolve_effective_calendar(action: Dict[str, Any], default_calendar: str) ->
     requested = str(action.get("calendar", "") or "").strip()
     configured = (default_calendar or "").strip()
     if configured:
-        if not requested or requested.lower() == "lachlan":
+        if not requested or requested.lower() in LEGACY_CALENDAR_PLACEHOLDERS:
             return configured
     if requested:
         return requested
     if configured:
         return configured
-    return "Lachlan"
+    return DEFAULT_CALENDAR
 
 
 def action_fingerprint(action: Dict[str, Any], default_calendar: str) -> str:
@@ -1640,7 +1643,7 @@ def build_prompt(
     recent_items_text: str,
     trigger_context: str = "",
 ) -> str:
-    prompt_default_calendar = default_calendar.strip() or "Calendar"
+    prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
     return f"""
 You are an email triage assistant for Lazyingart.
 
@@ -1674,7 +1677,7 @@ Field rules:
 - reminderMinutes must be integer 0..240.
 - Default destinations unless email explicitly implies otherwise:
   - calendar: {json.dumps(prompt_default_calendar)}
-  - list: "Reminders"
+  - list: {json.dumps(DEFAULT_REMINDER_LIST)}
 - For decision=note, folder must be a nested path under Lazyingart in this format:
   - "Lazyingart/<Flexible>/<Flexible...>"
   - examples:
@@ -1746,7 +1749,7 @@ def build_smart_save_prompt(
     notes_index_text: str,
     trigger_context: str = "",
 ) -> str:
-    prompt_default_calendar = default_calendar.strip() or "Calendar"
+    prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
     candidate_json = json.dumps({"actions": candidate_actions}, ensure_ascii=False, indent=2)
     return f"""
 You are the Smart Save planner for Lazyingart email automation.
@@ -1779,7 +1782,7 @@ Rules:
   - Key Dates
   Include only non-empty sections.
 - Default calendar: {json.dumps(prompt_default_calendar)}
-- Default reminder list: "Reminders"
+- Default reminder list: {json.dumps(DEFAULT_REMINDER_LIST)}
 
 Duplicate checks:
 - calendar duplicate key: title + start + end + calendar
@@ -1825,7 +1828,7 @@ def build_strong_save_prompt(
     run_id: str,
     trigger_context: str = "",
 ) -> str:
-    prompt_default_calendar = default_calendar.strip() or "Calendar"
+    prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
     today = now_local.date().isoformat()
     actions_json = json.dumps({"actions": actions}, ensure_ascii=False, indent=2)
     return f"""
@@ -1891,7 +1894,7 @@ Execution requirements:
 
 Defaults:
 - calendar default: {json.dumps(prompt_default_calendar)}
-- reminder list default: "Reminders"
+- reminder list default: {json.dumps(DEFAULT_REMINDER_LIST)}
 
 Run context:
 - run_id: {run_id}
@@ -2066,7 +2069,7 @@ def main() -> None:
     parser.add_argument("--model", default=MODEL)
     parser.add_argument("--reasoning", default=REASONING)
     parser.add_argument("--codex-bin", default="")
-    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", "Calendar"))
+    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", DEFAULT_CALENDAR))
     parser.add_argument(
         "--trigger-epoch",
         type=int,
@@ -2124,7 +2127,7 @@ def main() -> None:
         save_mode = "strong_smart_save"
 
     local_tz = get_local_tz()
-    default_calendar = str(args.default_calendar or "").strip() or "Calendar"
+    default_calendar = str(args.default_calendar or "").strip() or DEFAULT_CALENDAR
     processed_ids = load_processed_ids()
 
     source_ref = ""

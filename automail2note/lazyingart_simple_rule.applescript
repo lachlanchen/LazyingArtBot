@@ -4,7 +4,7 @@ property automationScript : "/Users/lachlan/.openclaw/workspace/automation/lazyi
 property pythonPath : "/Users/lachlan/.openclaw/workspace/.venv/bin/python"
 property logPath : "/Users/lachlan/.openclaw/workspace/logs/lazyingart_simple_rule.log"
 property lockDir : "/tmp/lazyingart_simple_rule.lock"
-property defaultCalendar : "Calendar"
+property defaultCalendar : "LazyingArt"
 property triggerWaitSeconds : 180
 property triggerPollSeconds : 10
 property triggerGraceSeconds : 45

@@ -21,6 +21,8 @@ CALENDAR_SCRIPT = AUTOMATION_DIR / "create_calendar_event.applescript"
 REMINDER_SCRIPT = AUTOMATION_DIR / "create_reminder.applescript"
 NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
 FALLBACK_CALENDAR = "Lachlan"
+DEFAULT_CALENDAR = "LazyingArt"
+DEFAULT_REMINDER_LIST = "LazyingArt"
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -50,14 +52,17 @@ def resolve_calendar_target(action: Dict[str, Any], default_calendar: str) -> st
     configured = (default_calendar or "").strip()
 
     if configured:
-        # Treat "Lachlan" as prompt placeholder and use configured default calendar.
-        if not requested or requested.lower() == FALLBACK_CALENDAR.lower():
+        # Treat legacy placeholders as configured default calendar.
+        if not requested or requested.lower() in {
+            FALLBACK_CALENDAR.lower(),
+            "calendar",
+        }:
             return configured
     if requested:
         return requested
     if configured:
         return configured
-    return FALLBACK_CALENDAR
+    return DEFAULT_CALENDAR
 
 
 def apply_calendar(action: Dict[str, Any], default_calendar: str) -> Dict[str, Any]:
@@ -89,7 +94,7 @@ def apply_reminder(action: Dict[str, Any]) -> Dict[str, Any]:
             str(action.get("title", "")),
             str(action.get("due", "")),
             str(action.get("notes", "")),
-            str(action.get("list", "Reminders") or "Reminders"),
+            str(action.get("list", DEFAULT_REMINDER_LIST) or DEFAULT_REMINDER_LIST),
             str(int(action.get("reminderMinutes", 0))),
         ],
     )
@@ -112,7 +117,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apply Lazyingart action JSON")
     parser.add_argument("--action-json", required=True)
     parser.add_argument("--message-json", default="")
-    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", "Calendar"))
+    parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", DEFAULT_CALENDAR))
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
