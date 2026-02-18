@@ -434,17 +434,29 @@
 }
 
 @media (max-width: 640px) {
+  .chat {
+    padding: 0;
+  }
+
   .chat-session {
     min-width: 140px;
   }
 
+  .chat-thread {
+    margin: 0;
+    padding: 8px 0;
+    border-radius: 0;
+  }
+
   .chat-compose__row {
-    gap: 8px;
+    gap: 6px;
   }
 
   .chat-compose .chat-compose__field textarea {
     min-height: 84px;
     height: 84px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .chat-compose .chat-compose__actions .btn {
@@ -466,5 +478,15 @@
 
   .chat-controls__session {
     min-width: 120px;
+  }
+
+  .chat-message-images {
+    max-width: 100%;
+  }
+
+  .chat-message-image {
+    max-width: 100%;
+    width: auto;
+    height: auto;
   }
 }

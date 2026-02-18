@@ -22,7 +22,8 @@
   font-size: 14px;
   line-height: 1.5;
   word-wrap: break-word;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .chat-text :where(p, ul, ol, pre, blockquote, table) {
@@ -67,6 +68,7 @@
   border-radius: 6px;
   padding: 10px 12px;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .chat-text :where(pre code) {
@@ -121,4 +123,14 @@
   border: none;
   border-top: 1px solid var(--border);
   margin: 1em 0;
+}
+
+.chat-text :where(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.chat-text :where(th, td) {
+  word-break: break-word;
 }

@@ -9,8 +9,9 @@
   align-items: flex-start;
   margin-bottom: 16px;
   margin-left: 0;
-  margin-right: 8px;
+  margin-right: 0;
   position: relative;
+  min-width: 0;
 }
 
 /* User messages on right */
@@ -25,6 +26,7 @@
   gap: 2px;
   max-width: min(900px, calc(100% - 52px));
   min-width: 0;
+  width: auto;
 }
 
 /* User messages align content right */
@@ -298,20 +300,20 @@ img.chat-avatar {
 
 @media (max-width: 600px) {
   .chat-group {
-    margin-right: 0;
-    gap: 8px;
+    margin: 0 0 16px;
+    gap: 0;
+    width: 100%;
   }
 
-  .chat-group-messages {
-    max-width: calc(100% - 42px);
-  }
-
-  .chat-group.user .chat-group-messages {
-    max-width: calc(100% - 42px);
-  }
-
+  .chat-group-messages,
+  .chat-group.user .chat-group-messages,
   .chat-group:not(.user) .chat-group-messages {
+    width: 100%;
     max-width: 100%;
+  }
+
+  .chat-group.user {
+    justify-content: flex-end;
   }
 
   .chat-group:not(.user) .chat-avatar {
@@ -321,8 +323,30 @@ img.chat-avatar {
     height: 22px;
   }
 
+  .chat-group.user .chat-avatar {
+    position: absolute;
+    right: 6px;
+    left: auto;
+    top: -4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    align-self: flex-start;
+    margin-bottom: 0;
+    z-index: 2;
+  }
+
   .chat-group:not(.user) .chat-bubble:first-of-type {
     padding-top: 20px;
+  }
+
+  .chat-group.user .chat-bubble:first-of-type {
+    padding-top: 20px;
+  }
+
+  .chat-bubble {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
