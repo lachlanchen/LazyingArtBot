@@ -96,6 +96,35 @@ SCHEMA: Dict[str, Any] = {
     },
 }
 
+LATEST_EMAIL_FETCH_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "status",
+        "reason",
+        "attempts",
+        "messageID",
+        "subject",
+        "sender",
+        "receivedAt",
+        "mailbox",
+        "account",
+        "body",
+    ],
+    "properties": {
+        "status": {"type": "string", "enum": ["ok", "not_found", "error"]},
+        "reason": {"type": "string"},
+        "attempts": {"type": "integer", "minimum": 0},
+        "messageID": {"type": "string"},
+        "subject": {"type": "string"},
+        "sender": {"type": "string"},
+        "receivedAt": {"type": "string"},
+        "mailbox": {"type": "string"},
+        "account": {"type": "string"},
+        "body": {"type": "string"},
+    },
+}
+
 STRONG_SAVE_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -355,6 +384,290 @@ def parse_osascript_kv(text: str) -> Dict[str, str]:
         key, value = line.split("=", 1)
         payload[key.strip()] = value
     return payload
+
+
+def fetch_recent_email_candidates(skip_accounts: set[str], per_inbox_limit: int = 12) -> list[Dict[str, str]]:
+    skip_literal = build_skip_accounts_literal(skip_accounts)
+    script = f"""
+use framework "Foundation"
+use scripting additions
+
+property isoFormatter : missing value
+
+on ensureISOFormatter()
+\tif isoFormatter is missing value then
+\t\tset isoFormatter to current application's NSISO8601DateFormatter's alloc()'s init()
+\t\tisoFormatter's setFormatOptions_(current application's NSISO8601DateFormatWithInternetDateTime)
+\tend if
+end ensureISOFormatter
+
+on isoStringFromDate(theDate)
+\tmy ensureISOFormatter()
+\treturn (isoFormatter's stringFromDate_(theDate)) as text
+end isoStringFromDate
+
+on oneLine(rawText)
+\tif rawText is missing value then return ""
+\tset safeText to rawText as text
+\treturn do shell script "printf '%s' " & quoted form of safeText & " | tr '\\r\\n' '  '"
+end oneLine
+
+on lowerText(rawText)
+\tset safeText to my oneLine(rawText)
+\tif safeText is "" then return ""
+\treturn do shell script "printf '%s' " & quoted form of safeText & " | tr '[:upper:]' '[:lower:]'"
+end lowerText
+
+on inList(needle, values)
+\trepeat with v in values
+\t\tif needle is (v as text) then return true
+\tend repeat
+\treturn false
+end inList
+
+set skipAccounts to {skip_literal}
+set perInboxLimit to {max(1, int(per_inbox_limit))}
+set recSep to character id 30
+set fieldSep to character id 31
+set outText to ""
+
+tell application "Mail"
+\tset accountList to accounts
+end tell
+
+repeat with acc in accountList
+\ttell application "Mail" to set accName to name of acc as text
+\tif my inList(my lowerText(accName), skipAccounts) then
+\t\t-- skip
+\telse
+\t\ttell application "Mail"
+\t\t\ttry
+\t\t\t\tset mailboxList to every mailbox of acc
+\t\t\ton error
+\t\t\t\tset mailboxList to {{}}
+\t\t\tend try
+\t\tend tell
+
+\t\trepeat with mb in mailboxList
+\t\t\ttell application "Mail" to set mbName to name of mb as text
+\t\t\tif (my lowerText(mbName)) is "inbox" then
+\t\t\t\ttell application "Mail" to set msgCount to count of messages of mb
+\t\t\t\tif msgCount > 0 then
+\t\t\t\t\tset scanCount to perInboxLimit
+\t\t\t\t\tif scanCount > msgCount then set scanCount to msgCount
+\t\t\t\t\trepeat with idx from 1 to scanCount
+\t\t\t\t\t\ttry
+\t\t\t\t\t\t\ttell application "Mail"
+\t\t\t\t\t\t\t\tset m to message idx of mb
+\t\t\t\t\t\t\t\tset messageIDText to id of m as text
+\t\t\t\t\t\t\t\tset subjectText to ""
+\t\t\t\t\t\t\t\tset senderText to ""
+\t\t\t\t\t\t\t\ttry
+\t\t\t\t\t\t\t\t\tset subjectText to my oneLine(subject of m as text)
+\t\t\t\t\t\t\t\tend try
+\t\t\t\t\t\t\t\ttry
+\t\t\t\t\t\t\t\t\tset senderText to my oneLine(sender of m as text)
+\t\t\t\t\t\t\t\tend try
+\t\t\t\t\t\t\t\tset recvDate to date received of m
+\t\t\t\t\t\t\t\tset recvText to my isoStringFromDate(recvDate)
+\t\t\t\t\t\t\tend tell
+\t\t\t\t\t\t\tset outText to outText & messageIDText & fieldSep & subjectText & fieldSep & senderText & fieldSep & recvText & fieldSep & (my oneLine(mbName)) & fieldSep & (my oneLine(accName)) & recSep
+\t\t\t\t\t\ton error
+\t\t\t\t\t\t\t-- skip invalid reference
+\t\t\t\t\t\tend try
+\t\t\t\t\tend repeat
+\t\t\t\tend if
+\t\t\tend if
+\t\tend repeat
+\tend if
+end repeat
+
+return outText
+""".strip()
+
+    proc = subprocess.run(
+        ["osascript", "-"],
+        input=script,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    rec_sep = chr(30)
+    field_sep = chr(31)
+    candidates: list[Dict[str, str]] = []
+    for rec in proc.stdout.split(rec_sep):
+        if not rec.strip():
+            continue
+        parts = rec.split(field_sep)
+        if len(parts) < 6:
+            continue
+        candidates.append(
+            normalize_message(
+                {
+                    "messageID": parts[0],
+                    "subject": parts[1],
+                    "sender": parts[2],
+                    "receivedAt": parts[3],
+                    "mailbox": parts[4],
+                    "account": parts[5],
+                    "body": "",
+                }
+            )
+        )
+    return candidates
+
+
+def fetch_message_payload_by_locator(message_id: str, account_name: str, mailbox_name: str) -> Dict[str, str]:
+    script = r"""
+use framework "Foundation"
+use scripting additions
+
+property isoFormatter : missing value
+
+on ensureISOFormatter()
+	if isoFormatter is missing value then
+		set isoFormatter to current application's NSISO8601DateFormatter's alloc()'s init()
+		isoFormatter's setFormatOptions_(current application's NSISO8601DateFormatWithInternetDateTime)
+	end if
+end ensureISOFormatter
+
+on isoStringFromDate(theDate)
+	my ensureISOFormatter()
+	return (isoFormatter's stringFromDate_(theDate)) as text
+end isoStringFromDate
+
+on oneLine(rawText)
+	if rawText is missing value then return ""
+	set safeText to rawText as text
+	return do shell script "printf '%s' " & quoted form of safeText & " | tr '\r\n' '  '"
+end oneLine
+
+on writeUTF8(pathText, contentsText)
+	set fileRef to POSIX file pathText
+	set fileHandle to open for access fileRef with write permission
+	try
+		set eof of fileHandle to 0
+		write contentsText to fileHandle as «class utf8»
+	on error errMsg number errNum
+		try
+			close access fileHandle
+		end try
+		error errMsg number errNum
+	end try
+	close access fileHandle
+end writeUTF8
+
+on run argv
+	set messageIDRaw to item 1 of argv
+	set accountName to item 2 of argv
+	set mailboxName to item 3 of argv
+
+	tell application "Mail"
+		set targetAccount to missing value
+		repeat with a in accounts
+			if (name of a as text) is accountName then
+				set targetAccount to a
+				exit repeat
+			end if
+		end repeat
+		if targetAccount is missing value then return "status=account_not_found"
+
+		set mailboxCandidates to {}
+		if mailboxName is not "" then
+			repeat with mb in every mailbox of targetAccount
+				if (name of mb as text) is mailboxName then
+					set end of mailboxCandidates to mb
+				end if
+			end repeat
+		end if
+		if (count of mailboxCandidates) is 0 then set mailboxCandidates to every mailbox of targetAccount
+
+		set targetMsg to missing value
+		set idNum to missing value
+		try
+			set idNum to messageIDRaw as integer
+		end try
+
+		if idNum is not missing value then
+			repeat with mb in mailboxCandidates
+				try
+					set targetMsg to first message of mb whose id is idNum
+				end try
+				if targetMsg is not missing value then exit repeat
+			end repeat
+		end if
+
+		if targetMsg is missing value then
+			repeat with mb in mailboxCandidates
+				try
+					set targetMsg to first message of mb whose message id is messageIDRaw
+				end try
+				if targetMsg is not missing value then exit repeat
+			end repeat
+		end if
+
+		if targetMsg is missing value then
+			repeat with mb in every mailbox of targetAccount
+				try
+					if idNum is not missing value then
+						set targetMsg to first message of mb whose id is idNum
+					else
+						set targetMsg to first message of mb whose message id is messageIDRaw
+					end if
+				end try
+				if targetMsg is not missing value then exit repeat
+			end repeat
+		end if
+
+		if targetMsg is missing value then return "status=message_not_found"
+
+		set actualMessageID to id of targetMsg as text
+		set subjectText to ""
+		set senderText to ""
+		try
+			set subjectText to my oneLine(subject of targetMsg as text)
+		end try
+		try
+			set senderText to my oneLine(sender of targetMsg as text)
+		end try
+		set recvText to my isoStringFromDate(date received of targetMsg)
+		set mailboxText to my oneLine(name of mailbox of targetMsg)
+		set accountText to my oneLine(name of account of mailbox of targetMsg)
+		set bodyText to content of targetMsg as text
+	end tell
+
+	set tmpBodyPath to do shell script "mktemp /tmp/lazyingart_latest_body.XXXXXX.txt"
+	my writeUTF8(tmpBodyPath, bodyText)
+	set outLines to {"status=ok", "messageID=" & actualMessageID, "subject=" & subjectText, "sender=" & senderText, "receivedAt=" & recvText, "mailbox=" & mailboxText, "account=" & accountText, "bodyPath=" & tmpBodyPath}
+	set AppleScript's text item delimiters to linefeed
+	return outLines as text
+end run
+""".strip()
+
+    proc = subprocess.run(
+        ["osascript", "-", message_id, account_name, mailbox_name],
+        input=script,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    payload = parse_osascript_kv(proc.stdout)
+    if payload.get("status") != "ok":
+        raise RuntimeError(payload.get("status", "message_not_found"))
+    body_path = Path(payload.get("bodyPath", "")).expanduser()
+    body_text = body_path.read_text(encoding="utf-8") if body_path.exists() else ""
+    body_path.unlink(missing_ok=True)
+    return normalize_message(
+        {
+            "messageID": payload.get("messageID", ""),
+            "subject": payload.get("subject", ""),
+            "sender": payload.get("sender", ""),
+            "receivedAt": payload.get("receivedAt", ""),
+            "mailbox": payload.get("mailbox", ""),
+            "account": payload.get("account", ""),
+            "body": body_text,
+        }
+    )
 
 
 def norm_token(value: str) -> str:
@@ -1131,12 +1444,201 @@ def resolve_node_bin(codex_bin: str) -> str:
     raise FileNotFoundError("node")
 
 
+def build_latest_email_fetch_prompt(
+    *,
+    skip_accounts: set[str],
+    trigger_epoch: int,
+    trigger_wait_seconds: int,
+    trigger_poll_seconds: int,
+    trigger_grace_seconds: int,
+    candidate_depth: int,
+) -> str:
+    module_dir = str(Path(__file__).resolve().parent)
+    script_lines = [
+        "import json",
+        "import sys",
+        "import time",
+        f"sys.path.insert(0, {module_dir!r})",
+        "import lazyingart_simple as s",
+        f"skip_accounts = set({json.dumps(sorted(skip_accounts), ensure_ascii=False)})",
+        f"trigger_epoch = {int(trigger_epoch)}",
+        f"trigger_wait_seconds = {int(trigger_wait_seconds)}",
+        f"trigger_poll_seconds = {max(1, int(trigger_poll_seconds))}",
+        f"trigger_grace_seconds = {max(0, int(trigger_grace_seconds))}",
+        f"candidate_depth = {max(1, int(candidate_depth))}",
+        "trigger_min_epoch = (trigger_epoch - trigger_grace_seconds) if trigger_epoch else 0",
+        "processed_ids = set(s.load_processed_ids().keys())",
+        "local_tz = s.get_local_tz()",
+        "deadline = time.time() + max(0, trigger_wait_seconds)",
+        "attempt = 0",
+        "wait_reason = 'no_candidates'",
+        "",
+        "def emit(payload):",
+        "    print(json.dumps(payload, ensure_ascii=False))",
+        "    raise SystemExit(0)",
+        "",
+        "while True:",
+        "    attempt += 1",
+        "    try:",
+        "        candidates = s.fetch_recent_email_candidates(skip_accounts, per_inbox_limit=candidate_depth)",
+        "    except Exception as exc:",
+        "        emit({",
+        "            'status': 'error',",
+        "            'reason': f'candidate_fetch_failed: {exc}',",
+        "            'attempts': attempt,",
+        "            'messageID': '',",
+        "            'subject': '',",
+        "            'sender': '',",
+        "            'receivedAt': '',",
+        "            'mailbox': '',",
+        "            'account': '',",
+        "            'body': '',",
+        "        })",
+        "",
+        "    def candidate_epoch(item):",
+        "        dt = s.parse_iso_datetime(item.get('receivedAt', ''), local_tz)",
+        "        return int(dt.timestamp()) if dt else 0",
+        "    candidates_sorted = sorted(candidates, key=candidate_epoch, reverse=True)",
+        "    selected = None",
+        "    wait_reason = 'no_candidates'",
+        "    for item in candidates_sorted:",
+        "        message_id = str(item.get('messageID', '')).strip()",
+        "        received_dt = s.parse_iso_datetime(item.get('receivedAt', ''), local_tz)",
+        "        received_epoch = int(received_dt.timestamp()) if received_dt else 0",
+        "        if trigger_epoch and received_epoch < trigger_min_epoch:",
+        "            wait_reason = f'before_trigger message_id={message_id} received_epoch={received_epoch} min_epoch={trigger_min_epoch}'",
+        "            continue",
+        "        if message_id and message_id in processed_ids:",
+        "            wait_reason = f'already_processed message_id={message_id}'",
+        "            continue",
+        "        selected = item",
+        "        break",
+        "",
+        "    if selected is not None:",
+        "        try:",
+        "            msg = s.fetch_message_payload_by_locator(",
+        "                str(selected.get('messageID', '')),",
+        "                str(selected.get('account', '')),",
+        "                str(selected.get('mailbox', '')),",
+        "            )",
+        "        except Exception as exc:",
+        "            if time.time() < deadline:",
+        "                wait_reason = f'locator_fetch_failed: {exc}'",
+        "                time.sleep(trigger_poll_seconds)",
+        "                continue",
+        "            emit({",
+        "                'status': 'error',",
+        "                'reason': f'locator_fetch_failed: {exc}',",
+        "                'attempts': attempt,",
+        "                'messageID': '',",
+        "                'subject': '',",
+        "                'sender': '',",
+        "                'receivedAt': '',",
+        "                'mailbox': '',",
+        "                'account': '',",
+        "                'body': '',",
+        "            })",
+        "",
+        "        emit({",
+        "            'status': 'ok',",
+        "            'reason': 'matched_trigger_window' if trigger_epoch else 'latest_email',",
+        "            'attempts': attempt,",
+        "            'messageID': str(msg.get('messageID', '')),",
+        "            'subject': str(msg.get('subject', '')),",
+        "            'sender': str(msg.get('sender', '')),",
+        "            'receivedAt': str(msg.get('receivedAt', '')),",
+        "            'mailbox': str(msg.get('mailbox', '')),",
+        "            'account': str(msg.get('account', '')),",
+        "            'body': str(msg.get('body', '')),",
+        "        })",
+        "",
+        "    if time.time() >= deadline:",
+        "        emit({",
+        "            'status': 'not_found',",
+        "            'reason': wait_reason,",
+        "            'attempts': attempt,",
+        "            'messageID': '',",
+        "            'subject': '',",
+        "            'sender': '',",
+        "            'receivedAt': '',",
+        "            'mailbox': '',",
+        "            'account': '',",
+        "            'body': '',",
+        "        })",
+        "",
+        "    time.sleep(trigger_poll_seconds)",
+    ]
+    worker_script = "\n".join(script_lines)
+    return f"""
+You are a fetch worker for Lazyingart mail automation.
+
+Task:
+- Find the email for this trigger window by polling latest inbox candidates.
+- You MUST run shell commands to do the polling; do not guess.
+- Use the provided Python worker script exactly and wait for it to finish.
+- Then return the parsed JSON result in the required schema.
+- Return `status="ok"` ONLY if `messageID`, `receivedAt`, `account`, and `mailbox` are non-empty.
+- If those required fields are empty, return `status="not_found"` with a non-empty `reason`.
+
+Trigger context:
+- trigger_epoch={int(trigger_epoch)}
+- trigger_wait_seconds={int(trigger_wait_seconds)}
+- trigger_poll_seconds={max(1, int(trigger_poll_seconds))}
+- trigger_grace_seconds={max(0, int(trigger_grace_seconds))}
+- candidate_depth={max(1, int(candidate_depth))}
+- skip_accounts={",".join(sorted(skip_accounts)) or "(none)"}
+
+Run this exact command:
+```bash
+python3 - <<'PY'
+{worker_script}
+PY
+```
+""".strip()
+
+
+def fetch_latest_email_via_codex(
+    *,
+    run_id: str,
+    skip_accounts: set[str],
+    trigger_epoch: int,
+    trigger_wait_seconds: int,
+    trigger_poll_seconds: int,
+    trigger_grace_seconds: int,
+    model: str,
+    reasoning: str,
+    codex_bin_override: str,
+) -> Dict[str, Any]:
+    candidate_depth = 12
+    prompt = build_latest_email_fetch_prompt(
+        skip_accounts=skip_accounts,
+        trigger_epoch=trigger_epoch,
+        trigger_wait_seconds=trigger_wait_seconds,
+        trigger_poll_seconds=trigger_poll_seconds,
+        trigger_grace_seconds=trigger_grace_seconds,
+        candidate_depth=candidate_depth,
+    )
+    fetch_output_path = CODEX_DIR / f"{run_id}-latest-fetch.json"
+    payload = run_codex_json(
+        prompt=prompt,
+        output_path=fetch_output_path,
+        schema=LATEST_EMAIL_FETCH_SCHEMA,
+        model=model,
+        reasoning=reasoning,
+        codex_bin_override=codex_bin_override,
+        sandbox="danger-full-access",
+    )
+    shutil.copyfile(fetch_output_path, CODEX_DIR / "latest-fetch.json")
+    return payload
+
+
 def build_prompt(
     message: Dict[str, str],
     now_local: datetime,
     received_local: datetime,
     default_calendar: str,
     recent_items_text: str,
+    trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or "Calendar"
     return f"""
@@ -1216,6 +1718,8 @@ Current local datetime:
 - {now_local.isoformat(timespec="seconds")}
 Email received datetime in local timezone:
 - {received_local.isoformat(timespec="seconds")}
+Trigger context:
+- {trigger_context or "n/a"}
 
 Existing saved items (most recent first):
 {recent_items_text}
@@ -1240,6 +1744,7 @@ def build_smart_save_prompt(
     candidate_actions: list[Dict[str, Any]],
     recent_items_text: str,
     notes_index_text: str,
+    trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or "Calendar"
     candidate_json = json.dumps({"actions": candidate_actions}, ensure_ascii=False, indent=2)
@@ -1285,6 +1790,8 @@ Current local datetime:
 - {now_local.isoformat(timespec="seconds")}
 Email received local datetime:
 - {received_local.isoformat(timespec="seconds")}
+Trigger context:
+- {trigger_context or "n/a"}
 
 Candidate actions from parser:
 {candidate_json}
@@ -1316,6 +1823,7 @@ def build_strong_save_prompt(
     recent_items_text: str,
     notes_index_text: str,
     run_id: str,
+    trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or "Calendar"
     today = now_local.date().isoformat()
@@ -1343,20 +1851,43 @@ Execution requirements:
    - note:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "<title>" "<notes>" "<folder>" "prepend"
 4) For note actions, dynamically merge into existing knowledge:
+   - folder must be meaningful and start with Lazyingart/
+   - prefer this top-level taxonomy when possible:
+     Work / Research / Travel / MEMO / To-Do-List / Finance / School / Personal / Inbox
+   - use nested folders to keep context clear, examples:
+     Lazyingart/Work/Meetings
+     Lazyingart/Research/Papers
+     Lazyingart/Travel/Japan
+     Lazyingart/MEMO/Quick
+     Lazyingart/To-Do-List/ThisWeek
+   - avoid Lazyingart/Inbox when a better category is obvious
    - reuse same title/folder when semantically same topic
-   - prefer nested Lazyingart folders
-   - reorganize note body structure if needed (Summary / Todo / Cost Memo / Key Dates), newest first
-5) For finance/payment messages:
+   - merge and rewrite consolidated note content when needed (not raw duplicate append), newest first
+5) Note content formatting requirements:
+   - output rich, readable Apple Notes content with clear structure
+   - use section headers + blank lines
+   - prefer HTML-friendly formatting for notes content:
+     <h3>, <p>, <ul>/<ol>/<li>, <table>/<tr>/<th>/<td>, <br/>
+   - for checklists, do NOT rely only on markdown "- [ ]":
+     use visible checkbox glyphs ("☐ item", "☑ item")
+   - for checklist lines specifically, avoid list bullets:
+     use block lines like <div>☐ item</div> (not <ul>/<li> for checkbox items)
+   - for tables, use real HTML table tags when data is tabular
+   - use bullets for facts and indentation for subitems (2 spaces or nested lists)
+   - preferred sections when relevant: Summary / To-Do / Checklist / Key Dates / Cost Memo
+   - keep one item per line; avoid long unstructured paragraphs
+   - when merging existing notes, dedupe repeated checklist lines and reorder by urgency/date
+6) For finance/payment messages:
    - prefer daily ledger note
    - folder: Lazyingart/Finance/YYYY-MM-DD
    - title: Finance Ledger YYYY-MM-DD
-6) After actions, create one processing log note:
+7) After actions, create one processing log note:
    - folder: Lazyingart/Log/{today}
    - title: Mail Log {today}
    - include run_id, message_id, subject, created/skipped/failed, and per-item summary
    - command:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "Mail Log {today}" "<log_text>" "Lazyingart/Log/{today}" "prepend"
-7) Always return all items in item_results with status created/skipped/failed and concise reason.
+8) Always return all items in item_results with status created/skipped/failed and concise reason.
 
 Defaults:
 - calendar default: {json.dumps(prompt_default_calendar)}
@@ -1369,6 +1900,7 @@ Run context:
 - message_id: {message.get('messageID', '')}
 - sender: {message.get('sender', '')}
 - subject: {message.get('subject', '')}
+- trigger_context: {trigger_context or "n/a"}
 
 Existing saved items:
 {recent_items_text}
@@ -1535,6 +2067,30 @@ def main() -> None:
     parser.add_argument("--reasoning", default=REASONING)
     parser.add_argument("--codex-bin", default="")
     parser.add_argument("--default-calendar", default=os.environ.get("LAZYINGART_DEFAULT_CALENDAR", "Calendar"))
+    parser.add_argument(
+        "--trigger-epoch",
+        type=int,
+        default=0,
+        help="Rule trigger Unix epoch seconds. In --latest-email mode, ignore stale mails before this trigger window.",
+    )
+    parser.add_argument(
+        "--trigger-wait-seconds",
+        type=int,
+        default=0,
+        help="In --latest-email mode, max seconds to keep polling for a post-trigger mail.",
+    )
+    parser.add_argument(
+        "--trigger-poll-seconds",
+        type=int,
+        default=5,
+        help="In --latest-email mode, poll interval while waiting for a post-trigger mail.",
+    )
+    parser.add_argument(
+        "--trigger-grace-seconds",
+        type=int,
+        default=45,
+        help="Allow a message slightly earlier than trigger (seconds).",
+    )
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
         "--smart_save",
@@ -1567,18 +2123,64 @@ def main() -> None:
     else:
         save_mode = "strong_smart_save"
 
+    local_tz = get_local_tz()
+    default_calendar = str(args.default_calendar or "").strip() or "Calendar"
+    processed_ids = load_processed_ids()
+
     source_ref = ""
     if args.latest_email:
         skip_accounts = {item.strip().lower() for item in args.skip_accounts.split(",") if item.strip()}
+        trigger_epoch = max(0, int(args.trigger_epoch or 0))
+        trigger_wait_seconds = max(0, int(args.trigger_wait_seconds or 0))
+        trigger_poll_seconds = max(1, int(args.trigger_poll_seconds or 1))
+        trigger_grace_seconds = max(0, int(args.trigger_grace_seconds or 0))
+        fetch_run_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-trigger-fetch"
         try:
-            message = fetch_latest_email_payload(skip_accounts)
+            fetch_payload = fetch_latest_email_via_codex(
+                run_id=fetch_run_id,
+                skip_accounts=skip_accounts,
+                trigger_epoch=trigger_epoch,
+                trigger_wait_seconds=trigger_wait_seconds,
+                trigger_poll_seconds=trigger_poll_seconds,
+                trigger_grace_seconds=trigger_grace_seconds,
+                model=args.model,
+                reasoning=args.reasoning,
+                codex_bin_override=args.codex_bin,
+            )
         except subprocess.CalledProcessError as exc:
-            logging.error("latest_fetch_failed code=%s stderr=%s", exc.returncode, (exc.stderr or "").strip()[:2000])
+            logging.error("latest_fetch_codex_failed code=%s stderr=%s", exc.returncode, (exc.stderr or "").strip()[:2000])
             sys.exit(1)
         except Exception as exc:
-            logging.error("latest_fetch_failed err=%s", exc)
+            logging.error("latest_fetch_codex_failed err=%s", exc)
             sys.exit(1)
-        source_ref = f"mail_latest(skip_accounts={','.join(sorted(skip_accounts))})"
+
+        fetch_status = str(fetch_payload.get("status", "")).strip()
+        fetch_reason = str(fetch_payload.get("reason", "")).strip()
+        fetch_attempts = int(fetch_payload.get("attempts", 0) or 0)
+        fetch_message_id = str(fetch_payload.get("messageID", "")).strip()
+        fetch_received_at = str(fetch_payload.get("receivedAt", "")).strip()
+        fetch_account = str(fetch_payload.get("account", "")).strip()
+        fetch_mailbox = str(fetch_payload.get("mailbox", "")).strip()
+        if fetch_status == "ok" and (not fetch_message_id or not fetch_received_at or not fetch_account or not fetch_mailbox):
+            fetch_status = "not_found"
+            if not fetch_reason:
+                fetch_reason = "codex_fetch_returned_empty_fields"
+        if fetch_status != "ok":
+            logging.error(
+                "latest_fetch_no_match status=%s reason=%s attempts=%s trigger_epoch=%s",
+                fetch_status or "(none)",
+                fetch_reason or "(none)",
+                fetch_attempts,
+                trigger_epoch,
+            )
+            sys.exit(2 if fetch_status == "not_found" else 1)
+
+        message = normalize_message(fetch_payload)
+        source_ref = (
+            f"mail_latest_codex(skip_accounts={','.join(sorted(skip_accounts))},trigger_epoch={trigger_epoch},"
+            f"trigger_wait_seconds={trigger_wait_seconds},trigger_poll_seconds={trigger_poll_seconds},"
+            f"trigger_grace_seconds={trigger_grace_seconds},attempts={fetch_attempts},reason={fetch_reason})"
+        )
     else:
         source_path = Path(str(args.message_json)).expanduser()
         source_ref = str(source_path)
@@ -1597,11 +2199,8 @@ def main() -> None:
     message_token = safe_token(message.get("messageID", ""))
     run_id = f"{timestamp}-{message_token}"
     message_id = message.get("messageID", "")
-    local_tz = get_local_tz()
     now_local = datetime.now(local_tz)
     received_local = parse_iso_datetime(message.get("receivedAt", ""), local_tz) or now_local
-    default_calendar = str(args.default_calendar or "").strip() or "Calendar"
-    processed_ids = load_processed_ids()
 
     inbound_path = INBOUND_DIR / f"{run_id}.json"
     prompt_path = PROMPT_DIR / f"{run_id}.txt"
@@ -1653,7 +2252,13 @@ def main() -> None:
         logging.info("action_fingerprint_bootstrap_added=%s", boot_added)
     recent_items_text = summarize_recent_items_for_prompt(action_fingerprints)
 
-    prompt = build_prompt(message, now_local, received_local, default_calendar, recent_items_text)
+    trigger_context = (
+        f"trigger_epoch={int(args.trigger_epoch or 0)},"
+        f"trigger_wait_seconds={int(args.trigger_wait_seconds or 0)},"
+        f"trigger_poll_seconds={int(args.trigger_poll_seconds or 0)},"
+        f"trigger_grace_seconds={int(args.trigger_grace_seconds or 0)}"
+    )
+    prompt = build_prompt(message, now_local, received_local, default_calendar, recent_items_text, trigger_context)
     prompt_path.write_text(prompt + "\n", encoding="utf-8")
     shutil.copyfile(prompt_path, PROMPT_DIR / "latest.txt")
 
@@ -1698,6 +2303,7 @@ def main() -> None:
             normalized_actions,
             recent_items_text,
             notes_index_text,
+            trigger_context,
         )
         smart_prompt_path.write_text(smart_prompt + "\n", encoding="utf-8")
         shutil.copyfile(smart_prompt_path, PROMPT_DIR / "latest-smart.txt")
@@ -1746,6 +2352,7 @@ def main() -> None:
             recent_items_text=recent_items_text,
             notes_index_text=notes_index_text,
             run_id=run_id,
+            trigger_context=trigger_context,
         )
         strong_prompt_path.write_text(strong_prompt + "\n", encoding="utf-8")
         shutil.copyfile(strong_prompt_path, PROMPT_DIR / "latest-strong.txt")
