@@ -74,6 +74,7 @@ This fork prioritizes my personal flow at **lazying.art**:
 Automation workspace (local):
 
 - `~/.openclaw/workspace/automation/`
+- Script references in repo: `references/lab-scripts-and-philosophy.md`
 
 ---
 
