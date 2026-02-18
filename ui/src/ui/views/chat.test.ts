@@ -125,12 +125,16 @@ describe("chat view", () => {
     );
 
     const stopButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Stop",
+      (btn) => btn.getAttribute("aria-label") === "Stop run",
     );
     expect(stopButton).not.toBeUndefined();
     stopButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onAbort).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain("New session");
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (btn) => btn.getAttribute("aria-label") === "Start new session",
+      ),
+    ).toBe(false);
   });
 
   it("shows a new session button when aborting is unavailable", () => {
@@ -147,11 +151,15 @@ describe("chat view", () => {
     );
 
     const newSessionButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "New session",
+      (btn) => btn.getAttribute("aria-label") === "Start new session",
     );
     expect(newSessionButton).not.toBeUndefined();
     newSessionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onNewSession).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain("Stop");
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (btn) => btn.getAttribute("aria-label") === "Stop run",
+      ),
+    ).toBe(false);
   });
 });

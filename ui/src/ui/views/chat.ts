@@ -203,6 +203,8 @@ export function renderChat(props: ChatProps) {
       ? "Add a message or paste more images..."
       : "Message (↩ to send, Shift+↩ for line breaks, paste images)"
     : "Connect to the gateway to start chatting…";
+  const composePrimaryLabel = isBusy ? "Queue message" : "Send message";
+  const composeSecondaryLabel = canAbort ? "Stop run" : "Start new session";
 
   const splitRatio = props.splitRatio ?? 0.6;
   const sidebarOpen = Boolean(props.sidebarOpen && props.onCloseSidebar);
@@ -405,18 +407,22 @@ export function renderChat(props: ChatProps) {
           </label>
           <div class="chat-compose__actions">
             <button
-              class="btn"
+              class="btn chat-compose__icon-btn"
               ?disabled=${!props.connected || (!canAbort && props.sending)}
+              aria-label=${composeSecondaryLabel}
+              title=${composeSecondaryLabel}
               @click=${canAbort ? props.onAbort : props.onNewSession}
             >
-              ${canAbort ? "Stop" : "New session"}
+              ${canAbort ? icons.x : icons.plus}
             </button>
             <button
-              class="btn primary"
+              class="btn primary chat-compose__icon-btn"
               ?disabled=${!props.connected}
+              aria-label=${composePrimaryLabel}
+              title=${`${composePrimaryLabel} (Enter)`}
               @click=${props.onSend}
             >
-              ${isBusy ? "Queue" : "Send"}<kbd class="btn-kbd">↵</kbd>
+              ${icons.send}
             </button>
           </div>
         </div>
