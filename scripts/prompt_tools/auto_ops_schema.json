@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AutoOpsResult",
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_note": { "type": "string" },
+          "folder": { "type": "string" },
+          "html_body": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["target_note", "html_body"],
+        "additionalProperties": false
+      }
+    },
+    "calendar_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "start_iso": { "type": "string" },
+          "end_iso": { "type": "string" },
+          "calendar": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "required": ["title", "start_iso", "end_iso"],
+        "additionalProperties": false
+      }
+    },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "due_iso": { "type": "string" },
+          "notes": { "type": "string" },
+          "list": { "type": "string" }
+        },
+        "required": ["title"],
+        "additionalProperties": false
+      }
+    },
+    "log_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "channel": { "type": "string" },
+          "content_html": { "type": "string" }
+        },
+        "required": ["content_html"],
+        "additionalProperties": false
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "description": { "type": "string" },
+          "owner": { "type": "string" }
+        },
+        "required": ["type", "description"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["summary"],
+  "additionalProperties": false
+}

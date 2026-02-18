@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AutoLifeLogEntry",
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string", "minLength": 3 },
+    "log_html": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["summary", "log_html", "tags"],
+  "additionalProperties": false
+}
