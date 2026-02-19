@@ -19,6 +19,7 @@ Input:
 - `opened_items` (up to the query-configured open budget, each with title, url, summary, opened screenshots when present)
 - `query-*.txt` for compact evidence.
 - If `opened_items` is empty, fallback to `search_page_overviews` + `search_page_screenshots` for signal extraction.
+- Use `query_file_root` + pattern fields (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`) and `top_results_per_query` before consuming opened details.
 
 Objective:
 
@@ -29,7 +30,8 @@ Rules:
 
 - Evidence-first: use only signals present in the provided context.
 - If web-search evidence is present, rank by signal strength and include concrete links/summaries for top findings.
-- Include as many high-confidence evidence entries as the web-search run returned (up to `opened_count`), and cite result-page screenshots for traceability.
+- Include as many high-confidence evidence entries as the web-search run returned (up to `opened_count` or `top_results_per_query`), and cite result-page/opened-page screenshots for traceability.
+- Build a short evidence index in `notes` with `query`, `rank`, `title`, `url`, `source`, `confidence`, and `evidence_path`.
 - Exclude speculative or weak links.
 - Prefer freshness and venue quality (Nature / Science / Cell / Nature Machine Intelligence / related top-tier work).
 - Keep output concise and structured for notes + execution planning.

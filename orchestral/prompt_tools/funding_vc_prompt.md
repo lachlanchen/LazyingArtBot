@@ -14,12 +14,13 @@ Inputs:
 Search evidence inputs:
 
 - `run_context` may include web-search metadata emitted by `run_la_pipeline.sh` / `run_lightmind_pipeline.sh`:
-  - `query_file_root`
-  - `query_file_pattern` / `query_file_pattern_txt` / `query_file_pattern_screenshots`
-  - `top_results_per_query`
+- `query_file_root`
+- `query_file_pattern` / `query_file_pattern_txt` / `query_file_pattern_screenshots`
+- `top_results_per_query`
 - Use `query-*.json` and `query-*.txt` under the file root for first-page scan and artifact links.
-- Use `search_page_screenshots`, `search_page_overviews`, and `opened_items` as evidence anchors.
-- Do not constrain synthesis to exactly three entries; use the actual `opened_count` per keyword from the web-search stage.
+- Use `search_page_screenshots`, `search_page_overviews`, `opened_items`, and `opened_count` as evidence anchors.
+- Do not constrain synthesis to exactly three entries; use the available evidence budget from `opened_count` / `top_results_per_query`.
+- If your result set includes duplicates across sources, deduplicate by `url` before writing final opportunities.
 
 Conservative rules:
 
@@ -44,6 +45,14 @@ Output requirements (auto_ops_schema):
      - urgency/deadline block
      - action list for next 24h/72h
      - risk or false-positive guard
+     - include one compact table `Top opportunities` with:
+       - source
+       - title
+       - url
+       - relevance
+       - confidence
+       - evidence_path
+       - evidence_path must come from web-search artifacts or the run context.
    - `tags`: include tags such as `funding`, `vc`, `grants`, `pipeline`.
 
 Formatting constraints:

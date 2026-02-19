@@ -89,10 +89,16 @@ Run the local Lazying.art pipeline exactly once.
    /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs/<run_id>/ 
    with web_search.summary.txt and web_search_digest.html.
    query artifacts include:
-     - query-*.json
-     - query-*.txt
-     - screenshots/*.png
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/query-*.json
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/query-*.txt
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/screenshots/*.png
+     - include query_file_root and query_file_pattern metadata from the run context
    summary includes top result entries + search page screenshot paths from prompt_web_search_immersive outputs.
+   include run-search metadata:
+     - query_file_pattern
+     - query_file_pattern_txt
+     - query_file_pattern_screenshots
+     - top_results_per_query
 4) If execution fails, report stderr and stop.
 5) Do not run other commands.
 EOF

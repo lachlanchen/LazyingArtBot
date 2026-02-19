@@ -18,10 +18,24 @@ High-priority context to use every run:
 Evidence input (if attached from search stage):
 
 - Prefer web-search artifacts from `prompt_web_search_immersive.sh` when available:
-  - `query-*.txt` for compact result digest
-  - `query-*.json` + `search_page_screenshots` for evidence paths
-  - `opened_items` for result-specific detail
-- Mention opened result links per query up to the configured open budget (`--open-top-results` / `opened_count`) in the final note with short takeaways.
+  - `query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, and `query_file_pattern_screenshots` for locating artifacts.
+  - `top_results_per_query` for the intended open budget per query.
+  - `search_page_summaries`/`search_page_overviews` and `search_page_screenshots` for first-pass context.
+  - `query-*.json` for structured items and `opened_items` for deep links.
+- Mention opened result links per query up to the available `opened_count` in the final note with short takeaways.
+- Do not force exactly three links; use the provided run budget.
+
+Output evidence requirement:
+
+- Add a compact `search_evidence` section in the HTML body with columns:
+  - `query`
+  - `rank`
+  - `title`
+  - `url`
+  - `source`
+  - `evidence_path`
+  - `confidence`
+- `evidence_path` should point to the exact screenshot or summary path from the artifacts.
 
 You must be conservative:
 

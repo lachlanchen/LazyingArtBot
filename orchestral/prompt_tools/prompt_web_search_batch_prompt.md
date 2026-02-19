@@ -32,6 +32,10 @@ Artifacts:
 - `search_batch_summary.md` (compact markdown)
 - `items/result-XX.md` (per result report)
 - `screenshots/*.png` (result + page screenshots)
+- For downstream codex stages, also capture:
+  - `query_file_root`
+  - `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`
+  - `opened_count` and `search_page_overviews`
 
 Default arguments:
 
@@ -60,3 +64,6 @@ orchestral/prompt_tools/prompt_web_search_batch.sh \
 
 Use this tool when you need to process multiple links in one run and keep outputs
 for downstream prompt pipelines (notes and email digests).
+
+Do not hardcode a fixed top count in the caller. Use the pipeline-provided
+`top_results_per_query`/`opened_count` as the execution target where available.

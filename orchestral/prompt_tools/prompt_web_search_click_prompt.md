@@ -39,6 +39,8 @@ Artifacts and fields:
   - `search_page_overviews` scan summaries
   - `search_page_screenshots` for search page screenshots
   - `search_page_overviews` and `search_page_screenshots` for evidence when validating result links
+  - `opened_count` for how many opened entries are available in `opened_items`
+  - `query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots` for downstream codex traceability
 
 Operational expectations:
 
@@ -64,6 +66,7 @@ Use this flow when you need explicit result opening in one click:
 3. Use outputs above in downstream notes/email context.
 4. If this one-click flow misses multi-result evidence, switch to a richer run:
    `orchestral/prompt_tools/prompt_web_search_immersive.sh --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 1.0`
+   - choose `<top_n>` from `top_results_per_query` / `opened_count` rather than hard-coding 3.
 
 Notes:
 

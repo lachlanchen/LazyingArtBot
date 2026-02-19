@@ -42,11 +42,16 @@ Recommended interaction pattern for Codex-assisted extraction:
 4. For any rerun, keep:
    - `--scroll-steps` (typically 3-6) and `--scroll-pause` (~0.8-1.2) for long pages.
 5. Final output should always include:
-   - result folder path
+   - result folder path (`<output-dir>/<run-id>`)
    - results-page screenshot path(s) (`search_page_screenshots`)
    - `opened_items` (opened links from the current query window)
+   - `opened_count`
+   - query artifact hints for downstream prompts:
+     - `query_file_root`
+     - `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`
    - for each opened item: title, url, summary, optional `opened_screenshots`, and click location if available
    - `--summarize-open-url` snippets for each opened result
+   - `search_page_overviews` and `search_page_screenshots` for first-pass ranking context
 
 Default behavior notes:
 
@@ -66,3 +71,4 @@ Where to write outputs:
 Downstream note/email rule:
 
 - Include opened result titles + URLs + summaries for the query-configured result depth, and provide screenshot references for evidence.
+- Use the `top_results_per_query` / `opened_count` values from the same run; do not hard-code top-3.

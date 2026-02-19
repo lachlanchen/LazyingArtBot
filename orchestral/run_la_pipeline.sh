@@ -816,22 +816,20 @@ PY
   else
     open_limit=3
   fi
-  (( open_limit > 3 )) && open_limit=3
-  (( open_limit < 1 )) && open_limit=3
+  (( open_limit < 1 )) && open_limit=1
 
   if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
     : > "$out_path"
     {
       echo "[academic] mode=web_search_research"
       echo "[academic] status=web_search_failed"
-      echo "[academic] top_results_per_query=$open_limit"
-      echo "[academic] query_root=$academic_output_root"
       echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
       echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
       echo "[academic] query_file_root=$academic_output_root"
-      echo "[academic] query_file_pattern=query-*.json"
-      echo "[academic] query_file_pattern_txt=query-*.txt"
-      echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+      echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
+      echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
+      echo "[academic] query_file_pattern_screenshots=$academic_output_root/*/screenshots/*.png"
+      echo "[academic] top_results_per_query=$open_limit"
     } > "$out_path"
     return 0
   fi
@@ -841,13 +839,12 @@ PY
     echo "[academic] top_results_per_query=$open_limit"
     echo "[academic] query_count=${#academic_queries[@]}"
     echo "[academic] context_source=prompt_web_search_immersive"
+    echo "[academic] query_file_root=$academic_output_root"
     echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
     echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
-    echo "[academic] query_root=$academic_output_root"
-    echo "[academic] query_file_root=$academic_output_root"
-    echo "[academic] query_file_pattern=query-*.json"
-    echo "[academic] query_file_pattern_txt=query-*.txt"
-    echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+    echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
+    echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
+    echo "[academic] query_file_pattern_screenshots=$academic_output_root/*/screenshots/*.png"
     echo "[academic] queries:"
     for q in "${academic_queries[@]}"; do
       echo "  - $q"
@@ -1103,12 +1100,12 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     echo "Web search summary:"
     echo "  output_dir: $WEB_OUTPUT_DIR"
     echo "  query_file_root: $WEB_OUTPUT_DIR/lazyingart"
+    echo "  query_file_pattern: $WEB_OUTPUT_DIR/lazyingart/*/query-*.json"
+    echo "  query_file_pattern_txt: $WEB_OUTPUT_DIR/lazyingart/*/query-*.txt"
+    echo "  query_file_pattern_screenshots: $WEB_OUTPUT_DIR/lazyingart/*/screenshots/*.png"
     echo "  summary_file: $WEB_SUMMARY_FILE"
     echo "  html_file: $WEB_HTML_FILE"
     echo "  top_results_per_query: $WEB_SEARCH_TOP_RESULTS"
-    echo "  query_file_pattern: query-*.json"
-    echo "  query_file_pattern_txt: query-*.txt"
-    echo "  query_file_pattern_screenshots: screenshots/*.png"
     cat "$WEB_SUMMARY_FILE"
   } >> "$CONTEXT_FILE"
   "$PROMPT_DIR/prompt_la_note_save.sh" \

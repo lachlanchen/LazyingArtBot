@@ -24,6 +24,7 @@ Your job is to keep a fixed strategic reminder backbone and update it carefully.
   8. one_year_milestone
 - Be conservative with changes. Avoid churn.
 - Do not generate duplicate reminders under slight rewording.
+- Keep exactly one reminder per slot and replace the previous item when the same `duplication_key` is present.
 - Prefer stable, actionable titles.
 - For each slot, produce one clear milestone-oriented reminder.
 
@@ -49,6 +50,8 @@ For each reminder:
   - A success criterion
 - `duplication_key` should be stable for the same intent (not random).
 - `rationale` should explain why this slot got this specific content.
+- If context contains an old reminder state, refresh each slot by matching `duplication_key`.
+- If intent does not change, keep the existing body and update only freshness/notes when needed.
 
 ## Output contract
 

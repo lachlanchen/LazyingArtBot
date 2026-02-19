@@ -12,7 +12,9 @@ Input:
 - `context_file`: includes raw market + confidential snapshots and a compact list from high-impact sources.
 - This content is already scoped; do not fetch external web content.
 - Optional: if `context_file` includes `prompt_web_search_immersive` evidence, treat those links/summaries as high-priority signals.
-  Parse JSON artifacts (`query-*.json`) when present and use:
+- Use `query_file_root` and pattern hints (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`) to locate all related artifacts.
+- Use `top_results_per_query` (and `opened_count` where available) as upper bounds when selecting links.
+- Parse JSON artifacts (`query-*.json`) when present and use:
   - `search_page_screenshots` as evidence anchor
   - `opened_items` (up to per-query open limit, each with title + url + summary + opened screenshots)
   - `query-*.txt` for compact text snippets.
@@ -28,7 +30,15 @@ Rules:
 
 - Only include items that are clearly in the provided context.
 - Prefer venue quality and recency.
-- If `opened_items` are present in context, include entries up to the per-query open budget (typically `opened_count`) with explicit links and short evidence summaries.
+- If `opened_items` are present in context, include entries up to the per-query open budget (`opened_count` / `top_results_per_query`) with explicit links and short evidence summaries.
+- Add a compact table row for each evidence entry with:
+  - `query`
+  - `rank`
+  - `title`
+  - `url`
+  - `evidence_path`
+  - `confidence`
+  - `next_action`
 - Prefer concrete, actionable relevance to enterprise AI, scientific AI workflows, product discovery, and commercialization.
 - If no useful signal, return an empty `notes` array and short `summary`.
 - Do not hallucinate; if uncertainty exists, call out confidence clearly.

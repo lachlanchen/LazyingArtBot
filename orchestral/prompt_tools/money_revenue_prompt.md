@@ -16,11 +16,13 @@ Inputs:
 Search integration guidance:
 
 - `run_context` and upstream summary files may include web-search artifacts from the pipeline:
-  - query roots/patterns (`query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`)
+  - `query_file_root` and glob hints (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`)
   - `top_results_per_query`
   - query outputs (`query-*.json`, `query-*.txt`) with `search_page_overviews`, `search_page_screenshots`, `opened_items`, `opened_count`.
+- Prefer `opened_items` and screenshot-backed rows before generic summarization notes.
 - Treat first-page scan snippets as the first evidence layer, then add deep-opened links when confidence is high.
 - Do not force exactly three research/market/funding bullets; cite the number of grounded links available from the search evidence.
+- If two items refer to same URL, keep one and preserve the highest-confidence reasoning.
 
 Source scope policy:
 
@@ -52,6 +54,13 @@ Required constraints for `html_body`:
   - one-step execution playbook (next 7 days / next 30 days)
   - risk or blocking assumptions
   - expected upside hypothesis (no hard numeric guarantees).
+- Add one concise evidence table named `Search evidence snapshot` with:
+  - `query`
+  - `url`
+  - `takeaway`
+  - `confidence`
+  - `evidence_path`
+- Only include links that exist in run artifacts.
 - `How to make money` should prioritize market-fit, pricing, channels, and execution bottlenecks.
 - `Think out of the box` should provide cross-domain play ideas and partnership-style moves.
 - `1000 billion USD reverse engineering` should provide 3-5 long-horizon compounding bets and moat-building loops.

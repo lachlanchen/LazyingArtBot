@@ -139,10 +139,17 @@ $(printf '  %q ' "${LIFE_ARGS[@]}")
    /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/Lightmind/pipeline_runs/<run_id>/
    including web_search.summary.txt and web_search_digest.html.
    query artifacts include:
-     - query-*.json
-     - query-*.txt
-     - screenshots/*.png
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lightmind/<run_id>-lightmind-*/query-*.json
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lightmind/<run_id>-lightmind-*/query-*.txt
+     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lightmind/<run_id>-lightmind-*/screenshots/*.png
+     - include query_file_root and query_file_pattern metadata from the run context
+     - include query_file_root/query_file_pattern_screenshots for downstream tool traceability
    summary should include top result entries plus results-page screenshot paths from prompt_web_search_immersive.
+   include run-search metadata:
+     - query_file_pattern
+     - query_file_pattern_txt
+     - query_file_pattern_screenshots
+     - top_results_per_query
 5) If execution fails, report stderr and stop.
 6) Do not run other commands.
 EOF

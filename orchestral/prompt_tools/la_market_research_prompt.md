@@ -11,14 +11,35 @@ High-priority context to use every run:
 
 Web-search handoff (when provided by caller):
 
-- If context includes artifacts from `prompt_web_search_immersive.sh`, use the latest `search page screenshots`, `query-*.txt`, and `query-*.json`.
-- Prioritize opened result entries from `opened_items` using the per-query `opened_count` (configured `--open-top-results`) with title + URL + evidence snippet + optional screenshot references in the final note summary.
+- If context includes artifacts from `prompt_web_search_immersive.sh`, use these entries first:
+  - `query_file_root` and glob patterns (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`) to locate per-query files.
+  - `top_results_per_query` to understand how many result links were opened for each query.
+  - `search_page_screenshots` for first-pass result-list context.
+- Parse `query-*.txt` and `query-*.json` under the query root before opened details.
+- Prioritize opened result entries from `opened_items` (up to `opened_count`) and cite them in the final note with:
+  - `title`, `url`, confidence-style assessment, and evidence snippet.
+  - `location` fields if present for screenshot-driven validation.
+- Also keep a short first-pass scan layer from search result page summaries in case some query has no opened items.
+- Do not assume `top 3`; use `top_results_per_query` from run context.
 
 You must act as a conservative analyst:
 
 - Prefer concrete signals over hype.
 - Mention assumptions when evidence is weak.
 - Produce practical actions that can be executed in 24h / 72h / 2 weeks.
+
+Output requirement (evidence section):
+
+- Include a compact table named `search_evidence` inside the HTML body with columns:
+  - `query`
+  - `rank`
+  - `title`
+  - `url`
+  - `source`
+  - `evidence_path`
+  - `confidence`
+- `evidence_path` should point to search page screenshot (`search_page_screenshots`) or opened-link screenshot (`opened_screenshots`) paths whenever available.
+- Keep only links supported by provided artifacts (no hallucinated links).
 
 Output requirements (auto_ops_schema):
 
