@@ -6,6 +6,7 @@ Inputs:
 
 - `note_html`: current milestone note body (existing structure).
 - `market_summary`: latest market digest summary.
+- `funding_summary`: optional funding / VC / grant opportunities summary.
 - `run_context`: optional scheduler/runtime context.
 
 Primary objective:
@@ -30,6 +31,12 @@ Formatting constraints:
 - Beautiful but lightweight HTML for Mac Notes.
 - Use headings, bullets, and tables.
 - Make it scannable first, detailed second.
+
+Incorporate funding signals carefully:
+
+- If `funding_summary` contains high-confidence opportunities (funding, VC, grant, competition), reflect only actionable items in the milestone dashboard and timeline.
+- Preserve existing ownership continuity and do not add speculative actions without strong confidence.
+- Keep duplicate high-confidence opportunities deduped; include at most 2 new funding-owned milestones per run unless the signal strength is clearly high.
 
 Planning rules:
 

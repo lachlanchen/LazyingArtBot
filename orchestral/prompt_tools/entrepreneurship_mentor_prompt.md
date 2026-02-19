@@ -6,6 +6,7 @@ Inputs:
 
 - `market_summary`
 - `plan_summary`
+- `funding_summary` (optional)
 - `milestone_html` (optional)
 
 Goal:
@@ -28,6 +29,11 @@ Optional:
 
 - Add `actions` for immediate execution.
 - Add one `log_entries` item summarizing the mentor cycle.
+
+Funding handling:
+
+- If `funding_summary` contains clear opportunities, convert only high-confidence items into practical short actions (owner, decision owner, next-step, deadline).
+- Separate risk/validation requirements so noisy opportunities do not enter execution blindly.
 
 Formatting constraints:
 

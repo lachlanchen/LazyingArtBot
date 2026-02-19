@@ -7,6 +7,8 @@ cd "$REPO_DIR"
 CONTEXT_FILE=""
 MODEL="gpt-5.1-codex-mini"
 REASONING="medium"
+SAFETY="${CODEX_SAFETY:-danger-full-access}"
+APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-market"
 PROMPT_FILE="orchestral/prompt_tools/la_market_research_prompt.md"
@@ -27,6 +29,8 @@ Options:
   --context-file <path>   Optional JSON/text context file
   --model <name>          Codex model (default: gpt-5.1-codex-mini)
   --reasoning <level>     Reasoning level (default: medium)
+  --safety <level>        Codex safety mode (default: danger-full-access)
+  --approval <policy>     Codex approval policy (default: never)
   --output-dir <path>     Artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>          Run label (default: la-market)
   --company-focus <text>  Company focus label (default: Lazying.art)
@@ -50,6 +54,14 @@ while [[ $# -gt 0 ]]; do
     --reasoning)
       shift
       REASONING="${1:-}"
+      ;;
+    --safety)
+      shift
+      SAFETY="${1:-}"
+      ;;
+    --approval)
+      shift
+      APPROVAL="${1:-}"
       ;;
     --output-dir)
       shift
@@ -139,6 +151,8 @@ python3 orchestral/prompt_tools/codex-json-runner.py \
   --schema "$SCHEMA_FILE" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
   --label "$LABEL" \
   --skip-git-check \
   >/dev/null

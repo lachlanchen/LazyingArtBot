@@ -14,6 +14,8 @@ LIGHTMIND_OUTPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.1-codex-mini"
 REASONING="medium"
+SAFETY="${CODEX_SAFETY:-danger-full-access}"
+APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
 FROM_ADDR="$DEFAULT_FROM"
 TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachlan@lightmind.art")
@@ -40,10 +42,12 @@ ACADEMIC_QUERIES=(
   "AI + Nature"
   "AI + Science"
 )
+FUNDING_LANGUAGE_POLICY="Chinese-first with concise bilingual EN/JP support where useful."
 ACADEMIC_RSS_SOURCES=(
   "Nature:https://www.nature.com/nature.rss"
   "Cell:https://www.cell.com/cell/rss"
   "Science:https://www.science.org/action/showFeed?type=site&jc=science"
+  "Nature news feed:https://www.nature.com/nature/articles?type=news"
 )
 
 usage() {
@@ -675,6 +679,7 @@ merge_market_and_academic_summaries() {
 
 log "Pipeline start run_id=$RUN_ID model=$MODEL reasoning=$REASONING"
 log "Pipeline config: resource_analysis=$RUN_RESOURCE_ANALYSIS roots=${#RESOURCE_ROOTS[@]}"
+
 acquire_pipeline_lock
 
 CONFIDENTIAL_SUMMARY="$ARTIFACT_DIR/confidential_context_summary.txt"
@@ -691,7 +696,7 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
   for root in "${RESOURCE_ROOTS[@]}"; do
     RESOURCE_ANALYSIS_ARGS+=(--resource-root "$root")
   done
-  log "Step 0/8: analyze resources and create reference markdown"
+  log "Resource analysis starting"
   set +e
   "$PROMPT_DIR/prompt_resource_analysis.sh" \
     --company "Lightmind" \
@@ -720,10 +725,10 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
 else
   RESOURCE_ANALYSIS_MARKDOWN_DIR="$(find_latest_resource_markdown_dir "$RESOURCE_OUTPUT_DIR" || true)"
   if [[ -n "$RESOURCE_ANALYSIS_MARKDOWN_DIR" ]]; then
-    log "Step 0/8: use latest cached resource analysis markdown."
+    log "Resource analysis using latest cached markdown"
     HAS_RESOURCE_CACHE=1
   else
-    log "Step 0/7: resource analysis skipped."
+    log "Resource analysis skipped (no cache available)"
   fi
 fi
 
@@ -739,6 +744,9 @@ fi
   echo "Run time: $(TZ=Asia/Hong_Kong date '+%Y-%m-%d %H:%M:%S %Z')"
   echo "Primary brand: Lightmind"
   echo "Must inspect https://lightmind.art and confidential context below."
+  echo "Reference input folder: $LIGHTMIND_INPUT_ROOT"
+  echo "Reference output folder: $LIGHTMIND_OUTPUT_ROOT"
+  echo "Pipeline uses both input and output references for long-term company context."
   echo
   if [[ -n "$RESOURCE_ANALYSIS_RESULT" && -f "$RESOURCE_ANALYSIS_RESULT" ]]; then
     cat "$RESOURCE_APPEND_PATH"
@@ -766,19 +774,36 @@ fi
   fi
 } > "$CONTEXT_FILE"
 
+TOTAL_STEPS=7
+if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
+
+BASE_STEP=0
+if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
+  BASE_STEP=1
+  log "Step 0/$TOTAL_STEPS: analyze resources and create reference summary"
+fi
+
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
+FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
 MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 
 MARKET_HTML="$ARTIFACT_DIR/market.html"
 ACADEMIC_CONTEXT="$ARTIFACT_DIR/academic_context.txt"
 ACADEMIC_HTML="$ARTIFACT_DIR/academic.html"
+FUNDING_HTML="$ARTIFACT_DIR/funding.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
 MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 
 MARKET_SUMMARY="$ARTIFACT_DIR/market.summary.txt"
 ACADEMIC_SUMMARY="$ARTIFACT_DIR/academic.summary.txt"
+FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
@@ -786,12 +811,22 @@ MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
 
-TOTAL_STEPS=7
-if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
-  TOTAL_STEPS=8
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  ACADEMIC_STEP=$((BASE_STEP + 3))
+  FUNDING_STEP=$((BASE_STEP + 4))
+  PLAN_STEP=$((BASE_STEP + 5))
+  MENTOR_STEP=$((BASE_STEP + 6))
+  LOG_STEP=$((BASE_STEP + 7))
+  EMAIL_STEP=$((BASE_STEP + 8))
+else
+  FUNDING_STEP=$((BASE_STEP + 3))
+  PLAN_STEP=$((BASE_STEP + 4))
+  MENTOR_STEP=$((BASE_STEP + 5))
+  LOG_STEP=$((BASE_STEP + 6))
+  EMAIL_STEP=$((BASE_STEP + 7))
 fi
 
-log "Step 1/$TOTAL_STEPS: read current milestone note from AutoLife"
+log "Step $((BASE_STEP))/$TOTAL_STEPS: read current milestone note from AutoLife"
 "$PROMPT_DIR/prompt_la_note_reader.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
@@ -799,7 +834,7 @@ log "Step 1/$TOTAL_STEPS: read current milestone note from AutoLife"
   --note "💡 Lightmind Milestones / 里程碑 / マイルストーン" \
   --out "$CURRENT_MILESTONE_HTML" || true
 
-log "Step 2/$TOTAL_STEPS: market research"
+log "Step $((BASE_STEP + 2))/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
   --company-focus "Lightmind" \
@@ -808,6 +843,8 @@ log "Step 2/$TOTAL_STEPS: market research"
   --prompt-file "$PROMPT_DIR/lm_market_research_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
   --label "lm-market" \
   > "$MARKET_RESULT"
 
@@ -824,7 +861,9 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --mode append \
   --html-file "$MARKET_HTML"
 
-log "Step 3/$TOTAL_STEPS: academic research (high-impact)"
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  log "Step $ACADEMIC_STEP/$TOTAL_STEPS: academic research (high-impact)"
+fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   ACADEMIC_QUERIES_JSON="$(python3 - <<'PY' "${ACADEMIC_QUERIES[@]}"
 import json
@@ -845,6 +884,8 @@ PY
     --prompt-file "$PROMPT_DIR/lm_academic_research_prompt.md" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
     --label "lm-academic" \
     > "$ACADEMIC_RESULT"
 
@@ -867,16 +908,50 @@ fi
 
 merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY"
 
-log "Step 4/$TOTAL_STEPS: milestone plan draft"
+log "Step $FUNDING_STEP/$TOTAL_STEPS: funding and VC opportunities"
+"$PROMPT_DIR/prompt_funding_vc.sh" \
+  --context-file "$CONTEXT_FILE" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
+  --resource-summary-file "$RESOURCE_APPEND_PATH" \
+  --company-focus "Lightmind" \
+  --language-policy "$FUNDING_LANGUAGE_POLICY" \
+  --reference-source "https://lightmind.art" \
+  --reference-source "https://github.com/lachlanchen?tab=repositories" \
+  --reference-source "Hong Kong startup competitions, VC and grant opportunities" \
+  --reference-source "High impact research and commercialization signals" \
+  --model "$MODEL" \
+  --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
+  --label "lm-funding" \
+  > "$FUNDING_RESULT"
+
+extract_note_html "$FUNDING_RESULT" "$FUNDING_HTML"
+extract_summary "$FUNDING_RESULT" "$FUNDING_SUMMARY"
+cp "$FUNDING_RESULT" "$NOTES_ROOT/last_funding_result.json"
+cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
+
+"$PROMPT_DIR/prompt_la_note_save.sh" \
+  --account "iCloud" \
+  --root-folder "AutoLife" \
+  --folder-path "🏢 Companies/👓 Lightmind.art" \
+  --note "🏦 Lightmind Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會" \
+  --mode append \
+  --html-file "$FUNDING_HTML"
+
+log "Step $PLAN_STEP/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
   --note-html "$CURRENT_MILESTONE_HTML" \
   --market-summary-file "$MARKET_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
+  --funding-summary-file "$FUNDING_SUMMARY" \
   --company-focus "Lightmind" \
   --reference-source "https://lightmind.art" \
   --prompt-file "$PROMPT_DIR/lm_plan_draft_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
   --label "lm-plan" \
   > "$PLAN_RESULT"
 
@@ -893,17 +968,20 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
   --mode replace \
   --html-file "$PLAN_HTML"
 
-log "Step 5/$TOTAL_STEPS: entrepreneurship mentor"
+log "Step $MENTOR_STEP/$TOTAL_STEPS: entrepreneurship mentor"
 "$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --plan-summary-file "$PLAN_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
+  --funding-summary-file "$FUNDING_SUMMARY" \
   --milestone-html-file "$PLAN_HTML" \
   --company-focus "Lightmind" \
   --reference-source "https://lightmind.art" \
   --prompt-file "$PROMPT_DIR/lm_entrepreneurship_mentor_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
   --label "lm-mentor" \
   > "$MENTOR_RESULT"
 
@@ -921,18 +999,19 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --html-file "$MENTOR_HTML"
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$FUNDING_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
 from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
-plan = Path(sys.argv[2]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[3]).read_text(encoding="utf-8")
-academic = Path(sys.argv[4]).read_text(encoding="utf-8")
-plan_input = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[6])
+funding = Path(sys.argv[2]).read_text(encoding="utf-8")
+plan = Path(sys.argv[3]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[4]).read_text(encoding="utf-8")
+academic = Path(sys.argv[5]).read_text(encoding="utf-8")
+plan_input = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[7])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -940,6 +1019,8 @@ digest = (
     f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
     "<hr/>"
     f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}"
+    "<hr/>"
+    f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}"
     "<hr/>"
     f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}"
     "<hr/>"
@@ -952,7 +1033,7 @@ digest = (
 out.write_text(digest, encoding="utf-8")
 PY
 
-log "Step 6/$TOTAL_STEPS: save daily pipeline log note"
+log "Step $LOG_STEP/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
 python3 - "$RUN_ID" "$MARKET_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LOG_HTML" <<'PY'
 import html
@@ -986,7 +1067,7 @@ PY
   --mode append \
   --html-file "$LOG_HTML"
 
-log "Step 7/$TOTAL_STEPS: compose/send email digest"
+log "Step $EMAIL_STEP/$TOTAL_STEPS: compose/send email digest"
 EMAIL_INSTRUCTION="$ARTIFACT_DIR/email_instruction.txt"
 cat > "$EMAIL_INSTRUCTION" <<EOF
 Create a beautiful HTML email update for Lightmind.
@@ -1015,6 +1096,8 @@ if [[ "$SEND_EMAIL" == "1" ]]; then
     --from "$FROM_ADDR" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
     --prompt-tools-dir "$PROMPT_DIR" \
     --skip-git-check \
     --send \
@@ -1026,6 +1109,8 @@ else
     --from "$FROM_ADDR" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
     --prompt-tools-dir "$PROMPT_DIR" \
     --skip-git-check \
     >"$EMAIL_LOG" 2>&1

@@ -26,10 +26,13 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import os
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_MODEL = "gpt-5.1-codex-mini"
 DEFAULT_REASONING = "medium"
+DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
+DEFAULT_APPROVAL = os.environ.get("CODEX_APPROVAL", "never")
 DEFAULT_PROMPT_FILE = SCRIPT_DIR / "json_task_prompt.md"
 
 
@@ -63,6 +66,8 @@ def run_codex(
     prompt: str,
     schema_path: Path | None,
     skip_git_check: bool,
+    safety: str,
+    approval: str,
     output_last_message: Path,
     stdout_log: Path,
     stderr_log: Path,
@@ -72,6 +77,10 @@ def run_codex(
         "exec",
         "--model",
         model,
+        "-s",
+        safety,
+        "-a",
+        approval,
         "-c",
         f'model_reasoning_effort="{reasoning}"',
         "--output-last-message",
@@ -105,6 +114,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--reasoning", default=DEFAULT_REASONING)
+    parser.add_argument(
+        "--safety",
+        default=DEFAULT_SAFETY,
+        help="Codex safety mode passed to -s (default: danger-full-access)",
+    )
+    parser.add_argument(
+        "--approval",
+        default=DEFAULT_APPROVAL,
+        help="Codex approval policy passed to -a (default: never)",
+    )
     parser.add_argument("--codex-bin", default="codex")
     parser.add_argument("--label", default="json-task", help="Run label prefix")
     parser.add_argument("--skip-git-check", action="store_true")
@@ -167,6 +186,8 @@ def main() -> int:
         prompt=prompt,
         schema_path=schema_path,
         skip_git_check=args.skip_git_check,
+        safety=args.safety,
+        approval=args.approval,
         output_last_message=raw_result_path,
         stdout_log=stdout_log,
         stderr_log=stderr_log,

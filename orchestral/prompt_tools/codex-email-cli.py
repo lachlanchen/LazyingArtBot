@@ -15,12 +15,15 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import os
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PROMPT_TOOLS = SCRIPT_DIR
 DEFAULT_MODEL = "gpt-5.1-codex-mini"
 DEFAULT_REASONING = "medium"
+DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
+DEFAULT_APPROVAL = os.environ.get("CODEX_APPROVAL", "never")
 BLOCKED_TEST_RECIPIENTS = {"lachlan.mia.chan@gmail.com"}
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -95,6 +98,8 @@ def run_codex(
     codex_bin: str,
     model: str,
     reasoning: str,
+    safety: str,
+    approval: str,
     schema_path: Path,
     prompt: str,
     skip_git_check: bool,
@@ -109,6 +114,10 @@ def run_codex(
         model,
         "-c",
         f'model_reasoning_effort="{reasoning}"',
+        "-s",
+        safety,
+        "-a",
+        approval,
         "--output-schema",
         str(schema_path),
         "--output-last-message",
@@ -424,6 +433,8 @@ def main() -> int:
     parser.add_argument("--subject", help="Force subject override")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--reasoning", default=DEFAULT_REASONING)
+    parser.add_argument("--safety", default=DEFAULT_SAFETY)
+    parser.add_argument("--approval", default=DEFAULT_APPROVAL)
     parser.add_argument("--codex-bin", default="codex")
     parser.add_argument("--prompt-tools-dir", default=str(DEFAULT_PROMPT_TOOLS))
     parser.add_argument("--skip-git-check", action="store_true")
@@ -462,6 +473,8 @@ def main() -> int:
         codex_bin=args.codex_bin,
         model=args.model,
         reasoning=args.reasoning,
+        safety=args.safety,
+        approval=args.approval,
         schema_path=schema_path,
         prompt=prompt,
         skip_git_check=args.skip_git_check,

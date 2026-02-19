@@ -4,43 +4,40 @@ set -euo pipefail
 REPO_DIR="/Users/lachlan/Local/Clawbot"
 cd "$REPO_DIR"
 
-NOTE_HTML=""
+COMPANY_FOCUS="Company"
+LANGUAGE_POLICY="Chinese-first with EN/JP support where useful"
+CONTEXT_FILE=""
 MARKET_SUMMARY_FILE=""
-ACADEMIC_SUMMARY_FILE=""
-FUNDING_SUMMARY_FILE=""
+RESOURCE_SUMMARY_FILE=""
 MODEL="gpt-5.1-codex-mini"
 REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
-LABEL="la-plan"
-PROMPT_FILE="orchestral/prompt_tools/la_plan_draft_prompt.md"
+LABEL="funding-vc"
+PROMPT_FILE="orchestral/prompt_tools/funding_vc_prompt.md"
 SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
-COMPANY_FOCUS="Lazying.art"
-REFERENCE_SOURCES=(
-  "https://lazying.art"
-  "https://github.com/lachlanchen?tab=repositories"
-)
+REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
 
 usage() {
   cat <<'USAGE'
-Usage: prompt_la_plan.sh --note-html <path> [options]
+Usage: prompt_funding_vc.sh [options]
 
 Options:
-  --note-html <path>          Required. Existing milestones HTML file
-  --market-summary-file <p>     Optional. Market summary text file
-  --academic-summary-file <p>   Optional. Merged market+academic summary file
-  --funding-summary-file <p>   Optional. Funding summary file
+  --company-focus <text>      Company focus label (default: Company)
+  --language-policy <text>    Language style override for output
+  --context-file <path>       Context JSON/text file
+  --market-summary-file <p>   Optional market summary file
+  --resource-summary-file <p> Optional resource/resource-analysis summary
   --model <name>              Codex model (default: gpt-5.1-codex-mini)
   --reasoning <level>         Reasoning level (default: medium)
   --safety <level>            Codex safety mode (default: danger-full-access)
   --approval <policy>         Codex approval policy (default: never)
   --output-dir <path>         Artifact directory (default: /tmp/codex-la-pipeline)
-  --label <name>              Run label (default: la-plan)
-  --company-focus <text>      Company focus label (default: Lazying.art)
+  --label <name>              Run label (default: funding-vc)
   --reference-source <u>      Reference source URL/text (repeatable)
-  --prompt-file <path>        Prompt template (default: orchestral/prompt_tools/la_plan_draft_prompt.md)
+  --prompt-file <path>        Prompt template (default: orchestral/prompt_tools/funding_vc_prompt.md)
   --schema-file <path>        Output schema (default: orchestral/prompt_tools/la_ops_schema.json)
   -h, --help                  Show help
 USAGE
@@ -48,21 +45,25 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --note-html)
+    --company-focus)
       shift
-      NOTE_HTML="${1:-}"
+      COMPANY_FOCUS="${1:-}"
+      ;;
+    --language-policy)
+      shift
+      LANGUAGE_POLICY="${1:-}"
+      ;;
+    --context-file)
+      shift
+      CONTEXT_FILE="${1:-}"
       ;;
     --market-summary-file)
       shift
       MARKET_SUMMARY_FILE="${1:-}"
       ;;
-    --academic-summary-file)
+    --resource-summary-file)
       shift
-      ACADEMIC_SUMMARY_FILE="${1:-}"
-      ;;
-    --funding-summary-file)
-      shift
-      FUNDING_SUMMARY_FILE="${1:-}"
+      RESOURCE_SUMMARY_FILE="${1:-}"
       ;;
     --model)
       shift
@@ -87,10 +88,6 @@ while [[ $# -gt 0 ]]; do
     --label)
       shift
       LABEL="${1:-}"
-      ;;
-    --company-focus)
-      shift
-      COMPANY_FOCUS="${1:-}"
       ;;
     --reference-source)
       shift
@@ -121,16 +118,6 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ -z "$NOTE_HTML" ]]; then
-  usage >&2
-  exit 1
-fi
-
-if [[ ! -f "$NOTE_HTML" ]]; then
-  echo "Missing --note-html file: $NOTE_HTML" >&2
-  exit 1
-fi
-
 TMP_PAYLOAD="$(mktemp)"
 
 REF_SOURCES_JSON="$(python3 - <<'PY' "${REFERENCE_SOURCES[@]}"
@@ -141,48 +128,49 @@ print(json.dumps(items, ensure_ascii=False))
 PY
 )"
 
-python3 - "$TMP_PAYLOAD" "$NOTE_HTML" "$MARKET_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$COMPANY_FOCUS" "$REF_SOURCES_JSON" <<'PY'
+python3 - "$TMP_PAYLOAD" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$COMPANY_FOCUS" "$LANGUAGE_POLICY" "$REF_SOURCES_JSON" <<'PY'
 import json
 import sys
 from datetime import datetime
 from pathlib import Path
 
 payload_path = Path(sys.argv[1])
-note_html_path = Path(sys.argv[2]).expanduser()
-market_summary_path = sys.argv[3]
-academic_summary_path = sys.argv[4]
-funding_summary_path = sys.argv[5]
-company_focus = sys.argv[6]
+context_path = sys.argv[2]
+market_path = sys.argv[3]
+resource_path = sys.argv[4]
+company_focus = sys.argv[5]
+language_policy = sys.argv[6]
 reference_sources = json.loads(sys.argv[7]) if len(sys.argv) > 7 else []
 
+context = ""
+if context_path:
+    p = Path(context_path).expanduser()
+    if p.exists():
+        context = p.read_text(encoding="utf-8")
+    else:
+        context = context_path
+
 market_summary = ""
-if market_summary_path:
-    p = Path(market_summary_path).expanduser()
+if market_path:
+    p = Path(market_path).expanduser()
     if p.exists():
         market_summary = p.read_text(encoding="utf-8")
 
-academic_summary = ""
-if academic_summary_path:
-    p = Path(academic_summary_path).expanduser()
+resource_summary = ""
+if resource_path:
+    p = Path(resource_path).expanduser()
     if p.exists():
-        academic_summary = p.read_text(encoding="utf-8")
-
-funding_summary = ""
-if funding_summary_path:
-    p = Path(funding_summary_path).expanduser()
-    if p.exists():
-        funding_summary = p.read_text(encoding="utf-8")
+        resource_summary = p.read_text(encoding="utf-8")
 
 payload = {
     "run_local_iso": datetime.now().astimezone().isoformat(timespec="seconds"),
-    "note_html": note_html_path.read_text(encoding="utf-8"),
-    "market_summary": market_summary,
-    "academic_summary": academic_summary,
-    "funding_summary": funding_summary,
     "company_focus": company_focus or "Company",
+    "language_policy": language_policy,
+    "run_context": context,
+    "market_summary": market_summary,
+    "resource_summary": resource_summary,
     "reference_sources": reference_sources,
 }
-
 payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 

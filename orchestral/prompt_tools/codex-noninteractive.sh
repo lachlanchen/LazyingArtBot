@@ -12,6 +12,8 @@ Options:
   --prompt <text>                 Prompt text (or pipe prompt via stdin)
   --model <name>                  Model name (default: CODEX_MODEL or gpt-5.1-codex-mini)
   --reasoning <level>             Reasoning level (default: CODEX_REASONING or medium)
+  --safety <level>                Safety mode (default: CODEX_SAFETY or danger-full-access)
+  --approval <policy>             Approval policy (default: CODEX_APPROVAL or never)
   --output-last-message <path>    Save final assistant message to path
   --output-schema <path>          JSON schema path for structured output
   --json                          Stream Codex JSONL events to stdout
@@ -28,6 +30,8 @@ USAGE
 PROMPT=""
 MODEL="${CODEX_MODEL:-gpt-5.1-codex-mini}"
 REASONING="${CODEX_REASONING:-medium}"
+SAFETY="${CODEX_SAFETY:-danger-full-access}"
+APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_LAST=""
 OUTPUT_SCHEMA=""
 JSON_OUT=0
@@ -46,6 +50,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --reasoning)
       REASONING="${2:-}"
+      shift
+      ;;
+    --safety)
+      SAFETY="${2:-}"
+      shift
+      ;;
+    --approval)
+      APPROVAL="${2:-}"
       shift
       ;;
     --output-last-message)
@@ -108,6 +120,8 @@ CMD=(
   exec
   --model "$MODEL"
   -c "model_reasoning_effort=\"$REASONING\""
+  -s "$SAFETY"
+  -a "$APPROVAL"
   --output-last-message "$OUTPUT_LAST"
 )
 

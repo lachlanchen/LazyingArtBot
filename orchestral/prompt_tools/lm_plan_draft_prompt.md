@@ -11,6 +11,7 @@ Inputs:
 
 - `note_html`: current Lightmind milestone note.
 - `market_summary`: latest Lightmind market summary.
+- `funding_summary`: optional funding / VC / grant opportunities summary.
 - `run_context`: optional scheduler/runtime context.
 
 Objective:
@@ -45,5 +46,10 @@ Planning rules:
 - Use concrete milestones, not generic ambition.
 - Break large goals into executable tasks.
 - Include measurable KPIs per milestone block.
+
+Funding handling:
+
+- If `funding_summary` has high-confidence opportunities, prioritize only feasible milestones with explicit owners and deadlines.
+- Avoid speculative planning from low-confidence or duplicate funding signals.
 
 Return JSON only.

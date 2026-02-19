@@ -8,8 +8,11 @@ MARKET_SUMMARY_FILE=""
 PLAN_SUMMARY_FILE=""
 MILESTONE_HTML_FILE=""
 ACADEMIC_SUMMARY_FILE=""
+FUNDING_SUMMARY_FILE=""
 MODEL="gpt-5.1-codex-mini"
 REASONING="medium"
+SAFETY="${CODEX_SAFETY:-danger-full-access}"
+APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-mentor"
 PROMPT_FILE="orchestral/prompt_tools/entrepreneurship_mentor_prompt.md"
@@ -30,8 +33,11 @@ Options:
   --plan-summary-file <p>    Optional. Plan summary text file
   --milestone-html-file <p>  Optional. Current milestones HTML file
   --academic-summary-file <p> Optional. Merged market+academic summary file
+  --funding-summary-file <p> Optional. Funding summary file
   --model <name>             Codex model (default: gpt-5.1-codex-mini)
   --reasoning <level>        Reasoning level (default: medium)
+  --safety <level>           Codex safety mode (default: danger-full-access)
+  --approval <policy>        Codex approval policy (default: never)
   --output-dir <path>        Artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>             Run label (default: la-mentor)
   --company-focus <text>     Company focus label (default: Lazying.art)
@@ -60,6 +66,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ACADEMIC_SUMMARY_FILE="${1:-}"
       ;;
+    --funding-summary-file)
+      shift
+      FUNDING_SUMMARY_FILE="${1:-}"
+      ;;
     --model)
       shift
       MODEL="${1:-}"
@@ -67,6 +77,14 @@ while [[ $# -gt 0 ]]; do
     --reasoning)
       shift
       REASONING="${1:-}"
+      ;;
+    --safety)
+      shift
+      SAFETY="${1:-}"
+      ;;
+    --approval)
+      shift
+      APPROVAL="${1:-}"
       ;;
     --output-dir)
       shift
@@ -119,7 +137,7 @@ print(json.dumps(items, ensure_ascii=False))
 PY
 )"
 
-python3 - "$TMP_PAYLOAD" "$MARKET_SUMMARY_FILE" "$PLAN_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$MILESTONE_HTML_FILE" "$COMPANY_FOCUS" "$REF_SOURCES_JSON" <<'PY'
+python3 - "$TMP_PAYLOAD" "$MARKET_SUMMARY_FILE" "$PLAN_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$MILESTONE_HTML_FILE" "$COMPANY_FOCUS" "$REF_SOURCES_JSON" <<'PY'
 import json
 import sys
 from datetime import datetime
@@ -129,9 +147,10 @@ payload_path = Path(sys.argv[1])
 market_path = sys.argv[2]
 plan_path = sys.argv[3]
 academic_path = sys.argv[4]
-milestone_path = sys.argv[5]
-company_focus = sys.argv[6]
-reference_sources = json.loads(sys.argv[7]) if len(sys.argv) > 7 else []
+funding_path = sys.argv[5]
+milestone_path = sys.argv[6]
+company_focus = sys.argv[7]
+reference_sources = json.loads(sys.argv[8]) if len(sys.argv) > 8 else []
 
 def read_if_exists(path_str: str) -> str:
     if not path_str:
@@ -147,6 +166,7 @@ payload = {
     "market_summary": read_if_exists(market_path),
     "plan_summary": read_if_exists(plan_path),
     "academic_summary": read_if_exists(academic_path),
+    "funding_summary": read_if_exists(funding_path),
     "milestone_html": read_if_exists(milestone_path),
     "reference_sources": reference_sources,
 }
@@ -161,6 +181,8 @@ python3 orchestral/prompt_tools/codex-json-runner.py \
   --schema "$SCHEMA_FILE" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
   --label "$LABEL" \
   --skip-git-check \
   >/dev/null
