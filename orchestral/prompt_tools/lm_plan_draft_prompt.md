@@ -12,6 +12,7 @@ Inputs:
 - `note_html`: current Lightmind milestone note.
 - `market_summary`: latest Lightmind market summary.
 - `funding_summary`: optional funding / VC / grant opportunities summary.
+- `web_search_summary`: latest web-search signal summary (links/snapshots).
 - `run_context`: optional scheduler/runtime context.
 
 Objective:
@@ -50,6 +51,19 @@ Planning rules:
 Funding handling:
 
 - If `funding_summary` has high-confidence opportunities, prioritize only feasible milestones with explicit owners and deadlines.
+- If `web_search_summary` includes explicit opportunities, convert only link-backed, high-confidence items into milestones and dedupe repeats from funding.
 - Avoid speculative planning from low-confidence or duplicate funding signals.
+
+Web-search evidence requirement:
+
+- If `web_search_summary` exists, add a compact `Web-search evidence snapshot` section in the milestone note.
+- Use a concise table with columns:
+  - `query`
+  - `title`
+  - `url`
+  - `evidence_path`
+  - `confidence`
+  - `owner_or_team`
+- Only include evidence that is directly present in `web_search_summary`.
 
 Return JSON only.

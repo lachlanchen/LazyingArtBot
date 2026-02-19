@@ -16,12 +16,13 @@ KEEP_OPEN=0
 HOLD_SECONDS=0
 AUTO_ATTACH=1
 ATTACH_SESSION=0
+CONTEXT_PATH=""
 CONDA_ENV="${WEB_SEARCH_ENV:-$DEFAULT_SEARCH_TOOL_ENV}"
 PROFILE_DIR="$DEFAULT_PROFILE_DIR"
 DEBUG_PORT="$DEFAULT_DEBUG_PORT"
 OPEN_URL=""
 DISMISS_COOKIES="${WEB_SEARCH_DISMISS_COOKIES:-1}"
-QUERIES=("AI technology market updates" "latest AI research highlights" "AI startup and funding signals")
+QUERIES=()
 
 usage() {
   cat <<'USAGE'
@@ -30,7 +31,8 @@ Usage: prompt_web_search.sh [options]
 Generate web-search evidence for the configured queries and save evidence files.
 
 Options:
-  --query <text>              Add a query (repeatable). Defaults to generic web probes.
+  --query <text>              Add a query (repeatable). Defaults to context-derived terms if --context-path is set.
+  --context-path <path>       Optional context file used for deterministic probe query generation.
   --engine <google|duckduckgo|bing>  Search engine (default: google)
   --results <n>               Max results per query (default: 5)
   --output-dir <path>         Base output dir (default: ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs)
@@ -115,6 +117,11 @@ while [[ "$#" -gt 0 ]]; do
       [[ "$#" -gt 0 ]] || { echo "--hold-seconds requires a value" >&2; exit 1; }
       HOLD_SECONDS="$1"
       ;;
+    --context-path)
+      shift
+      [[ "$#" -gt 0 ]] || { echo "--context-path requires a value" >&2; exit 1; }
+      CONTEXT_PATH="$1"
+      ;;
     --attach)
       ATTACH_SESSION=1
       ;;
@@ -186,7 +193,43 @@ printf '%s\n' "screenshot_dir=$SCREENSHOT_DIR" | tee -a "$SUMMARY_FILE"
 if [[ -n "$OPEN_URL" ]]; then
   printf '%s\n\n' "open_url_mode=1" | tee -a "$SUMMARY_FILE"
 else
+  if [[ "${#QUERIES[@]}" -eq 0 && -n "$CONTEXT_PATH" ]]; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && QUERIES+=("$line")
+    done < <(
+      python3 - "$CONTEXT_PATH" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1]).expanduser()
+if not path.exists() or not path.is_file():
+  raise SystemExit(0)
+
+text = path.read_text(encoding="utf-8", errors="ignore")
+terms = re.findall(r"[A-Za-z][A-Za-z0-9+.#-]{3,}", text.lower())
+stop = {
+  "the", "and", "for", "with", "from", "this", "that", "company", "team", "using",
+  "about", "their", "there", "your", "will", "which", "also", "into", "have", "been",
+  "were", "when", "such", "more",
+}
+seen = set()
+for term in terms:
+  if term in stop:
+    continue
+  if term in seen:
+    continue
+  seen.add(term)
+  print(term)
+PY
+    )
+  fi
   printf '%s\n\n' "queries=${#QUERIES[@]}" | tee -a "$SUMMARY_FILE"
+  if [[ "${#QUERIES[@]}" -eq 0 ]]; then
+    printf '%s\n' "No query list provided and no context path. Skipping web search." | tee -a "$SUMMARY_FILE"
+    printf '<p>Skipped: no query list or context provided.</p>' > "$RUN_DIR/web_search_results.txt"
+    exit 0
+  fi
 fi
 
 if [[ -n "$OPEN_URL" ]]; then

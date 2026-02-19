@@ -25,6 +25,7 @@ WEB_SEARCH_TOP_RESULTS=3
 WEB_SEARCH_HOLD_SECONDS="15"
 WEB_SEARCH_SCROLL_STEPS="3"
 WEB_SEARCH_SCROLL_PAUSE="0.9"
+WEB_SEARCH_HEADLESS="0"
 LA_PRIMARY_BRAND="Lazying.art"
 LA_WEBSITE="https://lazying.art"
 LA_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
@@ -83,6 +84,7 @@ Options:
   --web-search-scroll-steps <n> Number of scroll steps for opened pages (default: 3)
   --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
   --web-search-hold-seconds <sec> Keep browser open for N seconds per query (default: 15)
+  --web-search-headless       Force web search browser mode to be headless
   --web-search-query <text>  Add/override a web search query (repeatable)
                       If none is provided, a context-driven query set is auto-generated.
   --life-input-md <path>    Input markdown for life reminder planner
@@ -153,6 +155,9 @@ while [[ $# -gt 0 ]]; do
     --web-search-scroll-pause)
       shift
       WEB_SEARCH_SCROLL_PAUSE="${1:-0.9}"
+      ;;
+    --web-search-headless)
+      WEB_SEARCH_HEADLESS=1
       ;;
     --web-search-hold-seconds)
       shift
@@ -381,13 +386,27 @@ parse_web_query() {
   local raw="$1"
   local parsed_kind="auto"
   local parsed_query="$raw"
+  local kind_normalized=""
 
   if [[ "$raw" == *:* ]]; then
     local kind_candidate="${raw%%:*}"
     local rest="${raw#*:}"
-    case "$kind_candidate" in
+    kind_normalized="${kind_candidate:l}"
+    case "$kind_normalized" in
       auto|general|scholar|news)
-        parsed_kind="$kind_candidate"
+        parsed_kind="$kind_normalized"
+        parsed_query="$rest"
+        ;;
+      google)
+        parsed_kind="auto"
+        parsed_query="$rest"
+        ;;
+      google-scholar)
+        parsed_kind="scholar"
+        parsed_query="$rest"
+        ;;
+      google-news)
+        parsed_kind="news"
         parsed_query="$rest"
         ;;
       *)
@@ -395,6 +414,10 @@ parse_web_query() {
         parsed_query="$raw"
         ;;
     esac
+  fi
+  parsed_query="$(printf '%s' "$parsed_query" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+  if [[ -z "$parsed_query" ]]; then
+    parsed_query="$raw"
   fi
 
   printf '%s|%s\n' "$parsed_kind" "$parsed_query"
@@ -697,21 +720,26 @@ run_web_search_queries() {
 
     local query_result_file=""
     local query_log_file="$query_result_dir/search.log"
+    local web_search_args
 
     mkdir -p "$query_result_dir"
-  if ! "$PROMPT_DIR/prompt_web_search_immersive.sh" \
-      --query "$query_text" \
-      --engine "$(web_search_engine_from_kind "$query_kind")" \
-      --results "$top_n" \
-      --open-top-results "$top_n" \
-      --summarize-open-url \
-      --output-dir "$run_output_dir" \
-      --run-id "$query_run_id" \
-      --scroll-steps "$WEB_SEARCH_SCROLL_STEPS" \
-      --scroll-pause "$WEB_SEARCH_SCROLL_PAUSE" \
-      --keep-open \
-      --hold-seconds "$WEB_SEARCH_HOLD_SECONDS" \
-      >"$query_log_file" 2>&1; then
+    web_search_args=(
+      "--query" "$query_text"
+      "--engine" "$(web_search_engine_from_kind "$query_kind")"
+      "--results" "$top_n"
+      "--open-top-results" "$top_n"
+      "--summarize-open-url"
+      "--output-dir" "$run_output_dir"
+      "--run-id" "$query_run_id"
+      "--scroll-steps" "$WEB_SEARCH_SCROLL_STEPS"
+      "--scroll-pause" "$WEB_SEARCH_SCROLL_PAUSE"
+      "--keep-open"
+      "--hold-seconds" "$WEB_SEARCH_HOLD_SECONDS"
+    )
+    if [[ "$WEB_SEARCH_HEADLESS" == "1" ]]; then
+      web_search_args+=(--headless)
+    fi
+    if ! "$PROMPT_DIR/prompt_web_search_immersive.sh" "${web_search_args[@]}" >"$query_log_file" 2>&1; then
       printf '%s\n' "- ❌ Web search failed for: $query_text" >> "$query_summary_file"
       printf '<p>⚠️ %s (%s): failed, see query log.</p>' "$query_text" "$query_kind" >> "$query_html_file"
       idx=$((idx + 1))
@@ -751,43 +779,147 @@ build_default_web_search_queries() {
   local website="$2"
   local profile_url="$3"
   local query_budget="${4:-4}"
-  python3 - "$brand" "$website" "$profile_url" "$query_budget" <<'PY'
+  local context_path="${5:-}"
+  local planner_output_dir="${ARTIFACT_DIR}/query_planner"
+  local planner_input
+  local planner_result
+
+  mkdir -p "$planner_output_dir"
+  planner_input="$(mktemp "${planner_output_dir}/web-planner-XXXXXX.json")"
+  planner_result="$planner_output_dir/latest-result.json"
+
+  python3 - "$planner_input" "$brand" "$query_budget" "$context_path" <<'PY'
+import json
 import sys
-brand = (sys.argv[1] or "").strip() or "this company"
-_ = sys.argv[2]
-_ = sys.argv[3]
+from pathlib import Path
+
+def read_snippet(path: str, limit: int) -> str:
+  p = Path(path).expanduser()
+  if not p.exists() or not p.is_file():
+    return ""
+  try:
+    return p.read_text(encoding="utf-8", errors="ignore")[:limit]
+  except Exception:
+    return ""
+
+brand = (sys.argv[1] or "").strip()
 try:
-    budget = int(sys.argv[4]) if str(sys.argv[4]).strip() else 4
+  budget = int(sys.argv[2]) if str(sys.argv[2]).strip() else 4
 except Exception:
-    budget = 4
+  budget = 4
+context_path = (sys.argv[3] or "").strip()
 
 if budget < 3:
-    budget = 3
+  budget = 3
 if budget > 8:
-    budget = 8
+  budget = 8
 
-queries = [
-    "google:AI creator workflow market",
-    "google:AI SaaS competitive positioning",
-    "google:AI startup funding and partnerships",
-    "google:creator tools monetization model",
-    "google-news:AI enterprise copilots adoption",
-    "google:multimodal AI memory systems",
-]
+source_text = read_snippet(context_path, 7000)
 
-dedup_queries = []
-seen_queries = set()
-for item in queries:
-    if not item or item in seen_queries:
-        continue
-    seen_queries.add(item)
-    dedup_queries.append(item)
+payload = {
+  "company_focus": brand or "target company",
+  "search_kind": "web",
+  "query_budget": budget,
+  "reference_sources": [s for s in [context_path] if s and s.strip()],
+  "source_text": source_text,
+  "context_file": context_path,
+  "resource_context_hint": "Build queries from provided context, not fixed presets.",
+}
 
-for item in dedup_queries[:budget]:
-    text = item.strip()
-    if text:
-        print(text)
+Path(sys.argv[1]).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
+
+  if ! python3 orchestral/prompt_tools/codex-json-runner.py \
+    --input-json "$planner_input" \
+    --output-dir "$planner_output_dir" \
+    --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
+    --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    --label "web-query-planner" \
+    --skip-git-check >/dev/null 2>&1; then
+    true
+  fi
+
+if [[ ! -f "$planner_result" ]]; then
+  rm -f "$planner_input"
+  if [[ -n "$context_path" && -f "$context_path" ]]; then
+    python3 - "$context_path" <<'PY'
+import re
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+except Exception:
+    text = ""
+words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9+\\-&]{2,}", text.lower()) if len(w) > 2]
+stop = {"the", "and", "for", "with", "from", "that", "this", "company", "market", "product", "business"}
+terms = [w for w in words if w not in stop]
+if terms:
+    print(" ".join(dict.fromkeys(terms[:6])))
+else:
+    print("market ecosystem signals")
+PY
+  else
+    printf '%s\n' "market ecosystem signals"
+  fi
+  return 0
+fi
+
+  python3 - "$planner_result" "$query_budget" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+def parse_queries(payload_path: str, budget: int):
+  try:
+    payload = json.loads(Path(payload_path).read_text(encoding="utf-8"))
+  except Exception:
+    return []
+
+  queries = []
+  seen = set()
+  for row in payload.get("queries", []) if isinstance(payload, dict) else []:
+    if isinstance(row, str):
+      kind = "auto"
+      text = row.strip()
+    elif isinstance(row, dict):
+      kind = str(row.get("kind", "auto")).strip().lower()
+      text = str(row.get("query", "")).strip()
+    else:
+      continue
+    if kind not in {"auto", "general", "scholar", "news"}:
+      kind = "auto"
+    text = re.sub(r"\\s+", " ", text).strip().replace(":", " -")
+    if not text:
+      continue
+    key = (kind, text.lower())
+    if key in seen:
+      continue
+    seen.add(key)
+    queries.append((kind, text))
+    if len(queries) >= budget:
+      break
+  return queries
+
+queries = parse_queries(sys.argv[1], int(sys.argv[2]))
+
+if not queries:
+  queries.append(("auto", "market ecosystem signals"))
+
+for kind, text in queries:
+  if kind in {"auto", "general"}:
+    print(text)
+  else:
+    print(f"{kind}:{text}")
+PY
+
+  rm -f "$planner_input"
 }
 
 build_website_snapshot() {
@@ -834,75 +966,145 @@ PY
 build_default_academic_queries() {
   local brand="$1"
   local query_budget="${2:-5}"
-  shift 2
-  python3 - "$brand" "$query_budget" "$@" <<'PY'
+  local context_path="${3:-}"
+  local planner_output_dir="${ARTIFACT_DIR}/query_planner"
+  local planner_input
+  local planner_result
+  shift 3
+  local -a sources=("$@")
+
+  mkdir -p "$planner_output_dir"
+  planner_input="$(mktemp "${planner_output_dir}/academic-planner-XXXXXX.json")"
+  planner_result="$planner_output_dir/latest-result.json"
+
+  python3 - "$planner_input" "$brand" "$query_budget" "$context_path" "${sources[@]}" <<'PY'
+import json
 import sys
-import urllib.parse
+from pathlib import Path
 
-_company = (sys.argv[1] or "").strip() or "this company"
+def read_snippet(path: str, limit: int) -> str:
+  p = Path(path).expanduser()
+  if not p.exists() or not p.is_file():
+    return ""
+  try:
+    return p.read_text(encoding="utf-8", errors="ignore")[:limit]
+  except Exception:
+    return ""
+
+brand = (sys.argv[1] or "").strip()
 try:
-    budget = int(sys.argv[2]) if str(sys.argv[2]).strip() else 5
+  budget = int(sys.argv[2]) if str(sys.argv[2]).strip() else 5
 except Exception:
-    budget = 5
-sources = [s.strip() for s in sys.argv[3:] if s and s.strip()]
-
+  budget = 5
+context_path = (sys.argv[3] or "").strip()
+sources = [s.strip() for s in sys.argv[4:] if s and s.strip()]
 if budget < 3:
-    budget = 3
+  budget = 3
 if budget > 10:
-    budget = 10
+  budget = 10
 
-def host_only(raw_url: str) -> str:
-    parsed = urllib.parse.urlparse(raw_url if '://' in raw_url else f'https://{raw_url}')
-    return parsed.hostname or raw_url.strip()
+payload = {
+  "company_focus": brand or "target company",
+  "search_kind": "academic",
+  "query_budget": budget,
+  "reference_sources": [s for s in sources if s],
+  "source_text": read_snippet(context_path, 7000),
+  "context_file": context_path,
+  "resource_context_hint": "Prioritize high-impact and field-anchored scholarly signals.",
+}
 
-queries = [
-    "google-scholar:site:nature.com multimodal",
-    "google-scholar:site:science.org AI",
-    "google-scholar:site:cell.com deep learning",
-    "google-scholar:site:nature.com Nature Machine Intelligence",
-    "google-scholar:site:arxiv.org AI",
-]
-
-for source in sources:
-    _, sep, remainder = source.partition(":")
-    if sep:
-        source_url = remainder
-    else:
-        source_url = source
-    host = host_only(source_url)
-    if host:
-        queries.extend([
-            f"google-scholar:site:{host} AI",
-            f"google-scholar:site:{host} multimodal",
-        ])
-    elif source:
-        queries.extend([
-            f"google-scholar:{source} AI",
-            f"google-scholar:{source} multimodal",
-        ])
-
-if not sources:
-    queries.extend([
-        "google-scholar:arXiv multimodal",
-        "google-scholar:machine learning long context",
-    ])
-
-dedup_queries = []
-seen_queries = set()
-for item in queries:
-    item = item.strip()
-    if not item:
-        continue
-    if item in seen_queries:
-        continue
-    seen_queries.add(item)
-    dedup_queries.append(item)
-
-for item in dedup_queries[:budget]:
-    text = item.strip()
-    if text:
-        print(text)
+Path(sys.argv[1]).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
+
+  if ! python3 orchestral/prompt_tools/codex-json-runner.py \
+    --input-json "$planner_input" \
+    --output-dir "$planner_output_dir" \
+    --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
+    --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    --label "academic-query-planner" \
+    --skip-git-check >/dev/null 2>&1; then
+    true
+  fi
+
+  if [[ ! -f "$planner_result" ]]; then
+    rm -f "$planner_input"
+    if [[ -n "$context_path" && -f "$context_path" ]]; then
+      python3 - "$context_path" <<'PY'
+import re
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    text = path.read_text(encoding="utf-8", errors="ignore")
+except Exception:
+    text = ""
+words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9+\\-&]{2,}", text.lower()) if len(w) > 2]
+stop = {"the", "and", "for", "with", "from", "that", "this", "company", "scientific", "research", "paper"}
+terms = [w for w in words if w not in stop]
+if terms:
+    print(f"scholar:{' '.join(dict.fromkeys(terms[:5]))}")
+else:
+    print("scholar:technical research signals")
+PY
+    else
+      printf '%s\n' "scholar:technical research signals"
+    fi
+    return 0
+  fi
+
+  python3 - "$planner_result" "$query_budget" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+try:
+  payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+except Exception:
+  payload = {}
+
+budget = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+if budget < 2:
+  budget = 2
+
+queries = []
+seen = set()
+for row in payload.get("queries", []) if isinstance(payload, dict) else []:
+  if isinstance(row, str):
+    kind = "scholar"
+    text = row.strip()
+  elif isinstance(row, dict):
+    kind = str(row.get("kind", "scholar")).strip().lower()
+    text = str(row.get("query", "")).strip()
+  else:
+    continue
+  if kind not in {"auto", "general", "scholar", "news"}:
+    kind = "scholar"
+  if kind == "auto":
+    kind = "scholar"
+  text = re.sub(r"\\s+", " ", text).strip().replace(":", " -")
+  if not text:
+    continue
+  key = (kind, text.lower())
+  if key in seen:
+    continue
+  seen.add(key)
+  queries.append((kind, text))
+  if len(queries) >= budget:
+    break
+
+if not queries:
+  queries.append(("scholar", "technical research signals"))
+for kind, text in queries[:budget]:
+  print(f"{kind}:{text}")
+PY
+
+  rm -f "$planner_input"
 }
 
 find_latest_resource_markdown_dir() {
@@ -959,16 +1161,24 @@ PY
   )}") 
 
   if [[ "${#academic_queries[@]}" -eq 0 ]]; then
-    academic_queries=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$open_limit" "${ACADEMIC_RSS_SOURCES[@]}")}")
+    academic_queries=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$open_limit" "$CONTEXT_FILE" "${ACADEMIC_RSS_SOURCES[@]}")}")
   fi
+
+  local academic_summary_file="$academic_output_root/academic.search.summary.txt"
+  local academic_html_file="$academic_output_root/academic.search_digest.html"
+  mkdir -p "$academic_output_root"
+  WEB_SEARCH_SUMMARY_FILE="$academic_summary_file"
+  WEB_SEARCH_HTML_FILE="$academic_html_file"
+  : > "$academic_summary_file"
+  : > "$academic_html_file"
 
   if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
     : > "$out_path"
     {
       echo "[academic] mode=web_search_research"
       echo "[academic] status=web_search_failed"
-      echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
-      echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+      echo "[academic] summary_file=$academic_summary_file"
+      echo "[academic] html_file=$academic_html_file"
       echo "[academic] query_file_root=$academic_output_root"
       echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
       echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
@@ -984,8 +1194,8 @@ PY
     echo "[academic] query_count=${#academic_queries[@]}"
     echo "[academic] context_source=prompt_web_search_immersive"
     echo "[academic] query_file_root=$academic_output_root"
-    echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
-    echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+    echo "[academic] summary_file=$academic_summary_file"
+    echo "[academic] html_file=$academic_html_file"
     echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
     echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
     echo "[academic] query_file_pattern_screenshots=$academic_output_root/*/screenshots/*.png"
@@ -994,8 +1204,8 @@ PY
       echo "  - $q"
     done
     echo
-    if [[ -f "$WEB_SEARCH_SUMMARY_FILE" ]]; then
-      cat "$WEB_SEARCH_SUMMARY_FILE"
+    if [[ -f "$academic_summary_file" ]]; then
+      cat "$academic_summary_file"
     else
       echo "[academic] no academic web search summary found"
     fi
@@ -1006,14 +1216,16 @@ merge_market_and_academic_summaries() {
   local market_path="$1"
   local academic_path="$2"
   local merged_path="$3"
+  local web_path="${4:-}"
   if [[ -f "$market_path" ]] && [[ -f "$academic_path" ]]; then
-    python3 - "$market_path" "$academic_path" "$merged_path" <<'PY'
+    python3 - "$market_path" "$academic_path" "$merged_path" "$web_path" <<'PY'
 from pathlib import Path
 import sys
 
 market_path = Path(sys.argv[1])
 academic_path = Path(sys.argv[2])
 output_path = Path(sys.argv[3])
+web_path = Path(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].strip() else None
 
 parts = []
 if market_path.exists():
@@ -1026,16 +1238,43 @@ if academic_path.exists():
     if a:
         parts.append("[academic]")
         parts.append(a)
+if web_path is not None and web_path.exists():
+    w = web_path.read_text(encoding="utf-8").strip()
+    if w:
+        parts.append("[web_search]")
+        parts.append(w)
 if not parts:
     parts.append("No market or academic summary available.")
 output_path.write_text("\\n\\n".join(parts) + "\\n", encoding="utf-8")
 PY
   elif [[ -f "$market_path" ]]; then
-    cp "$market_path" "$merged_path"
+    if [[ -f "$web_path" ]]; then
+      cat "$market_path" > "$merged_path"
+      echo "" >> "$merged_path"
+      echo "[web_search]" >> "$merged_path"
+      cat "$web_path" >> "$merged_path"
+    else
+      cp "$market_path" "$merged_path"
+    fi
   elif [[ -f "$academic_path" ]]; then
-    cp "$academic_path" "$merged_path"
+    if [[ -f "$web_path" ]]; then
+      cat "$academic_path" > "$merged_path"
+      echo "" >> "$merged_path"
+      echo "[web_search]" >> "$merged_path"
+      cat "$web_path" >> "$merged_path"
+    else
+      cp "$academic_path" "$merged_path"
+    fi
   else
-    printf '%s\n' "No market or academic summary available." > "$merged_path"
+    if [[ -f "$web_path" ]]; then
+      if [[ -s "$web_path" ]]; then
+        cat "$web_path" > "$merged_path"
+      else
+        printf '%s\n' "No market or academic summary available." > "$merged_path"
+      fi
+    else
+      printf '%s\n' "No market or academic summary available." > "$merged_path"
+    fi
   fi
 }
 
@@ -1236,7 +1475,7 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
 
 if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   if [[ "${#LA_WEB_SEARCH_QUERIES[@]}" -eq 0 ]]; then
-    LA_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LA_PRIMARY_BRAND" "$LA_WEBSITE" "$LA_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS")}")
+    LA_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LA_PRIMARY_BRAND" "$LA_WEBSITE" "$LA_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS" "$CONTEXT_FILE")}")
   fi
   log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
   : > "$WEB_SUMMARY_FILE"
@@ -1310,7 +1549,7 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
 
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   if [[ "${#ACADEMIC_QUERIES[@]}" -eq 0 ]]; then
-    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}")}")
+    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$ACADEMIC_MAX_RESULTS" "$CONTEXT_FILE" "${ACADEMIC_RSS_SOURCES[@]}")}")
   fi
 
   log "Step ${ACADEMIC_STEP}/$TOTAL_STEPS: academic research (high-impact)"
@@ -1354,13 +1593,14 @@ else
   printf '%s\n' "{}" > "$ACADEMIC_RESULT"
 fi
 
-merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY"
+merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY" "$WEB_SUMMARY_FILE"
 
 log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
+  --web-summary-file "$WEB_SUMMARY_FILE" \
   --company-focus "$LA_PRIMARY_BRAND" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
   "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
@@ -1390,6 +1630,7 @@ log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
   --funding-summary-file "$FUNDING_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --academic-summary-file "$ACADEMIC_SUMMARY" \
+  --web-summary-file "$WEB_SUMMARY_FILE" \
   --company-focus "$LA_PRIMARY_BRAND" \
   --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
   "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
@@ -1418,6 +1659,7 @@ log "Step ${PLAN_STEP}/$TOTAL_STEPS: milestone plan draft"
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
+  --web-summary-file "$WEB_SUMMARY_FILE" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1443,6 +1685,7 @@ log "Step ${MENTOR_STEP}/$TOTAL_STEPS: entrepreneurship mentor"
   --plan-summary-file "$PLAN_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
+  --web-summary-file "$WEB_SUMMARY_FILE" \
   --milestone-html-file "$PLAN_HTML" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
@@ -1592,6 +1835,8 @@ Requirements:
 - Include bilingual labels (EN/中文/日本語) in headings where natural.
 - Subject must include: [AutoLife] Lazying.art 08:00/20:00 Update
 - Do not invent facts outside the provided digest.
+- Keep the Web Search Signals section explicit, including link-backed rows and evidence paths from this run.
+- Preserve clickable URLs and result artifact references from the web-search digest section.
 
 Digest HTML:
 $(cat "$EMAIL_HTML")

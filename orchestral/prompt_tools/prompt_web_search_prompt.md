@@ -19,6 +19,7 @@ Task:
 2. Keep outputs as human-readable and machine-readable evidence.
 3. Save all artifacts under one run folder.
 4. Keep search-page scan evidence and opened-result details for downstream prompts.
+5. Use the preplanned query terms; avoid introducing new fixed or brand-only fallback keywords at this layer.
 
 Scope:
 

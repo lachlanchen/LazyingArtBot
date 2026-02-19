@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan_summary", "query_count", "queries"],
+  "properties": {
+    "plan_summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "query_count": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query", "kind", "reason"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 3
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["auto", "general", "scholar", "news"]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 8
+          }
+        }
+      }
+    }
+  }
+}

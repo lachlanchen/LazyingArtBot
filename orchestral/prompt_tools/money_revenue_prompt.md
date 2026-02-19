@@ -11,13 +11,20 @@ Inputs:
 - `funding_summary`: funding opportunities summary for this run
 - `resource_summary`: local resource analysis summary (may include internal strategy/docs)
 - `academic_summary`: optional high-impact research context (if available)
+- `web_search_summary`: optional web-search signal summary for monetization opportunities
 - `reference_sources`: URLs or context source labels used by the orchestrator
 
 Context-driven relevance rule:
 
 - Use `company_focus`, `reference_sources`, and available summaries as the required search/validation envelope.
+- Treat `company_focus` as a run label only; do not create brand-only query expansions from it.
 - Do not derive monetization ideas from out-of-domain sectors.
+- Read provided company materials first (`reference_sources` and context files) before proposing commercial levers:
+  - Lazying.art: `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Input`, `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Output`, `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Output/ResourceAnalysis`, `/Users/lachlan/Documents/ITIN+Company`
+  - Lightmind: `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input`, `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output`, `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output/ResourceAnalysis`, `/Users/lachlan/Library/Containers/com.tencent.WeWorkMac/Data/WeDrive/LightMind Tech Ltd./LightMind Tech Ltd./LightMind_Confidential`
 - If upstream search materials are sparse, infer candidate commercial levers from what is present in company materials (e.g., website/repo positioning, market summaries, funding evidence) before proposing models.
+- When `web_search_summary` provides link-backed evidence, prioritize those opportunities first and keep low-signal items out.
+- Keep revenue hypotheses between too broad and too narrow: include only signals tied to the provided material, and avoid overfitting on only company-name-only findings.
 - Keep any search-linked opportunities tied to observed artifacts; avoid generic keyword-driven speculation.
 
 Search integration guidance:

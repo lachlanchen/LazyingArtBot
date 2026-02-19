@@ -12,6 +12,7 @@ Inputs:
 - `market_summary`
 - `plan_summary`
 - `funding_summary` (optional)
+- `web_search_summary` (optional)
 - `milestone_html` (optional)
 
 Goal:
@@ -42,7 +43,19 @@ Optional:
 Funding handling:
 
 - If `funding_summary` contains high-confidence opportunities, create practical validation actions with owners and deadlines.
+- If `web_search_summary` contains link-backed opportunities, prefer these over low-signal items and dedupe duplicates.
 - Skip ambiguous or duplicate funding signals; note validation requirements instead.
+
+Web-search evidence requirement:
+
+- If `web_search_summary` is available, add a compact `Web-signal links` subsection to the note.
+- Add a tiny table (up to 3 rows) with:
+  - `title`
+  - `url`
+  - `evidence_path`
+  - `confidence`
+  - `owner`
+- Base each action on links explicitly present in web evidence.
 
 Formatting constraints:
 

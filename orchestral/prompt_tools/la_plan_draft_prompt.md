@@ -7,6 +7,7 @@ Inputs:
 - `note_html`: current milestone note body (existing structure).
 - `market_summary`: latest market digest summary.
 - `funding_summary`: optional funding / VC / grant opportunities summary.
+- `web_search_summary`: latest web-search signal summary (links/snapshots).
 - `run_context`: optional scheduler/runtime context.
 
 Primary objective:
@@ -35,8 +36,21 @@ Formatting constraints:
 Incorporate funding signals carefully:
 
 - If `funding_summary` contains high-confidence opportunities (funding, VC, grant, competition), reflect only actionable items in the milestone dashboard and timeline.
+- If `web_search_summary` adds fresh signal, convert only link-backed items into explicit milestones and keep duplicate opportunities deduped.
 - Preserve existing ownership continuity and do not add speculative actions without strong confidence.
 - Keep duplicate high-confidence opportunities deduped; include at most 2 new funding-owned milestones per run unless the signal strength is clearly high.
+
+Web-search evidence section:
+
+- If `web_search_summary` is non-empty, add a compact section in the milestone note titled `Web-search evidence snapshot`.
+- Add a tiny table with columns:
+  - `query`
+  - `title`
+  - `url`
+  - `evidence_path`
+  - `confidence`
+  - `milestone_owner`
+- Only include rows for links explicitly present in the provided `web_search_summary`.
 
 Planning rules:
 

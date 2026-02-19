@@ -10,13 +10,19 @@ Inputs:
 - `resource_summary`: local resource or pipeline context text
 - `reference_sources`: optional source hints
 - `run_context`: runtime context
+- `web_search_summary`: concise web-search signal digest from this run (if web search is enabled)
 
 Context grounding for query/relevance:
 
-- Use `company_focus` and `reference_sources` as mandatory scope inputs when interpreting opportunities.
+- Use `company_focus` and `reference_sources` as mandatory scope inputs when interpreting opportunities; treat `company_focus` as a routing label, not a query term.
 - Treat source hints/URLs as the allowed domain set (site, path, repo, note, and file context).
 - Derive search/value hypotheses from these materials first, then map to funding/VC, grant, or contest opportunities already in context.
+- Read these concrete local material sources before external inference:
+  - for Lazying.art contexts: `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Input`, `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Output`, `/Users/lachlan/Documents/LazyingArtBotIO/LazyingArt/Output/ResourceAnalysis`, `/Users/lachlan/Documents/ITIN+Company`
+  - for Lightmind contexts: `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input`, `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output`, `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output/ResourceAnalysis`, `/Users/lachlan/Library/Containers/com.tencent.WeWorkMac/Data/WeDrive/LightMind Tech Ltd./LightMind Tech Ltd./LightMind_Confidential`
 - Do not introduce fixed funding themes or hardcoded keyword lists.
+- Avoid only generic headlines and avoid prompts that are over-specific to the company name; keep scope broad enough to capture adjacent competitor/ecosystem opportunities but anchored to the provided materials.
+- Do not generate queries by brand name in this stage; use the provided materials and any upstream search suggestions only.
 - Keep signals tied to this company’s current materials (for example AI-agent product lines, hardware roadmap, creator/workflow positioning).
 
 Search evidence inputs:
@@ -28,6 +34,7 @@ Search evidence inputs:
   - Company website snapshot text (when included in context) should be treated as primary internal evidence; do not use it as search targets.
 - Use `query-*.json` and `query-*.txt` under the file root for first-page scan and artifact links.
 - Use `search_page_screenshots`, `search_page_overviews`, `opened_items`, and `opened_count` as evidence anchors.
+- Use `web_search_summary` as the first-pass signal priority filter, then enrich from `run_context`.
 - Query selection is determined upstream; do not hardcode fixed keyword defaults.
 - Do not constrain synthesis to exactly three entries; use the available evidence budget from `opened_count` / `top_results_per_query`.
 - Query terms come from the upstream web-search stage; do not substitute a fixed list.

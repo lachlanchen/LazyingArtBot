@@ -8,6 +8,7 @@ NOTE_HTML=""
 MARKET_SUMMARY_FILE=""
 ACADEMIC_SUMMARY_FILE=""
 FUNDING_SUMMARY_FILE=""
+WEB_SUMMARY_FILE=""
 MODEL="gpt-5.3-codex-spark"
 REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
@@ -32,6 +33,7 @@ Options:
   --market-summary-file <p>     Optional. Market summary text file
   --academic-summary-file <p>   Optional. Merged market+academic summary file
   --funding-summary-file <p>   Optional. Funding summary file
+  --web-summary-file <p>       Optional. Web-search summary text file
   --model <name>              Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>         Reasoning level (default: high)
   --safety <level>            Codex safety mode (default: danger-full-access)
@@ -63,6 +65,10 @@ while [[ $# -gt 0 ]]; do
     --funding-summary-file)
       shift
       FUNDING_SUMMARY_FILE="${1:-}"
+      ;;
+    --web-summary-file)
+      shift
+      WEB_SUMMARY_FILE="${1:-}"
       ;;
     --model)
       shift
@@ -141,7 +147,7 @@ print(json.dumps(items, ensure_ascii=False))
 PY
 )"
 
-python3 - "$TMP_PAYLOAD" "$NOTE_HTML" "$MARKET_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$COMPANY_FOCUS" "$REF_SOURCES_JSON" <<'PY'
+python3 - "$TMP_PAYLOAD" "$NOTE_HTML" "$MARKET_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$COMPANY_FOCUS" "$REF_SOURCES_JSON" <<'PY'
 import json
 import sys
 from datetime import datetime
@@ -152,8 +158,9 @@ note_html_path = Path(sys.argv[2]).expanduser()
 market_summary_path = sys.argv[3]
 academic_summary_path = sys.argv[4]
 funding_summary_path = sys.argv[5]
-company_focus = sys.argv[6]
-reference_sources = json.loads(sys.argv[7]) if len(sys.argv) > 7 else []
+web_summary_path = sys.argv[6]
+company_focus = sys.argv[7]
+reference_sources = json.loads(sys.argv[8]) if len(sys.argv) > 8 else []
 
 market_summary = ""
 if market_summary_path:
@@ -173,12 +180,19 @@ if funding_summary_path:
     if p.exists():
         funding_summary = p.read_text(encoding="utf-8")
 
+web_summary = ""
+if web_summary_path:
+    p = Path(web_summary_path).expanduser()
+    if p.exists():
+        web_summary = p.read_text(encoding="utf-8")
+
 payload = {
     "run_local_iso": datetime.now().astimezone().isoformat(timespec="seconds"),
     "note_html": note_html_path.read_text(encoding="utf-8"),
     "market_summary": market_summary,
     "academic_summary": academic_summary,
     "funding_summary": funding_summary,
+    "web_search_summary": web_summary,
     "company_focus": company_focus or "Company",
     "reference_sources": reference_sources,
 }

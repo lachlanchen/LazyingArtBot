@@ -7,6 +7,7 @@ Inputs:
 - `market_summary`
 - `plan_summary`
 - `funding_summary` (optional)
+- `web_search_summary` (optional)
 - `milestone_html` (optional)
 
 Goal:
@@ -33,7 +34,19 @@ Optional:
 Funding handling:
 
 - If `funding_summary` contains clear opportunities, convert only high-confidence items into practical short actions (owner, decision owner, next-step, deadline).
+- If `web_search_summary` contains explicit evidence links for new opportunities, prioritize these for execution and skip weak/duplicate leads.
 - Separate risk/validation requirements so noisy opportunities do not enter execution blindly.
+
+Web-search evidence requirement:
+
+- When `web_search_summary` is present, add a short `Web-signal links` subsection in the note body.
+- Include up to 3 highest-confidence rows from `web_search_summary` in a compact table:
+  - `title`
+  - `url`
+  - `evidence_path`
+  - `confidence`
+  - `owner`
+- Convert only link-backed signals into execution actions.
 
 Formatting constraints:
 

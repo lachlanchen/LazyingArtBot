@@ -11,6 +11,7 @@ MARKET_SUMMARY_FILE=""
 FUNDING_SUMMARY_FILE=""
 RESOURCE_SUMMARY_FILE=""
 ACADEMIC_SUMMARY_FILE=""
+WEB_SUMMARY_FILE=""
 MODEL="gpt-5.3-codex-spark"
 REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
@@ -36,6 +37,7 @@ Options:
   --funding-summary-file <p>   Funding/opportunities summary text file
   --resource-summary-file <p>   Resource analysis summary text file
   --academic-summary-file <p>   Optional academic research summary text file
+  --web-summary-file <p>       Optional web-search summary file
   --model <name>               Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>          Reasoning level (default: high)
   --safety <level>             Codex safety mode (default: danger-full-access)
@@ -78,6 +80,10 @@ while [[ $# -gt 0 ]]; do
     --academic-summary-file)
       shift
       ACADEMIC_SUMMARY_FILE="${1:-}"
+      ;;
+    --web-summary-file)
+      shift
+      WEB_SUMMARY_FILE="${1:-}"
       ;;
     --model)
       shift
@@ -143,7 +149,7 @@ print(json.dumps(items, ensure_ascii=False))
 PY
 )"
 
-python3 - "$TMP_PAYLOAD" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$COMPANY_FOCUS" "$LANGUAGE_POLICY" "$REF_SOURCES_JSON" <<'PY'
+python3 - "$TMP_PAYLOAD" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$FUNDING_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$ACADEMIC_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$COMPANY_FOCUS" "$LANGUAGE_POLICY" "$REF_SOURCES_JSON" <<'PY'
 import json
 import sys
 from datetime import datetime
@@ -155,9 +161,10 @@ market_summary_path = sys.argv[3]
 funding_summary_path = sys.argv[4]
 resource_summary_path = sys.argv[5]
 academic_summary_path = sys.argv[6]
-company_focus = sys.argv[7]
-language_policy = sys.argv[8]
-reference_sources = json.loads(sys.argv[9]) if len(sys.argv) > 9 else []
+web_summary_path = sys.argv[7]
+company_focus = sys.argv[8]
+language_policy = sys.argv[9]
+reference_sources = json.loads(sys.argv[10]) if len(sys.argv) > 10 else []
 
 def read_file(path: str) -> str:
     if not path:
@@ -176,6 +183,7 @@ payload = {
     "funding_summary": read_file(funding_summary_path),
     "resource_summary": read_file(resource_summary_path),
     "academic_summary": read_file(academic_summary_path),
+    "web_search_summary": read_file(web_summary_path),
     "reference_sources": reference_sources,
 }
 

@@ -1,7 +1,5 @@
 # Prompt: Market Research Synthesizer
 
-You are the market intelligence engine for Lazying.art + Lightmind.art.
-
 Input includes targets (brands, products, questions). Your job:
 
 1. Propose high-signal search queries / sources (newsletters, communities, financial filings, hardware blogs, AI research feeds, etc.).
@@ -13,10 +11,10 @@ Input includes targets (brands, products, questions). Your job:
 When web-search evidence is available from `prompt_web_search_immersive.sh`, treat it as primary evidence:
 
 - Do not invent a fixed global keyword list. Use the caller context (`company_focus`, `context`, and provided `reference_sources`) to generate query families.
-- Treat provided URLs/paths as source boundaries:
-  - For Lazying.art: `https://lazying.art`, `https://github.com/lachlanchen?tab=repositories`
-  - For Lightmind: `https://lightmind.art`, confidential summary inputs
-  - If a website snapshot is present in `context`, use that as the direct company source before issuing web-search queries.
+- Treat `company_focus` as an identifier/route, not a raw keyword.
+- For less-visible companies, prioritize business-logic terms (problem/segment/channel) over brand terms.
+- Treat provided URLs/paths in `reference_sources` as source boundaries and read those first.
+- If a website snapshot is present in `context`, use that as the direct company source before issuing web-search queries.
 - Query set should be derived from business context (product scope, user segment, channel, pricing, and capital signals).
 - include the full search-page scan (`search_page_overviews`) and screenshot paths in the summary
 - cite opened results using the tool-configured limit (`opened_count` / `--open-top-results`) with `Title (URL)` and short evidence line

@@ -83,7 +83,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lazying.art pipeline exactly once.
 1) Execute:
-./orchestral/run_la_pipeline.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
+./orchestral/run_la_pipeline.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\" --web-search-headless
 2) Run a full pipeline cycle (including resource analysis and web-search refresh).
 3) web-search outputs are expected under:
    /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs/<run_id>/ 
