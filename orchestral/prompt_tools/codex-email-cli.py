@@ -20,8 +20,8 @@ import os
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PROMPT_TOOLS = SCRIPT_DIR
-DEFAULT_MODEL = "gpt-5.1-codex-mini"
-DEFAULT_REASONING = "medium"
+DEFAULT_MODEL = "gpt-5.3-codex-spark"
+DEFAULT_REASONING = "high"
 DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
 DEFAULT_APPROVAL = os.environ.get("CODEX_APPROVAL", "never")
 BLOCKED_TEST_RECIPIENTS = {"lachlan.mia.chan@gmail.com"}
@@ -116,8 +116,6 @@ def run_codex(
         f'model_reasoning_effort="{reasoning}"',
         "-s",
         safety,
-        "-a",
-        approval,
         "--output-schema",
         str(schema_path),
         "--output-last-message",
@@ -434,7 +432,11 @@ def main() -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--reasoning", default=DEFAULT_REASONING)
     parser.add_argument("--safety", default=DEFAULT_SAFETY)
-    parser.add_argument("--approval", default=DEFAULT_APPROVAL)
+    parser.add_argument(
+        "--approval",
+        default=DEFAULT_APPROVAL,
+        help="Approval policy compatibility knob; not passed to codex directly",
+    )
     parser.add_argument("--codex-bin", default="codex")
     parser.add_argument("--prompt-tools-dir", default=str(DEFAULT_PROMPT_TOOLS))
     parser.add_argument("--skip-git-check", action="store_true")

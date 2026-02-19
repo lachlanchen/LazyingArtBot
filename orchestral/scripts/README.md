@@ -40,6 +40,6 @@ orchestral/scripts/run_resource_analysis.sh \
   --resource-root \"/Users/lachlan/Library/Containers/com.tencent.WeWorkMac/Data/WeDrive/LightMind Tech Ltd./LightMind Tech Ltd./LightMind_Confidential\" \
   --resource-root \"/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input\" \
   --resource-root \"/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output\" \
-  --model gpt-5.1-codex-mini \
-  --reasoning medium
+  --model gpt-5.3-codex-spark \
+  --reasoning high
 ````

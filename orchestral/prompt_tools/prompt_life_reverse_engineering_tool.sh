@@ -8,8 +8,8 @@ INPUT_MD="$HOME/Documents/LazyingArtBotIO/LazyingArt/Input/LazyingArtCompanyInpu
 MARKET_SUMMARY_FILE=""
 PLAN_SUMMARY_FILE=""
 MENTOR_SUMMARY_FILE=""
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-life-reverse"
 REMINDER_LIST="LazyingArt"
@@ -35,8 +35,8 @@ Options:
   --report-md <path>           Output report markdown path (default: <output-dir>/life-reminder-report.md)
   --report-html <path>         Output report html path (default: <output-dir>/life-reminder-report.html)
   --list-name <name>           Reminders list name (default: LazyingArt)
-  --model <name>               Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>          Reasoning level (default: medium)
+  --model <name>               Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>          Reasoning level (default: high)
   --output-dir <path>          Codex artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>               Codex run label (default: la-life-reverse)
   --run-id <id>                External run id for state tracking

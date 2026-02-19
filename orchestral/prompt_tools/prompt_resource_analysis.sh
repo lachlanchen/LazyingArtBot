@@ -9,8 +9,8 @@ OUTPUT_DIR="/tmp/codex-resource-analysis"
 MARKDOWN_OUTPUT_DIR=""
 PROMPT_FILE="orchestral/prompt_tools/resource_analysis_prompt.md"
 SCHEMA_FILE="orchestral/prompt_tools/resource_analysis_schema.json"
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 LABEL="resource-analysis"
 MAX_MANIFEST_FILES=500
 MAX_TEXT_SNIPPETS=40000
@@ -26,8 +26,8 @@ Options:
   --schema-file <path>           Output schema file (default: orchestral/prompt_tools/resource_analysis_schema.json)
   --output-dir <path>            Codex artifact dir (default: /tmp/codex-resource-analysis)
   --markdown-output <path>       Directory for generated markdown reference docs (required)
-  --model <name>                 Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>            Reasoning level (default: medium)
+  --model <name>                 Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>            Reasoning level (default: high)
   --max-manifest-files <n>       Cap manifest/sample files per root (default: 500)
   --max-text-snippets <n>        Cap snippet total chars (default: 40000)
   -h, --help                    Show help

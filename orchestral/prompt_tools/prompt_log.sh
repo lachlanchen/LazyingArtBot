@@ -50,7 +50,7 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file scripts/prompt_tools/log_prompt.md \
   --schema scripts/prompt_tools/log_entry_schema.json \
-  --model gpt-5.1-codex-mini \
+  --model gpt-5.3-codex-spark \
   --reasoning low \
   --label log-entry \
   --skip-git-check

@@ -48,8 +48,8 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file orchestral/prompt_tools/purchases_sort_prompt.md \
   --schema orchestral/prompt_tools/purchases_sort_schema.json \
-  --model gpt-5.1-codex-mini \
-  --reasoning medium \
+  --model gpt-5.3-codex-spark \
+  --reasoning high \
   --label purchases-sort \
   --skip-git-check
 

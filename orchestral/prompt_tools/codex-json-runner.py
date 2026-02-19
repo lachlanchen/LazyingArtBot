@@ -29,8 +29,8 @@ from typing import Any
 import os
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_MODEL = "gpt-5.1-codex-mini"
-DEFAULT_REASONING = "medium"
+DEFAULT_MODEL = "gpt-5.3-codex-spark"
+DEFAULT_REASONING = "high"
 DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
 DEFAULT_APPROVAL = os.environ.get("CODEX_APPROVAL", "never")
 DEFAULT_PROMPT_FILE = SCRIPT_DIR / "json_task_prompt.md"
@@ -79,8 +79,6 @@ def run_codex(
         model,
         "-s",
         safety,
-        "-a",
-        approval,
         "-c",
         f'model_reasoning_effort="{reasoning}"',
         "--output-last-message",
@@ -122,7 +120,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--approval",
         default=DEFAULT_APPROVAL,
-        help="Codex approval policy passed to -a (default: never)",
+        help="Codex approval policy (compatibility shim; currently not passed explicitly)",
     )
     parser.add_argument("--codex-bin", default="codex")
     parser.add_argument("--label", default="json-task", help="Run label prefix")

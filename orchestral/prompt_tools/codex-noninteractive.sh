@@ -10,8 +10,8 @@ Run Codex in non-interactive mode with explicit model/reasoning settings.
 
 Options:
   --prompt <text>                 Prompt text (or pipe prompt via stdin)
-  --model <name>                  Model name (default: CODEX_MODEL or gpt-5.1-codex-mini)
-  --reasoning <level>             Reasoning level (default: CODEX_REASONING or medium)
+  --model <name>                  Model name (default: CODEX_MODEL or gpt-5.3-codex-spark)
+  --reasoning <level>             Reasoning level (default: CODEX_REASONING or high)
   --safety <level>                Safety mode (default: CODEX_SAFETY or danger-full-access)
   --approval <policy>             Approval policy (default: CODEX_APPROVAL or never)
   --output-last-message <path>    Save final assistant message to path
@@ -22,14 +22,14 @@ Options:
   -h, --help                      Show this help
 
 Examples:
-  codex-noninteractive.sh --model gpt-5.1-codex-mini --reasoning medium --prompt "Reply with exactly: OK"
+  codex-noninteractive.sh --model gpt-5.3-codex-spark --reasoning high --prompt "Reply with exactly: OK"
   printf '%s' "Summarize this log" | codex-noninteractive.sh --model gpt-5.3-codex --reasoning low
 USAGE
 }
 
 PROMPT=""
-MODEL="${CODEX_MODEL:-gpt-5.1-codex-mini}"
-REASONING="${CODEX_REASONING:-medium}"
+MODEL="${CODEX_MODEL:-gpt-5.3-codex-spark}"
+REASONING="${CODEX_REASONING:-high}"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_LAST=""
@@ -121,7 +121,6 @@ CMD=(
   --model "$MODEL"
   -c "model_reasoning_effort=\"$REASONING\""
   -s "$SAFETY"
-  -a "$APPROVAL"
   --output-last-message "$OUTPUT_LAST"
 )
 

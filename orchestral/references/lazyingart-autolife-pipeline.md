@@ -27,10 +27,18 @@ This pipeline runs at 08:00 and 20:00 (Asia/Hong_Kong) and updates AutoLife note
    - Writes markdown mirrors for audit in `~/Documents/LazyingArtBotIO/LazyingArt/Output/`
 6. `prompt_resource_analysis.sh` (via `prompt_resource_analysis.sh` wrapper in pipeline startup)
    - Scans LazyingArt resources (Input/Output + ITIN+Company), writes JSON + markdown digest under `~/Documents/LazyingArtBotIO/LazyingArt/Output/ResourceAnalysis/<run_id>/`
-7. `prompt_la_note_save.sh`
+7. `prompt_funding_vc.sh`
+   - Builds funding, VC, grant, and partnership opportunities for each run.
+8. `prompt_money_revenue.sh`
+   - Builds monetization and revenue strategy block with:
+     - How to make money
+     - Think out of the box
+     - 1000-billion reverse-engineering options
+9. `prompt_la_note_save.sh`
    - Saves/append note bodies into iCloud Notes under AutoLife
-8. `codex-email-cli.py`
-   - Composes + sends HTML digest email
+10. `codex-email-cli.py`
+
+- Composes + sends HTML digest email
 
 Coordinator:
 
@@ -52,6 +60,8 @@ Primary notes:
 - `🧠 Market Intel Digest / 市場情報ログ` (append)
 - `🎨 Lazying.art · Milestones / 里程碑 / マイルストーン` (replace)
 - `🧭 Entrepreneurship Mentor / 創業メンター / 創業導航` (append)
+- `🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會` (append)
+- `💰 Monetization & Revenue Strategy / 變現與收益 / 収益化戦略` (append)
 - `🗓️ Life Reverse Plan / 反向规划 / 逆算計画` (replace)
 - `🪵 Lazying.art Pipeline Log / ログ / 日誌` (append)
 

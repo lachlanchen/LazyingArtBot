@@ -9,8 +9,8 @@ LANGUAGE_POLICY="Chinese-first with EN/JP support where useful"
 CONTEXT_FILE=""
 MARKET_SUMMARY_FILE=""
 RESOURCE_SUMMARY_FILE=""
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
@@ -30,8 +30,8 @@ Options:
   --context-file <path>       Context JSON/text file
   --market-summary-file <p>   Optional market summary file
   --resource-summary-file <p> Optional resource/resource-analysis summary
-  --model <name>              Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>         Reasoning level (default: medium)
+  --model <name>              Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>         Reasoning level (default: high)
   --safety <level>            Codex safety mode (default: danger-full-access)
   --approval <policy>         Codex approval policy (default: never)
   --output-dir <path>         Artifact directory (default: /tmp/codex-la-pipeline)

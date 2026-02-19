@@ -8,8 +8,8 @@ ACCOUNTS="lachlan.miao.chen@gmail.com,lachen@connect.hku.hk"
 TARGET_CAL="LazyingArt"
 TARGET_LIST="LazyingArt"
 APPLY=0
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

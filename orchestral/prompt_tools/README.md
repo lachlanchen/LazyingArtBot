@@ -76,14 +76,16 @@ These tools explicitly reference the executable migration scripts so Codex reaso
 
 ## Lazying.art daily chain tools (AutoLife output)
 
-| Script                                    | Prompt template                      | Purpose                                                                |
-| ----------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| `prompt_la_market.sh`                     | `la_market_research_prompt.md`       | Market+repo analysis focused on `https://lazying.art` and GitHub repos |
-| `prompt_la_plan.sh`                       | `la_plan_draft_prompt.md`            | Milestone rewrite with mixed EN/中文/日本語 sections + tables          |
-| `prompt_entrepreneurship_mentor.sh`       | `entrepreneurship_mentor_prompt.md`  | Founder guidance and risk/bet framework updates                        |
-| `prompt_life_reverse_engineering_tool.sh` | `life_reverse_engineering_prompt.md` | Fixed-slot life reminder planning (8 horizons) with dedupe-aware apply |
-| `prompt_la_note_reader.sh`                | (utility)                            | Reads HTML body from AutoLife Notes                                    |
-| `prompt_la_note_save.sh`                  | (utility)                            | Appends/replaces AutoLife Notes safely                                 |
+| Script                                    | Prompt template                      | Purpose                                                                      |
+| ----------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------- |
+| `prompt_la_market.sh`                     | `la_market_research_prompt.md`       | Market+repo analysis focused on `https://lazying.art` and GitHub repos       |
+| `prompt_la_plan.sh`                       | `la_plan_draft_prompt.md`            | Milestone rewrite with mixed EN/中文/日本語 sections + tables                |
+| `prompt_entrepreneurship_mentor.sh`       | `entrepreneurship_mentor_prompt.md`  | Founder guidance and risk/bet framework updates                              |
+| `prompt_life_reverse_engineering_tool.sh` | `life_reverse_engineering_prompt.md` | Fixed-slot life reminder planning (8 horizons) with dedupe-aware apply       |
+| `prompt_la_note_reader.sh`                | (utility)                            | Reads HTML body from AutoLife Notes                                          |
+| `prompt_la_note_save.sh`                  | (utility)                            | Appends/replaces AutoLife Notes safely                                       |
+| `prompt_money_revenue.sh`                 | `money_revenue_prompt.md`            | Generates monetization and revenue strategy from market/funding/context data |
+| `prompt_funding_vc.sh`                    | `funding_vc_prompt.md`               | Finds funding, VC, grant, and partnership opportunities                      |
 
 ## Resource analysis tool (company-wide)
 
@@ -140,8 +142,8 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
   --schema scripts/prompt_tools/email_send_schema.json \
-  --model gpt-5.1-codex-mini \
-  --reasoning medium
+  --model gpt-5.3-codex-spark \
+  --reasoning high
 ```
 
 - `AUTOLIFE_PHILOSOPHY.md` – AutoLife capture/automation philosophy and folder layout.

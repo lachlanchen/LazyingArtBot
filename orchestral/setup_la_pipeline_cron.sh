@@ -9,8 +9,8 @@ JOB_NAME_AM="LazyingArt Pipeline 08:00 HK"
 JOB_NAME_PM="LazyingArt Pipeline 20:00 HK"
 TO_ADDR="lachchen@qq.com"
 FROM_ADDR="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 
 usage() {
   cat <<'USAGE'
@@ -22,7 +22,7 @@ the Lazying.art pipeline script through agent exec.
 Options:
   --to <email>            Digest recipient (default: lachchen@qq.com)
   --from <email>          Sender hint (default: lachlan.miao.chen@gmail.com)
-  --model <name>          Agent model for cron run (default: gpt-5.1-codex-mini)
+  --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
   --reasoning <level>     Agent reasoning level (default: medium)
   -h, --help              Show help
 USAGE
@@ -83,9 +83,10 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lazying.art pipeline exactly once.
 1) Execute:
-\`/Users/lachlan/Local/Clawbot/orchestral/run_la_pipeline.sh --to "$TO_ADDR" --from "$FROM_ADDR" --model "$MODEL" --reasoning "$REASONING" --skip-resource-analysis\`
+`/Users/lachlan/Local/Clawbot/orchestral/run_la_pipeline.sh --to "$TO_ADDR" --from "$FROM_ADDR" --model "$MODEL" --reasoning "$REASONING"`
 2) If execution fails, report stderr and stop.
-3) Resource analysis is already precomputed from previous weekly run and is not regenerated.
+3) Run a full pipeline cycle (including resource analysis and online refresh) unless the model
+   itself decides to short-circuit.
 4) Do not run other commands.
 EOF
 )"

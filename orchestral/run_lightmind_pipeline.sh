@@ -12,8 +12,8 @@ LIGHTMIND_INPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input"
 LIGHTMIND_OUTPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output"
 
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
@@ -43,6 +43,7 @@ ACADEMIC_QUERIES=(
   "AI + Science"
 )
 FUNDING_LANGUAGE_POLICY="Chinese-first with concise bilingual EN/JP support where useful."
+MONEY_REVENUE_LANGUAGE_POLICY="Chinese-first with concise EN/JP labels."
 ACADEMIC_RSS_SOURCES=(
   "Nature:https://www.nature.com/nature.rss"
   "Cell:https://www.cell.com/cell/rss"
@@ -56,7 +57,8 @@ Usage: run_lightmind_pipeline.sh [options]
 
 Runs the Lightmind chain:
   confidential+web context -> market research -> optional high-impact academic research ->
-  milestone plan draft -> entrepreneurship mentor -> save notes under AutoLife ->
+  funding -> monetization strategy -> milestone plan draft ->
+  entrepreneurship mentor -> save notes under AutoLife ->
   compose/send HTML email
 
 Options:
@@ -64,8 +66,8 @@ Options:
   --from <email>            Sender hint for Apple Mail (default: lachlan.miao.chen@gmail.com)
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
-  --model <name>            Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>       Reasoning level (default: medium)
+  --model <name>            Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>       Reasoning level (default: high)
   --market-context <path>   Optional extra context file for market step
   --confidential-root <p>   Lightmind confidential root path override
   --resource-root <path>    Add resource root (repeatable; default: Lightmind resources)
@@ -775,7 +777,7 @@ fi
   fi
 } > "$CONTEXT_FILE"
 
-TOTAL_STEPS=7
+TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
@@ -792,6 +794,7 @@ fi
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
 FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
+MONEY_REVENUE_RESULT="$ARTIFACT_DIR/money_revenue.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
 MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 
@@ -799,12 +802,14 @@ MARKET_HTML="$ARTIFACT_DIR/market.html"
 ACADEMIC_CONTEXT="$ARTIFACT_DIR/academic_context.txt"
 ACADEMIC_HTML="$ARTIFACT_DIR/academic.html"
 FUNDING_HTML="$ARTIFACT_DIR/funding.html"
+MONEY_REVENUE_HTML="$ARTIFACT_DIR/money_revenue.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
 MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 
 MARKET_SUMMARY="$ARTIFACT_DIR/market.summary.txt"
 ACADEMIC_SUMMARY="$ARTIFACT_DIR/academic.summary.txt"
 FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
+MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
@@ -815,16 +820,18 @@ CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   ACADEMIC_STEP=$((BASE_STEP + 3))
   FUNDING_STEP=$((BASE_STEP + 4))
+  MONEY_STEP=$((BASE_STEP + 5))
+  PLAN_STEP=$((BASE_STEP + 6))
+  MENTOR_STEP=$((BASE_STEP + 7))
+  LOG_STEP=$((BASE_STEP + 8))
+  EMAIL_STEP=$((BASE_STEP + 9))
+else
+  FUNDING_STEP=$((BASE_STEP + 3))
+  MONEY_STEP=$((BASE_STEP + 4))
   PLAN_STEP=$((BASE_STEP + 5))
   MENTOR_STEP=$((BASE_STEP + 6))
   LOG_STEP=$((BASE_STEP + 7))
   EMAIL_STEP=$((BASE_STEP + 8))
-else
-  FUNDING_STEP=$((BASE_STEP + 3))
-  PLAN_STEP=$((BASE_STEP + 4))
-  MENTOR_STEP=$((BASE_STEP + 5))
-  LOG_STEP=$((BASE_STEP + 6))
-  EMAIL_STEP=$((BASE_STEP + 7))
 fi
 
 log "Step $((BASE_STEP))/$TOTAL_STEPS: read current milestone note from AutoLife"
@@ -940,6 +947,39 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
   --mode append \
   --html-file "$FUNDING_HTML"
 
+log "Step $MONEY_STEP/$TOTAL_STEPS: monetization and revenue strategy"
+"$PROMPT_DIR/prompt_money_revenue.sh" \
+  --context-file "$CONTEXT_FILE" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
+  --funding-summary-file "$FUNDING_SUMMARY" \
+  --resource-summary-file "$RESOURCE_APPEND_PATH" \
+  --academic-summary-file "$ACADEMIC_SUMMARY" \
+  --company-focus "Lightmind" \
+  --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
+  --reference-source "https://lightmind.art" \
+  --reference-source "https://github.com/lachlanchen?tab=repositories" \
+  --reference-source "Lightmind confidentiality and commercialization context" \
+  --reference-source "High-impact research and commercialization signals" \
+  --model "$MODEL" \
+  --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
+  --label "lm-money-revenue" \
+  > "$MONEY_REVENUE_RESULT"
+
+extract_note_html "$MONEY_REVENUE_RESULT" "$MONEY_REVENUE_HTML"
+extract_summary "$MONEY_REVENUE_RESULT" "$MONEY_REVENUE_SUMMARY"
+cp "$MONEY_REVENUE_RESULT" "$NOTES_ROOT/last_money_revenue_result.json"
+cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
+
+"$PROMPT_DIR/prompt_la_note_save.sh" \
+  --account "iCloud" \
+  --root-folder "AutoLife" \
+  --folder-path "🏢 Companies/👓 Lightmind.art" \
+  --note "💰 盈利模式與增長策略 / 収益化戦略 / 收益战略" \
+  --mode append \
+  --html-file "$MONEY_REVENUE_HTML"
+
 log "Step $PLAN_STEP/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
   --note-html "$CURRENT_MILESTONE_HTML" \
@@ -1000,7 +1040,7 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --html-file "$MENTOR_HTML"
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -1008,11 +1048,12 @@ from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
 funding = Path(sys.argv[2]).read_text(encoding="utf-8")
-plan = Path(sys.argv[3]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[4]).read_text(encoding="utf-8")
-academic = Path(sys.argv[5]).read_text(encoding="utf-8")
-plan_input = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[7])
+money = Path(sys.argv[3]).read_text(encoding="utf-8")
+plan = Path(sys.argv[4]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[5]).read_text(encoding="utf-8")
+academic = Path(sys.argv[6]).read_text(encoding="utf-8")
+plan_input = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[8])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -1022,6 +1063,8 @@ digest = (
     f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}"
     "<hr/>"
     f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}"
+    "<hr/>"
+    f"<h2>💰 Monetization & Revenue Strategy / 盈利增长策略 / 收益戦略</h2>{money}"
     "<hr/>"
     f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}"
     "<hr/>"
@@ -1036,22 +1079,26 @@ PY
 
 log "Step $LOG_STEP/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
 
 run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-academic = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[6])
+funding = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
+money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+academic = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[8])
 
 content = (
     f"<h3>📌 Lightmind Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
     "<ul>"
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
+    f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
+    f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
     f"<li><strong>💡 Plan</strong>: {html.escape(plan)}</li>"
     f"<li><strong>🧭 Mentor</strong>: {html.escape(mentor)}</li>"
     f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"

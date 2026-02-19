@@ -8,8 +8,8 @@ RUN_ID="$(TZ=Asia/Hong_Kong date '+%Y%m%d-%H%M%S')"
 COMPANY="Company"
 MARKDOWN_OUTPUT=""
 OUTPUT_DIR=""
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 MAX_MANIFEST_FILES=500
 MAX_TEXT_SNIPPETS=40000
 RESOURCE_ROOTS=()
@@ -25,8 +25,8 @@ Options:
   --resource-root <path>         Add resource root (repeatable)
   --markdown-output <path>       Output markdown folder (if omitted, generated automatically)
   --output-dir <path>            Codex artifact base directory (if omitted: /tmp/<company>-resource-analysis)
-  --model <name>                 Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>            Reasoning level (default: medium)
+  --model <name>                 Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>            Reasoning level (default: high)
   --max-manifest-files <n>       Manifest files per root (default: 500)
   --max-text-snippets <n>        Snippet text cap (default: 40000)
   -h, --help                    Show help

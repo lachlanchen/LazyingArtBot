@@ -37,8 +37,8 @@ python3 /Users/lachlan/Local/Clawbot/orchestral/prompt_tools/codex-email-cli.py 
   --instruction "Send a compact HTML status update with heading, bullets, and table." \
   --to lachchen@qq.com \
   --from lachlan.miao.chen@gmail.com \
-  --model gpt-5.1-codex-mini \
-  --reasoning medium \
+  --model gpt-5.3-codex-spark \
+  --reasoning high \
   --send
 ```
 

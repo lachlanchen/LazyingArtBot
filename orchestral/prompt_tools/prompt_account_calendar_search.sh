@@ -8,8 +8,8 @@ SOURCE_ACCOUNT="lachen@connect.hku.hk"
 SOURCE_CALENDAR="Calendar"
 TARGET_CALENDAR="LazyingArt"
 KEYWORDS="anniversary"
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

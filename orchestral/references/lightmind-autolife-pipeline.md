@@ -45,10 +45,12 @@ These markdowns are generated from:
 2. `prompt_la_note_reader.sh` (read current Lightmind milestone note)
 3. `prompt_la_market.sh` + `lm_market_research_prompt.md`
 4. `prompt_la_market.sh` + `lm_academic_research_prompt.md` (high-impact academic context)
-5. `prompt_la_plan.sh` + `lm_plan_draft_prompt.md`
-6. `prompt_entrepreneurship_mentor.sh` + `lm_entrepreneurship_mentor_prompt.md`
-7. `prompt_la_note_save.sh` (write notes)
-8. `codex-email-cli.py` (send rendered HTML digest)
+5. `prompt_funding_vc.sh` (funding, VC, grant and partnership opportunities)
+6. `prompt_money_revenue.sh` (monetization and revenue strategy)
+7. `prompt_la_plan.sh` + `lm_plan_draft_prompt.md`
+8. `prompt_entrepreneurship_mentor.sh` + `lm_entrepreneurship_mentor_prompt.md`
+9. `prompt_la_note_save.sh` (write notes)
+10. `codex-email-cli.py` (send rendered HTML digest)
 
 Locking and scheduler behavior:
 
@@ -76,6 +78,15 @@ Default recipients:
 - `ethan@lightmind.art`
 - `robbie@lightmind.art`
 - `lachlan@lightmind.art`
+
+## Primary notes
+
+- `🧠 Lightmind Market Intel / 市場情報ログ` (append)
+- `🏦 Lightmind Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會` (append)
+- `💰 盈利模式與增長策略 / 収益化戦略 / 收益战略` (append)
+- `💡 Lightmind Milestones / 里程碑 / マイルストーン` (replace)
+- `🧭 Lightmind Entrepreneurship Mentor / 創業メンター / 創業導航` (append)
+- `🪵 Lightmind Pipeline Log / ログ / 日誌` (append)
 
 ## Commands
 

@@ -19,8 +19,8 @@ orchestral/prompt_tools/prompt_resource_analysis.sh \
   --resource-root "/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output" \
   --output-dir "/Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/Lightmind/pipeline_runs/$(date +%Y%m%d-%H%M%S)" \
   --markdown-output "/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output/ResourceAnalysis/$(date +%Y%m%d-%H%M%S)" \
-  --model "gpt-5.1-codex-mini" \
-  --reasoning "medium"
+  --model "gpt-5.3-codex-spark" \
+  --reasoning "high"
 ```
 
 ## What the script produces

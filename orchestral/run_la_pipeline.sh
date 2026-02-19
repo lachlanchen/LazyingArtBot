@@ -9,8 +9,8 @@ ARTIFACT_BASE="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs"
 
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
@@ -25,6 +25,7 @@ RUN_RESOURCE_ANALYSIS=1
 RESOURCE_OUTPUT_DIR="$LIFEPATH_BASE/Output/ResourceAnalysis"
 RESOURCE_LABEL="lazyingart-resource-analysis"
 FUNDING_LANGUAGE_POLICY="EN:中文:JP = 5:4:1 for operational updates and analysis."
+MONEY_REVENUE_LANGUAGE_POLICY="EN:中文:JP = 5:4:1"
 ITIN_COMPANY_ROOT="/Users/lachlan/Documents/ITIN+Company"
 RESOURCE_ROOTS=(
   "$LIFEPATH_BASE/Input"
@@ -37,16 +38,17 @@ usage() {
 Usage: run_la_pipeline.sh [options]
 
 Runs the Lazying.art chain:
-  market research -> milestone plan draft -> entrepreneurship mentor
-  -> life reverse reminder planning -> save notes under AutoLife -> compose/send HTML email
+  market research -> milestone plan draft -> monetization strategy ->
+  entrepreneurship mentor -> life reverse reminder planning ->
+  save notes under AutoLife -> compose/send HTML email
 
 Options:
   --to <email>              Email recipient (default: lachchen@qq.com)
   --from <email>            Sender hint for Apple Mail (default: lachlan.miao.chen@gmail.com)
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
-  --model <name>            Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>       Reasoning level (default: medium)
+  --model <name>            Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>       Reasoning level (default: high)
   --market-context <path>   Optional extra context file for market step
   --resource-output-dir <p> Resource analysis markdown output directory
   --resource-label <name>   Resource analysis marker/label
@@ -383,16 +385,19 @@ MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
 MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
+MONEY_REVENUE_RESULT="$ARTIFACT_DIR/money_revenue.result.json"
 
 MARKET_HTML="$ARTIFACT_DIR/market.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
 MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 FUNDING_HTML="$ARTIFACT_DIR/funding.html"
+MONEY_REVENUE_HTML="$ARTIFACT_DIR/money_revenue.html"
 
 MARKET_SUMMARY="$ARTIFACT_DIR/market.summary.txt"
 PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
 FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
+MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
 LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
 LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
 LIFE_HTML="$ARTIFACT_DIR/life.html"
@@ -405,13 +410,30 @@ TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   TOTAL_STEPS=9
 fi
+TOTAL_STEPS=$((TOTAL_STEPS + 1))
 
 BASE_STEP=0
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   BASE_STEP=1
+  log "Step 0/$TOTAL_STEPS: analyze resources and create reference summary"
 fi
 
-log "Step $((BASE_STEP+1))/$TOTAL_STEPS: read current milestone note from AutoLife"
+READ_NOTE_STEP=$((BASE_STEP + 1))
+MARKET_STEP=$((BASE_STEP + 2))
+FUNDING_STEP=$((BASE_STEP + 3))
+MONEY_STEP=$((BASE_STEP + 4))
+PLAN_STEP=$((BASE_STEP + 5))
+MENTOR_STEP=$((BASE_STEP + 6))
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  LIFE_STEP=$((BASE_STEP + 7))
+  LOG_STEP=$((BASE_STEP + 8))
+  EMAIL_STEP=$((BASE_STEP + 9))
+else
+  LOG_STEP=$((BASE_STEP + 7))
+  EMAIL_STEP=$((BASE_STEP + 8))
+fi
+
+log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoLife"
 "$PROMPT_DIR/prompt_la_note_reader.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
@@ -419,7 +441,7 @@ log "Step $((BASE_STEP+1))/$TOTAL_STEPS: read current milestone note from AutoLi
   --note "🎨 Lazying.art · Milestones / 里程碑 / マイルストーン" \
   --out "$CURRENT_MILESTONE_HTML" || true
 
-log "Step $((BASE_STEP+2))/$TOTAL_STEPS: market research"
+log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
   --model "$MODEL" \
@@ -441,7 +463,7 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --mode append \
   --html-file "$MARKET_HTML"
 
-log "Step $((BASE_STEP+3))/$TOTAL_STEPS: funding and VC opportunities"
+log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$MARKET_SUMMARY" \
@@ -470,7 +492,37 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
   --mode append \
   --html-file "$FUNDING_HTML"
 
-log "Step $((BASE_STEP+4))/$TOTAL_STEPS: milestone plan draft"
+log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
+"$PROMPT_DIR/prompt_money_revenue.sh" \
+  --context-file "$CONTEXT_FILE" \
+  --market-summary-file "$MARKET_SUMMARY" \
+  --funding-summary-file "$FUNDING_SUMMARY" \
+  --resource-summary-file "$RESOURCE_APPEND_PATH" \
+  --company-focus "Lazying.art" \
+  --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
+  --reference-source "https://lazying.art" \
+  --reference-source "https://github.com/lachlanchen?tab=repositories" \
+  --reference-source "Light company monetization and operating context" \
+  --model "$MODEL" \
+  --reasoning "$REASONING" \
+  --safety "$SAFETY" \
+  --approval "$APPROVAL" \
+  > "$MONEY_REVENUE_RESULT"
+
+extract_note_html "$MONEY_REVENUE_RESULT" "$MONEY_REVENUE_HTML"
+extract_summary "$MONEY_REVENUE_RESULT" "$MONEY_REVENUE_SUMMARY"
+cp "$MONEY_REVENUE_RESULT" "$NOTES_ROOT/last_money_revenue_result.json"
+cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
+
+"$PROMPT_DIR/prompt_la_note_save.sh" \
+  --account "iCloud" \
+  --root-folder "AutoLife" \
+  --folder-path "🏢 Companies/🐼 Lazying.art" \
+  --note "💰 Monetization & Revenue Strategy / 變現與收益 / 収益化戦略" \
+  --mode append \
+  --html-file "$MONEY_REVENUE_HTML"
+
+log "Step ${PLAN_STEP}/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
   --note-html "$CURRENT_MILESTONE_HTML" \
   --market-summary-file "$MARKET_SUMMARY" \
@@ -494,7 +546,7 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
   --mode replace \
   --html-file "$PLAN_HTML"
 
-log "Step $((BASE_STEP+5))/$TOTAL_STEPS: entrepreneurship mentor"
+log "Step ${MENTOR_STEP}/$TOTAL_STEPS: entrepreneurship mentor"
 "$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
   --market-summary-file "$MARKET_SUMMARY" \
   --plan-summary-file "$PLAN_SUMMARY" \
@@ -520,7 +572,7 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --html-file "$MENTOR_HTML"
 
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-  log "Step $((BASE_STEP+6))/$TOTAL_STEPS: life reverse reminder planning"
+  log "Step ${LIFE_STEP}/$TOTAL_STEPS: life reverse reminder planning"
   "$PROMPT_DIR/prompt_life_reverse_engineering_tool.sh" \
     --input-md "$LIFE_INPUT_MD" \
     --state-md "$LIFE_STATE_MD" \
@@ -551,12 +603,13 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --mode replace \
     --html-file "$LIFE_HTML"
 else
+  log "Step ${LOG_STEP}/$TOTAL_STEPS: life reminder skipped (disabled)"
   printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"
   printf '%s\n' "<p>Life reminder planner disabled.</p>" > "$LIFE_HTML"
 fi
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -564,10 +617,11 @@ from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
 funding = Path(sys.argv[2]).read_text(encoding="utf-8")
-plan = Path(sys.argv[3]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[4]).read_text(encoding="utf-8")
-life = Path(sys.argv[5]).read_text(encoding="utf-8")
-out = Path(sys.argv[6])
+money = Path(sys.argv[3]).read_text(encoding="utf-8")
+plan = Path(sys.argv[4]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[5]).read_text(encoding="utf-8")
+life = Path(sys.argv[6]).read_text(encoding="utf-8")
+out = Path(sys.argv[7])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -578,6 +632,8 @@ digest = (
     "<hr/>"
     f"<h2>🏦 Funding & VC Opportunities</h2>{funding}"
     "<hr/>"
+    f"<h2>💰 Monetization & Revenue Strategy</h2>{money}"
+    "<hr/>"
     f"<h2>🗺️ Milestones</h2>{plan}"
     "<hr/>"
     f"<h2>🧭 Entrepreneurship Mentor</h2>{mentor}"
@@ -587,9 +643,9 @@ digest = (
 out.write_text(digest, encoding="utf-8")
 PY
 
-log "Step $((BASE_STEP+7))/$TOTAL_STEPS: save daily pipeline log note"
+log "Step ${LOG_STEP}/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
@@ -597,16 +653,18 @@ from pathlib import Path
 run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
 funding = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[7])
+money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[8])
 
 content = (
     f"<h3>📌 Lazying.art Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
     "<ul>"
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
+    f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
     f"<li><strong>🗺️ Plan</strong>: {html.escape(plan)}</li>"
     f"<li><strong>🧭 Mentor</strong>: {html.escape(mentor)}</li>"
     f"<li><strong>🗓️ Life</strong>: {html.escape(life)}</li>"
@@ -623,7 +681,7 @@ PY
   --mode append \
   --html-file "$LOG_HTML"
 
-log "Step $((BASE_STEP+8))/$TOTAL_STEPS: compose/send email digest"
+log "Step ${EMAIL_STEP}/$TOTAL_STEPS: compose/send email digest"
 EMAIL_INSTRUCTION="$ARTIFACT_DIR/email_instruction.txt"
 cat > "$EMAIL_INSTRUCTION" <<EOF
 Create a beautiful HTML email update for Lazying.art.

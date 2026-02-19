@@ -5,8 +5,8 @@ REPO_DIR="/Users/lachlan/Local/Clawbot"
 cd "$REPO_DIR"
 
 CONTEXT_FILE=""
-MODEL="gpt-5.1-codex-mini"
-REASONING="medium"
+MODEL="gpt-5.3-codex-spark"
+REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
@@ -27,8 +27,8 @@ Usage: prompt_la_market.sh [options]
 
 Options:
   --context-file <path>   Optional JSON/text context file
-  --model <name>          Codex model (default: gpt-5.1-codex-mini)
-  --reasoning <level>     Reasoning level (default: medium)
+  --model <name>          Codex model (default: gpt-5.3-codex-spark)
+  --reasoning <level>     Reasoning level (default: high)
   --safety <level>        Codex safety mode (default: danger-full-access)
   --approval <policy>     Codex approval policy (default: never)
   --output-dir <path>     Artifact directory (default: /tmp/codex-la-pipeline)

@@ -62,8 +62,8 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file "$PROMPT_FILE" \
   --schema "$SCHEMA_FILE" \
-  --model gpt-5.1-codex-mini \
-  --reasoning medium \
+  --model gpt-5.3-codex-spark \
+  --reasoning high \
   --label commit-summary
 
 LATEST=$(cat "$OUTPUT_DIR/latest-result.json")
