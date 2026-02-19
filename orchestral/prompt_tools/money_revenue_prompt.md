@@ -13,16 +13,26 @@ Inputs:
 - `academic_summary`: optional high-impact research context (if available)
 - `reference_sources`: URLs or context source labels used by the orchestrator
 
+Context-driven relevance rule:
+
+- Use `company_focus`, `reference_sources`, and available summaries as the required search/validation envelope.
+- Do not derive monetization ideas from out-of-domain sectors.
+- If upstream search materials are sparse, infer candidate commercial levers from what is present in company materials (e.g., website/repo positioning, market summaries, funding evidence) before proposing models.
+- Keep any search-linked opportunities tied to observed artifacts; avoid generic keyword-driven speculation.
+
 Search integration guidance:
 
 - `run_context` and upstream summary files may include web-search artifacts from the pipeline:
   - `query_file_root` and glob hints (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`)
   - `top_results_per_query`
+  - Company website snapshot text is available in context and should be used first for company-specific signals.
   - query outputs (`query-*.json`, `query-*.txt`) with `search_page_overviews`, `search_page_screenshots`, `opened_items`, `opened_count`.
+- Use the same evidence budget from upstream (`top_results_per_query` / `opened_count`); do not hardcode your own fixed top-N.
 - Prefer `opened_items` and screenshot-backed rows before generic summarization notes.
 - Treat first-page scan snippets as the first evidence layer, then add deep-opened links when confidence is high.
 - Do not force exactly three research/market/funding bullets; cite the number of grounded links available from the search evidence.
 - If two items refer to same URL, keep one and preserve the highest-confidence reasoning.
+- If web-search evidence is incomplete for a claim, state it explicitly and do not invent a monetization inference.
 
 Source scope policy:
 

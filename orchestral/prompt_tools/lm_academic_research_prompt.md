@@ -11,9 +11,12 @@ Input:
 
 - `context_file`: includes raw market + confidential snapshots and a compact list from high-impact sources.
 - This content is already scoped; do not fetch external web content.
+- Use website snapshot text in context as direct company-source evidence.
 - Optional: if `context_file` includes `prompt_web_search_immersive` evidence, treat those links/summaries as high-priority signals.
 - Use `query_file_root` and pattern hints (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`) to locate all related artifacts.
 - Use `top_results_per_query` (and `opened_count` where available) as upper bounds when selecting links.
+- Query terms are provided by the runner; do not impose a fixed topical keyword set.
+- If query artifacts are incomplete, report `evidence_status: partial` in notes and only use verified entries.
 - Parse JSON artifacts (`query-*.json`) when present and use:
   - `search_page_screenshots` as evidence anchor
   - `opened_items` (up to per-query open limit, each with title + url + summary + opened screenshots)
@@ -30,7 +33,12 @@ Rules:
 
 - Only include items that are clearly in the provided context.
 - Prefer venue quality and recency.
+- Prefer a rough high-impact venue range unless search context pushes scope:
+  - Journals: Nature, Science, Cell, Nature Machine Intelligence, Nature Communications, Nature Biomedical Engineering, PNAS, IEEE TPAMI.
+  - Conferences: NeurIPS, ICML, ICLR, ACL, EMNLP, CVPR, ICCV, ECCV, AAAI, MICCAI, KDD, SIGGRAPH.
+- Default recency baseline: prioritize recent work (roughly last 3 years), while including up to 5-year foundational papers for continuity.
 - If `opened_items` are present in context, include entries up to the per-query open budget (`opened_count` / `top_results_per_query`) with explicit links and short evidence summaries.
+- If opened evidence is missing for a query, keep the query visible with `evidence_status` and do not synthesize the missing result.
 - Add a compact table row for each evidence entry with:
   - `query`
   - `rank`

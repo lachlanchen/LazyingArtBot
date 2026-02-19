@@ -32,11 +32,10 @@ WEB_SEARCH_TOP_RESULTS=3
 WEB_SEARCH_HOLD_SECONDS="15"
 WEB_SEARCH_SCROLL_STEPS="3"
 WEB_SEARCH_SCROLL_PAUSE="0.9"
-LIGHTMIND_WEB_SEARCH_QUERIES=(
-  "news:Lightmind funding and startup news"
-  "scholar:AI multimodal memory architecture"
-  "news:Lightmind product roadmap or launch updates"
-)
+LIGHTMIND_COMPANY_NAME="Lightmind"
+LIGHTMIND_WEBSITE="https://lightmind.art"
+LIGHTMIND_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
+LIGHTMIND_WEB_SEARCH_QUERIES=()
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
 WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 RUN_RESOURCE_ANALYSIS=1
@@ -49,17 +48,7 @@ RESOURCE_ROOTS=(
 )
 ACADEMIC_RESEARCH=1
 ACADEMIC_MAX_RESULTS=5
-ACADEMIC_QUERIES=(
-  "AI system design for enterprise"
-  "AI product management tooling"
-  "AI for scientific discovery"
-  "agentic workflow and coordination"
-  "AI + CVPR"
-  "AI + ICML"
-  "AI + SIGGRAPH"
-  "AI + Nature"
-  "AI + Science"
-)
+ACADEMIC_QUERIES=()
 FUNDING_LANGUAGE_POLICY="Chinese-first with concise bilingual EN/JP support where useful."
 MONEY_REVENUE_LANGUAGE_POLICY="Chinese-first with concise EN/JP labels."
 ACADEMIC_RSS_SOURCES=(
@@ -110,8 +99,9 @@ Options:
   --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
   --web-search-hold-seconds <sec> Keep browser open for N seconds per query (default: 15)
   --web-search-query <text>  Add/override a web search query (repeatable)
+                      If none is provided, a context-driven set is auto-generated.
   -h, --help                Show help
-  USAGE
+USAGE
 }
 
 while [[ $# -gt 0 ]]; do
@@ -807,6 +797,122 @@ run_web_search_queries() {
   WEB_HTML_FILE="$query_html_file"
 }
 
+build_default_web_search_queries() {
+  local brand="$1"
+  local website="$2"
+  local profile_url="$3"
+  local query_budget="${4:-4}"
+  python3 - "$brand" "$website" "$profile_url" "$query_budget" <<'PY'
+import sys
+brand = (sys.argv[1] or "").strip() or "this company"
+_ = sys.argv[2]
+_ = sys.argv[3]
+try:
+    budget = int(sys.argv[4]) if str(sys.argv[4]).strip() else 4
+except Exception:
+    budget = 4
+
+if budget < 3:
+    budget = 3
+if budget > 8:
+    budget = 8
+
+queries = [
+    "google:AI productivity and AI-assistant platforms",
+    "google-news:AI commercialization framework",
+    "google:edge AI or multimodal memory tooling",
+    "google:AI startup funding and partnerships",
+    "google:enterprise AI stack vendor landscape",
+    "google-news:AI workflow platforms launch",
+]
+
+dedup_queries = []
+seen_queries = set()
+for item in queries:
+    if not item or item in seen_queries:
+        continue
+    seen_queries.add(item)
+    dedup_queries.append(item)
+
+for item in dedup_queries[:budget]:
+    text = item.strip()
+    if text:
+        print(text)
+PY
+}
+
+build_default_academic_queries() {
+  local brand="$1"
+  local query_budget="${2:-5}"
+  shift 2
+  python3 - "$brand" "$query_budget" "$@" <<'PY'
+import sys
+import urllib.parse
+
+_company = (sys.argv[1] or "").strip() or "this company"
+try:
+    budget = int(sys.argv[2]) if str(sys.argv[2]).strip() else 5
+except Exception:
+    budget = 5
+sources = [s.strip() for s in sys.argv[3:] if s and s.strip()]
+
+if budget < 3:
+    budget = 3
+if budget > 10:
+    budget = 10
+
+def host_only(raw_url: str) -> str:
+    parsed = urllib.parse.urlparse(raw_url if "://" in raw_url else f"https://{raw_url}")
+    return parsed.hostname or raw_url.strip()
+
+queries = [
+    "google-scholar:site:nature.com multimodal",
+    "google-scholar:site:science.org AI",
+    "google-scholar:site:cell.com deep learning",
+    "google-scholar:site:nature.com Nature Machine Intelligence",
+    "google-scholar:site:arxiv.org AI",
+    "google-scholar:site:ieee.org AI",
+]
+
+for source in sources:
+    _, sep, remainder = source.partition(":")
+    if sep:
+        source_url = remainder
+    else:
+        source_url = source
+    host = host_only(source_url)
+    if host:
+        queries.extend([
+            f"google-scholar:site:{host} AI",
+            f"google-scholar:site:{host} multimodal",
+        ])
+    elif source:
+        queries.extend([
+            f"google-scholar:{source} AI",
+            f"google-scholar:{source} multimodal",
+        ])
+
+if not sources:
+    queries.extend([
+        "google-scholar:arXiv multimodal",
+        "google-scholar:machine learning long context",
+    ])
+
+dedup_queries = []
+seen_queries = set()
+for item in queries:
+    if not item or item in seen_queries:
+        continue
+    seen_queries.add(item)
+    dedup_queries.append(item)
+
+for item in dedup_queries[:budget]:
+    text = item.strip()
+    if text:
+        print(text)
+PY
+}
+
 build_confidential_summary() {
   local root_path="$1"
   local out_path="$2"
@@ -924,6 +1030,13 @@ build_academic_context_websearch() {
   local -i open_limit
   local academic_output_root="$ARTIFACT_DIR/academic_search"
 
+  if [[ "$max_results" == [1-9][0-9]* ]]; then
+    open_limit="$max_results"
+  else
+    open_limit=3
+  fi
+  (( open_limit < 1 )) && open_limit=1
+
   academic_queries=("${(@f)$(python3 - "$queries_json" <<'PY'
 import json
 import sys
@@ -943,24 +1056,8 @@ PY
 )}")
 
   if [[ "${#academic_queries[@]}" -eq 0 ]]; then
-    academic_queries=(
-      "site:nature.com AI platform systems"
-      "site:science.org multimodal AI systems"
-      "site:cell.com AI memory"
-      "ICLR"
-      "ICML"
-      "Nature Machine Intelligence"
-      "CVPR"
-      "SIGGRAPH"
-    )
+    academic_queries=("${(@f)$(build_default_academic_queries "$LIGHTMIND_COMPANY_NAME" "$open_limit" "${ACADEMIC_RSS_SOURCES[@]}")}")
   fi
-
-  if [[ "$max_results" == [1-9][0-9]* ]]; then
-    open_limit="$max_results"
-  else
-    open_limit=3
-  fi
-  (( open_limit < 1 )) && open_limit=1
 
   if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
     : > "$out_path"
@@ -1274,8 +1371,8 @@ else
 fi
 {
   echo "Run time: $(TZ=Asia/Hong_Kong date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "Primary brand: Lightmind"
-  echo "Must inspect https://lightmind.art and confidential context below."
+  echo "Primary brand: $LIGHTMIND_COMPANY_NAME"
+  echo "Must inspect $LIGHTMIND_WEBSITE and confidential context below."
   echo "Reference input folder: $LIGHTMIND_INPUT_ROOT"
   echo "Reference output folder: $LIGHTMIND_OUTPUT_ROOT"
   echo "Pipeline uses both input and output references for long-term company context."
@@ -1427,6 +1524,9 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
   --out "$CURRENT_MILESTONE_HTML" || true
 
 if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  if [[ "${#LIGHTMIND_WEB_SEARCH_QUERIES[@]}" -eq 0 ]]; then
+    LIGHTMIND_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LIGHTMIND_COMPANY_NAME" "$LIGHTMIND_WEBSITE" "$LIGHTMIND_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS")}")
+  fi
   log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
   : > "$WEB_SUMMARY_FILE"
   : > "$WEB_HTML_FILE"
@@ -1458,12 +1558,26 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     --html-file "$WEB_HTML_FILE"
 fi
 
+LIGHTMIND_MARKET_REFERENCE_ARGS=(
+  --reference-source "$LIGHTMIND_WEBSITE"
+  --reference-source "$WEBSITE_SNAPSHOT"
+  --reference-source "$LIGHTMIND_GITHUB_PROFILE"
+  --reference-source "$CONFIDENTIAL_ROOT"
+  --reference-source "$LIGHTMIND_INPUT_ROOT"
+  --reference-source "$LIGHTMIND_OUTPUT_ROOT"
+)
+LIGHTMIND_ACADEMIC_REFERENCE_ARGS=(
+  "${LIGHTMIND_MARKET_REFERENCE_ARGS[@]}"
+)
+for source in "${ACADEMIC_RSS_SOURCES[@]}"; do
+  LIGHTMIND_ACADEMIC_REFERENCE_ARGS+=(--reference-source "$source")
+done
+
 log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
-  --company-focus "Lightmind" \
-  --reference-source "https://lightmind.art" \
-  --reference-source "LightMind_Confidential internal context" \
+  --company-focus "$LIGHTMIND_COMPANY_NAME" \
+  "${LIGHTMIND_MARKET_REFERENCE_ARGS[@]}" \
   --prompt-file "$PROMPT_DIR/lm_market_research_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
@@ -1489,6 +1603,9 @@ if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   log "Step $ACADEMIC_STEP/$TOTAL_STEPS: academic research (high-impact)"
 fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  if [[ "${#ACADEMIC_QUERIES[@]}" -eq 0 ]]; then
+    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LIGHTMIND_COMPANY_NAME" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}")}")
+  fi
   ACADEMIC_QUERIES_JSON="$(python3 - <<'PY' "${ACADEMIC_QUERIES[@]}"
 import json
 import sys
@@ -1499,12 +1616,8 @@ PY
 
   "$PROMPT_DIR/prompt_la_market.sh" \
     --context-file "$ACADEMIC_CONTEXT" \
-    --company-focus "Lightmind" \
-    --reference-source "https://arxiv.org" \
-    --reference-source "Nature" \
-    --reference-source "Science" \
-    --reference-source "Cell" \
-    --reference-source "ICML, ICLR, NeurIPS, CVPR, SIGGRAPH" \
+    --company-focus "$LIGHTMIND_COMPANY_NAME" \
+    "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
     --prompt-file "$PROMPT_DIR/lm_academic_research_prompt.md" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
@@ -1535,7 +1648,7 @@ merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN
 if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
   log "Step $LEGAL_STEP/$TOTAL_STEPS: legal compliance and tax review (HK + Mainland)"
   "$PROMPT_DIR/prompt_legal_dept.sh" \
-    --company-focus "Lightmind" \
+    --company-focus "$LIGHTMIND_COMPANY_NAME" \
     --legal-root "$LEGAL_INPUT_ROOT" \
     --context-file "$CONTEXT_FILE" \
     --market-summary-file "$PLAN_INPUT_SUMMARY" \
@@ -1569,12 +1682,9 @@ log "Step $FUNDING_STEP/$TOTAL_STEPS: funding and VC opportunities"
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
-  --company-focus "Lightmind" \
+  --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
-  --reference-source "https://lightmind.art" \
-  --reference-source "https://github.com/lachlanchen?tab=repositories" \
-  --reference-source "Hong Kong startup competitions, VC and grant opportunities" \
-  --reference-source "High impact research and commercialization signals" \
+  "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1602,12 +1712,9 @@ log "Step $MONEY_STEP/$TOTAL_STEPS: monetization and revenue strategy"
   --funding-summary-file "$FUNDING_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --academic-summary-file "$ACADEMIC_SUMMARY" \
-  --company-focus "Lightmind" \
+  --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
-  --reference-source "https://lightmind.art" \
-  --reference-source "https://github.com/lachlanchen?tab=repositories" \
-  --reference-source "Lightmind confidentiality and commercialization context" \
-  --reference-source "High-impact research and commercialization signals" \
+  "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1634,8 +1741,8 @@ log "Step $PLAN_STEP/$TOTAL_STEPS: milestone plan draft"
   --market-summary-file "$MARKET_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
-  --company-focus "Lightmind" \
-  --reference-source "https://lightmind.art" \
+  --company-focus "$LIGHTMIND_COMPANY_NAME" \
+  --reference-source "$LIGHTMIND_WEBSITE" \
   --prompt-file "$PROMPT_DIR/lm_plan_draft_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
@@ -1664,8 +1771,8 @@ log "Step $MENTOR_STEP/$TOTAL_STEPS: entrepreneurship mentor"
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
   --milestone-html-file "$PLAN_HTML" \
-  --company-focus "Lightmind" \
-  --reference-source "https://lightmind.art" \
+  --company-focus "$LIGHTMIND_COMPANY_NAME" \
+  --reference-source "$LIGHTMIND_WEBSITE" \
   --prompt-file "$PROMPT_DIR/lm_entrepreneurship_mentor_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \

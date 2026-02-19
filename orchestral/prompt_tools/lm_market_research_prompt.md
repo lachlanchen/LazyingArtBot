@@ -13,17 +13,28 @@ High-priority context to use every run:
 - Confidential input bundle from:
   `/Users/lachlan/Library/Containers/com.tencent.WeWorkMac/Data/WeDrive/LightMind Tech Ltd./LightMind Tech Ltd./LightMind_Confidential`
   (already summarized in payload context)
+- Website snapshot from context is the first-pass source for Lightmind-specific facts.
 - Broader market signals: AI creator tools, AI product ops, B2B automation SaaS, GTM positioning.
+- Search framing source map (do not hardcode static keywords):
+  - `company_focus`: company brand and operating model target
+  - `priority_sources`: source list (website, confidential bundle path, repo/docs sources, notes) that define evidence boundaries
+- Always constrain search direction by the provided materials first.
+- Generate context-driven query families (never fixed terms): product moat, workflow integration, enterprise demand patterns, monetization moves, partnership and funding signals.
+- If terms are needed, derive from this company context rather than from a preset list (e.g., AI-agent workflows, scientific AI, enterprise copilots, multimodal memory systems when relevant).
+- Do not use web search to re-query lightmind.art directly; treat the context-provided site snapshot as the company source for that evidence.
 
 Evidence input (if attached from search stage):
 
 - Prefer web-search artifacts from `prompt_web_search_immersive.sh` when available:
   - `query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, and `query_file_pattern_screenshots` for locating artifacts.
   - `top_results_per_query` for the intended open budget per query.
+- If no explicit query list is present in the upstream call, treat the runner-provided query set as authoritative and do not substitute fixed keywords.
+- The runner builds query sets from this company’s own materials (site/repo/context); do not add extra brand-only keyword branches.
   - `search_page_summaries`/`search_page_overviews` and `search_page_screenshots` for first-pass context.
   - `query-*.json` for structured items and `opened_items` for deep links.
 - Mention opened result links per query up to the available `opened_count` in the final note with short takeaways.
 - Do not force exactly three links; use the provided run budget.
+- Use search evidence paths from both result-page and opened-page screenshots to keep recommendations traceable.
 
 Output evidence requirement:
 

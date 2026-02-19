@@ -25,26 +25,17 @@ WEB_SEARCH_TOP_RESULTS=3
 WEB_SEARCH_HOLD_SECONDS="15"
 WEB_SEARCH_SCROLL_STEPS="3"
 WEB_SEARCH_SCROLL_PAUSE="0.9"
-ACADEMIC_QUERIES=(
-  "Nature AI multimodal memory systems"
-  "Science AI memory indexing and retrieval"
-  "Cell memory and long context language models"
-  "Optica photonic AI memory"
-  "TIPAMI AI and optics publications"
-  "CVPR multimodal foundation models"
-  "ICML memory-augmented AI systems"
-)
+LA_PRIMARY_BRAND="Lazying.art"
+LA_WEBSITE="https://lazying.art"
+LA_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
+ACADEMIC_QUERIES=()
 ACADEMIC_RSS_SOURCES=(
   "Nature:https://www.nature.com/nature.rss"
   "Science:https://www.science.org/action/showFeed?type=site&jc=science"
   "Cell:https://www.cell.com/cell/rss"
   "Nature Machine Intelligence:https://www.nature.com/natmachintell.rss"
 )
-LA_WEB_SEARCH_QUERIES=(
-  "auto:Lazying.art latest public updates"
-  "news:AI startups, creator tools, and product launch updates"
-  "scholar:multimodal memory indexing and retrieval"
-)
+LA_WEB_SEARCH_QUERIES=()
 MARKET_CONTEXT_FILE=""
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
 WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
@@ -93,6 +84,7 @@ Options:
   --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
   --web-search-hold-seconds <sec> Keep browser open for N seconds per query (default: 15)
   --web-search-query <text>  Add/override a web search query (repeatable)
+                      If none is provided, a context-driven query set is auto-generated.
   --life-input-md <path>    Input markdown for life reminder planner
   --life-reminder           Run life reminder planner (default)
   --no-life-reminder        Disable life reminder planner
@@ -754,6 +746,165 @@ run_web_search_queries() {
   }
 
 
+build_default_web_search_queries() {
+  local brand="$1"
+  local website="$2"
+  local profile_url="$3"
+  local query_budget="${4:-4}"
+  python3 - "$brand" "$website" "$profile_url" "$query_budget" <<'PY'
+import sys
+brand = (sys.argv[1] or "").strip() or "this company"
+_ = sys.argv[2]
+_ = sys.argv[3]
+try:
+    budget = int(sys.argv[4]) if str(sys.argv[4]).strip() else 4
+except Exception:
+    budget = 4
+
+if budget < 3:
+    budget = 3
+if budget > 8:
+    budget = 8
+
+queries = [
+    "google:AI creator workflow market",
+    "google:AI SaaS competitive positioning",
+    "google:AI startup funding and partnerships",
+    "google:creator tools monetization model",
+    "google-news:AI enterprise copilots adoption",
+    "google:multimodal AI memory systems",
+]
+
+dedup_queries = []
+seen_queries = set()
+for item in queries:
+    if not item or item in seen_queries:
+        continue
+    seen_queries.add(item)
+    dedup_queries.append(item)
+
+for item in dedup_queries[:budget]:
+    text = item.strip()
+    if text:
+        print(text)
+PY
+}
+
+build_website_snapshot() {
+  local site_url="$1"
+  local out_path="$2"
+  python3 - "$site_url" "$out_path" <<'PY'
+import re
+import sys
+import urllib.request
+from html import unescape
+from pathlib import Path
+
+url = sys.argv[1]
+out = Path(sys.argv[2])
+out.parent.mkdir(parents=True, exist_ok=True)
+
+try:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+    html_text = raw.decode("utf-8", errors="ignore")
+except Exception as exc:  # noqa: BLE001
+    out.write_text(f"[website] fetch_failed url={url} err={exc}\n", encoding="utf-8")
+    raise SystemExit(0)
+
+title_match = re.search(r"<title[^>]*>(.*?)</title>", html_text, flags=re.IGNORECASE | re.DOTALL)
+title = unescape(title_match.group(1).strip()) if title_match else ""
+text = re.sub(r"(?is)<script.*?>.*?</script>", " ", html_text)
+text = re.sub(r"(?is)<style.*?>.*?</style>", " ", text)
+text = re.sub(r"(?is)<[^>]+>", " ", text)
+text = unescape(text)
+text = re.sub(r"\s+", " ", text).strip()
+snapshot = text[:12000]
+
+lines = [f"[website] url={url}"]
+if title:
+    lines.append(f"[website] title={title}")
+lines.append("[website] text_snapshot:")
+lines.append(snapshot)
+out.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+PY
+}
+
+build_default_academic_queries() {
+  local brand="$1"
+  local query_budget="${2:-5}"
+  shift 2
+  python3 - "$brand" "$query_budget" "$@" <<'PY'
+import sys
+import urllib.parse
+
+_company = (sys.argv[1] or "").strip() or "this company"
+try:
+    budget = int(sys.argv[2]) if str(sys.argv[2]).strip() else 5
+except Exception:
+    budget = 5
+sources = [s.strip() for s in sys.argv[3:] if s and s.strip()]
+
+if budget < 3:
+    budget = 3
+if budget > 10:
+    budget = 10
+
+def host_only(raw_url: str) -> str:
+    parsed = urllib.parse.urlparse(raw_url if '://' in raw_url else f'https://{raw_url}')
+    return parsed.hostname or raw_url.strip()
+
+queries = [
+    "google-scholar:site:nature.com multimodal",
+    "google-scholar:site:science.org AI",
+    "google-scholar:site:cell.com deep learning",
+    "google-scholar:site:nature.com Nature Machine Intelligence",
+    "google-scholar:site:arxiv.org AI",
+]
+
+for source in sources:
+    _, sep, remainder = source.partition(":")
+    if sep:
+        source_url = remainder
+    else:
+        source_url = source
+    host = host_only(source_url)
+    if host:
+        queries.extend([
+            f"google-scholar:site:{host} AI",
+            f"google-scholar:site:{host} multimodal",
+        ])
+    elif source:
+        queries.extend([
+            f"google-scholar:{source} AI",
+            f"google-scholar:{source} multimodal",
+        ])
+
+if not sources:
+    queries.extend([
+        "google-scholar:arXiv multimodal",
+        "google-scholar:machine learning long context",
+    ])
+
+dedup_queries = []
+seen_queries = set()
+for item in queries:
+    item = item.strip()
+    if not item:
+        continue
+    if item in seen_queries:
+        continue
+    seen_queries.add(item)
+    dedup_queries.append(item)
+
+for item in dedup_queries[:budget]:
+    text = item.strip()
+    if text:
+        print(text)
+PY
+}
+
 find_latest_resource_markdown_dir() {
   local base_dir="$1"
   python3 - "$base_dir" <<'PY'
@@ -782,6 +933,13 @@ build_academic_context_websearch() {
   local -i open_limit
   local academic_output_root="$ARTIFACT_DIR/academic_search"
 
+  if [[ "$max_results" == [1-9][0-9]* ]]; then
+    open_limit="$max_results"
+  else
+    open_limit=3
+  fi
+  (( open_limit < 1 )) && open_limit=1
+
   academic_queries=("${(@f)$(python3 - "$queries_json" <<'PY'
 import json
 import sys
@@ -801,22 +959,8 @@ PY
   )}") 
 
   if [[ "${#academic_queries[@]}" -eq 0 ]]; then
-    academic_queries=(
-      "site:nature.com multimodal memory"
-      "site:science.org multimodal memory"
-      "site:cell.com memory systems"
-      "Nature and ICML multimodal AI"
-      "Optica and TIPAMI memory AI"
-      "site:arxiv.org multimodal memory models"
-    )
+    academic_queries=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$open_limit" "${ACADEMIC_RSS_SOURCES[@]}")}")
   fi
-
-  if [[ "$max_results" == [1-9][0-9]* ]]; then
-    open_limit="$max_results"
-  else
-    open_limit=3
-  fi
-  (( open_limit < 1 )) && open_limit=1
 
   if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
     : > "$out_path"
@@ -902,6 +1046,8 @@ acquire_pipeline_lock
 RESOURCE_ANALYSIS_RUN_DIR="$ARTIFACT_DIR/resource_analysis"
 RESOURCE_ANALYSIS_RESULT=""
 RESOURCE_ANALYSIS_MARKDOWN_DIR="$RESOURCE_OUTPUT_DIR/$RUN_ID"
+WEBSITE_SNAPSHOT_FILE="$ARTIFACT_DIR/lazyingart_website_snapshot.txt"
+build_website_snapshot "$LA_WEBSITE" "$WEBSITE_SNAPSHOT_FILE"
 HAS_RESOURCE_CACHE=0
 if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
   mkdir -p "$RESOURCE_ANALYSIS_RUN_DIR" "$RESOURCE_OUTPUT_DIR" "$RESOURCE_ANALYSIS_MARKDOWN_DIR"
@@ -955,8 +1101,11 @@ else
 fi
 {
   echo "Run time: $(TZ=Asia/Hong_Kong date '+%Y-%m-%d %H:%M:%S %Z')"
-  echo "Primary brand: Lazying.art"
-  echo "Must inspect https://lazying.art and https://github.com/lachlanchen?tab=repositories"
+  echo "Primary brand: $LA_PRIMARY_BRAND"
+  echo "Must inspect $LA_WEBSITE and $LA_GITHUB_PROFILE"
+  echo "Website snapshot:"
+  cat "$WEBSITE_SNAPSHOT_FILE"
+  echo
   echo "Personal context: based in Hong Kong, can travel to Shenzhen, and LazyingArt LLC is in the US."
   echo "Input/state files are under ~/Documents/LazyingArtBotIO/LazyingArt."
   echo
@@ -1086,6 +1235,9 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
   --out "$CURRENT_MILESTONE_HTML" || true
 
 if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  if [[ "${#LA_WEB_SEARCH_QUERIES[@]}" -eq 0 ]]; then
+    LA_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LA_PRIMARY_BRAND" "$LA_WEBSITE" "$LA_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS")}")
+  fi
   log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
   : > "$WEB_SUMMARY_FILE"
   : > "$WEB_HTML_FILE"
@@ -1117,9 +1269,26 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     --html-file "$WEB_HTML_FILE"
 fi
 
+LA_MARKET_REFERENCE_ARGS=(
+  --reference-source "$LA_WEBSITE"
+  --reference-source "$WEBSITE_SNAPSHOT_FILE"
+  --reference-source "$LA_GITHUB_PROFILE"
+  --reference-source "$LIFEPATH_BASE/Input"
+  --reference-source "$LIFEPATH_BASE/Output"
+  --reference-source "$RESOURCE_OUTPUT_DIR"
+)
+LA_ACADEMIC_REFERENCE_ARGS=(
+  "${LA_MARKET_REFERENCE_ARGS[@]}"
+)
+for source in "${ACADEMIC_RSS_SOURCES[@]}"; do
+  LA_ACADEMIC_REFERENCE_ARGS+=(--reference-source "$source")
+done
+
 log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
+  --company-focus "$LA_PRIMARY_BRAND" \
+  "${LA_MARKET_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1140,6 +1309,10 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --html-file "$MARKET_HTML"
 
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  if [[ "${#ACADEMIC_QUERIES[@]}" -eq 0 ]]; then
+    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}")}")
+  fi
+
   log "Step ${ACADEMIC_STEP}/$TOTAL_STEPS: academic research (high-impact)"
 
   ACADEMIC_QUERIES_JSON="$(python3 - <<'PY' "${ACADEMIC_QUERIES[@]}"
@@ -1153,12 +1326,8 @@ PY
 
   "$PROMPT_DIR/prompt_la_market.sh" \
     --context-file "$ACADEMIC_CONTEXT" \
-    --company-focus "Lazying.art" \
-    --reference-source "https://arxiv.org" \
-    --reference-source "Nature" \
-    --reference-source "Science" \
-    --reference-source "Cell" \
-    --reference-source "Nature Machine Intelligence" \
+    --company-focus "$LA_PRIMARY_BRAND" \
+    "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
     --prompt-file "$PROMPT_DIR/la_academic_research_prompt.md" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
@@ -1192,11 +1361,9 @@ log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
-  --company-focus "Lazying.art" \
+  --company-focus "$LA_PRIMARY_BRAND" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
-  --reference-source "https://lazying.art" \
-  --reference-source "https://github.com/lachlanchen?tab=repositories" \
-  --reference-source "Hong Kong startup competitions, VC and grant updates" \
+  "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1223,11 +1390,9 @@ log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
   --funding-summary-file "$FUNDING_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --academic-summary-file "$ACADEMIC_SUMMARY" \
-  --company-focus "Lazying.art" \
+  --company-focus "$LA_PRIMARY_BRAND" \
   --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
-  --reference-source "https://lazying.art" \
-  --reference-source "https://github.com/lachlanchen?tab=repositories" \
-  --reference-source "Light company monetization and operating context" \
+  "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \

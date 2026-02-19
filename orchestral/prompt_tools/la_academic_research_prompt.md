@@ -14,12 +14,15 @@ Input:
 - `company_focus`: expected `Lazying.art`.
 - `priority_sources`: provided source labels/URLs.
 - Optional: web-search evidence package from `prompt_web_search_immersive.sh` may be embedded in `context_file`.
+  The company website content is already provided in context when available; use that as direct evidence before external search.
   Parse JSON artifacts (`query-*.json`) when present and pull:
   - `search_page_screenshots`
 - `opened_items` (up to the query-configured open budget, each with title, url, summary, opened screenshots when present)
 - `query-*.txt` for compact evidence.
 - If `opened_items` is empty, fallback to `search_page_overviews` + `search_page_screenshots` for signal extraction.
 - Use `query_file_root` + pattern fields (`query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`) and `top_results_per_query` before consuming opened details.
+- Upstream web query selection is supplied by the runner; do not hardcode a fixed keyword list.
+- Use provided artifact evidence only; if no query artifacts are present, state explicit evidence gaps and avoid inventing alternatives.
 
 Objective:
 
@@ -34,8 +37,12 @@ Rules:
 - Build a short evidence index in `notes` with `query`, `rank`, `title`, `url`, `source`, `confidence`, and `evidence_path`.
 - Exclude speculative or weak links.
 - Prefer freshness and venue quality (Nature / Science / Cell / Nature Machine Intelligence / related top-tier work).
+- Prefer a rough high-impact venue range, unless the search context suggests tighter scope:
+  - Journals: Nature, Science, Cell, Nature Machine Intelligence, Nature Communications, PNAS, IEEE TPAMI, JAMA, Nature Biotechnology, Nature Electronics, Science Robotics.
+  - Conferences: NeurIPS, ICML, ICLR, ACL, CVPR, ICCV, ECCV, AAAI, MICCAI, SIGGRAPH, KDD.
+- Default recency baseline: prioritize recent work (roughly last 3 years), with up to 5 years for foundational relevance.
 - Keep output concise and structured for notes + execution planning.
-- If no high-confidence signal, return `notes: []` with a short summary.
+- If no high-confidence signal or search evidence is missing, return `notes: []` with a short summary and `evidence_status: incomplete`.
 
 Output requirements (`notes`, exact schema from `orchestral/prompt_tools/la_ops_schema.json`):
 

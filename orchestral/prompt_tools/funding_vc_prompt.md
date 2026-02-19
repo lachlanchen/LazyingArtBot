@@ -11,16 +11,28 @@ Inputs:
 - `reference_sources`: optional source hints
 - `run_context`: runtime context
 
+Context grounding for query/relevance:
+
+- Use `company_focus` and `reference_sources` as mandatory scope inputs when interpreting opportunities.
+- Treat source hints/URLs as the allowed domain set (site, path, repo, note, and file context).
+- Derive search/value hypotheses from these materials first, then map to funding/VC, grant, or contest opportunities already in context.
+- Do not introduce fixed funding themes or hardcoded keyword lists.
+- Keep signals tied to this company’s current materials (for example AI-agent product lines, hardware roadmap, creator/workflow positioning).
+
 Search evidence inputs:
 
 - `run_context` may include web-search metadata emitted by `run_la_pipeline.sh` / `run_lightmind_pipeline.sh`:
 - `query_file_root`
 - `query_file_pattern` / `query_file_pattern_txt` / `query_file_pattern_screenshots`
 - `top_results_per_query`
+  - Company website snapshot text (when included in context) should be treated as primary internal evidence; do not use it as search targets.
 - Use `query-*.json` and `query-*.txt` under the file root for first-page scan and artifact links.
 - Use `search_page_screenshots`, `search_page_overviews`, `opened_items`, and `opened_count` as evidence anchors.
+- Query selection is determined upstream; do not hardcode fixed keyword defaults.
 - Do not constrain synthesis to exactly three entries; use the available evidence budget from `opened_count` / `top_results_per_query`.
+- Query terms come from the upstream web-search stage; do not substitute a fixed list.
 - If your result set includes duplicates across sources, deduplicate by `url` before writing final opportunities.
+- If run web-search evidence is sparse, explicitly flag a confidence gap instead of generating extra opportunities.
 
 Conservative rules:
 
