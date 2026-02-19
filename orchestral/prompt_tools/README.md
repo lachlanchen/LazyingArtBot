@@ -11,16 +11,22 @@ This directory is the dedicated home for LAB Codex prompt-driven tooling.
 
 ## AutoLife prompt suite (delegation-first)
 
-| Script                            | Prompt template                                | Purpose                                                                           |
-| --------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| `prompt_notes.sh`                 | `notes_prompt.md`                              | Turn raw context into HTML-ready AutoLife note updates.                           |
-| `prompt_calendar_and_reminder.sh` | `calendar_prompt.md`                           | Decide whether tasks become calendar blocks or reminders.                         |
-| `prompt_market_research.sh`       | `market_research_prompt.md`                    | Generate market intel summaries + suggested actions.                              |
-| `prompt_company_management.sh`    | `company_management_prompt.md`                 | Refine Lazying.art / Lightmind.art operating plans.                               |
-| `prompt_passive_income.sh`        | `passive_income_prompt.md`                     | Produce concrete passive-income opportunity stacks.                               |
-| `prompt_making_plan.sh`           | `making_plan_prompt.md`                        | Build daily/weekly plans with sequenced steps.                                    |
-| `prompt_log.sh`                   | `log_prompt.md` (with `log_entry_schema.json`) | Format and append HTML entries to AutoLife › Log (Apple Notes + markdown mirror). |
-| `prompt_commit_push.sh`           | `commit_summary_prompt.md`                     | Ask Codex to summarize repo changes, then commit & push automatically.            |
+| Script                                | Prompt template                                | Purpose                                                                                   |
+| ------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `prompt_web_search.sh`                | `prompt_web_search_prompt.md`                  | Capture Nature/Science paper references into plaintext artifacts for downstream analysis. |
+| `prompt_web_search_immersive.sh`      | `prompt_web_search_immersive_prompt.md`        | Immersive (UI) Google flow with screenshot capture and optional coordinate click.         |
+| `prompt_web_search_click.sh`          | `prompt_web_search_click_prompt.md`            | Search, click selected result in same window, and summarize opened page content.          |
+| `prompt_web_search_google.sh`         | (wrapper)                                      | Google search + click-mode helper (default engine google).                                |
+| `prompt_web_search_google_scholar.sh` | (wrapper)                                      | Google Scholar search + click-mode helper.                                                |
+| `prompt_web_search_google_news.sh`    | (wrapper)                                      | Google News search + click-mode helper.                                                   |
+| `prompt_notes.sh`                     | `notes_prompt.md`                              | Turn raw context into HTML-ready AutoLife note updates.                                   |
+| `prompt_calendar_and_reminder.sh`     | `calendar_prompt.md`                           | Decide whether tasks become calendar blocks or reminders.                                 |
+| `prompt_market_research.sh`           | `market_research_prompt.md`                    | Generate market intel summaries + suggested actions.                                      |
+| `prompt_company_management.sh`        | `company_management_prompt.md`                 | Refine Lazying.art / Lightmind.art operating plans.                                       |
+| `prompt_passive_income.sh`            | `passive_income_prompt.md`                     | Produce concrete passive-income opportunity stacks.                                       |
+| `prompt_making_plan.sh`               | `making_plan_prompt.md`                        | Build daily/weekly plans with sequenced steps.                                            |
+| `prompt_log.sh`                       | `log_prompt.md` (with `log_entry_schema.json`) | Format and append HTML entries to AutoLife › Log (Apple Notes + markdown mirror).         |
+| `prompt_commit_push.sh`               | `commit_summary_prompt.md`                     | Ask Codex to summarize repo changes, then commit & push automatically.                    |
 
 All AutoLife-oriented prompts share `auto_ops_schema.json`, which encodes `summary`, `notes`, optional `calendar_events`, `reminders`, `actions`, and `log_entries`. This keeps outputs composable across tools.
 
@@ -51,6 +57,8 @@ Supporting prompt assets:
 - `lm_entrepreneurship_mentor_prompt.md`
 - `resource_analysis_prompt.md`
 - `resource_analysis_schema.json`
+- `prompt_web_search_prompt.md`
+- `web_search_selenium_cli` scripts reference (via `scripts/web_search_selenium_cli/run_search.sh`)
 
 ## LazyingArt migration prompt tools
 

@@ -6,15 +6,22 @@ This reference documents a dedicated Selenium-based web search CLI added under `
 
 - `scripts/web_search_selenium_cli/search_cli.py`
   - Selenium-powered CLI search tool.
-  - Supports engines: `google`, `duckduckgo`, `bing`.
+  - Supports engines: `google`, `google-scholar`, `google-news`, `duckduckgo`, `bing`.
   - Default output is text; optional JSON output via `--output json`.
+  - Supports click-first workflow with `--open-result --result-index <n>` to keep one window open and then summarize clicked page.
   - Supports visible browser by default and optional `--headless` mode.
   - Can fetch and use a local ChromeDriver via `--install-driver`.
+  - Supports automatic cookie/consent dismissal via `--dismiss-cookies` (used by web-search prompt tools by default).
 
 - `scripts/web_search_selenium_cli/run_search.sh`
   - Wrapper that runs the search CLI inside conda env `clawbot` by default.
   - `--env <name>` overrides conda env.
   - Uses `conda run -n <env>` to keep tool isolated.
+
+- `scripts/web_search_selenium_cli/immersive_search.sh`
+  - Visible, interactive Google/UI-first search flow with screenshot capture.
+  - Supports `--click-at x,y` and `--open-result` in the same browser session.
+  - Emits per-run JSON (`query-<slug>.json`) plus screenshot paths and viewport metadata.
 
 - `scripts/web_search_selenium_cli/install_chromedriver.sh`
   - Downloads and extracts ChromeDriver from:
@@ -47,6 +54,9 @@ scripts/web_search_selenium_cli/install_chromedriver.sh
 ```bash
 # visible browser (default), text output
 scripts/web_search_selenium_cli/run_search.sh --engine duckduckgo --results 5 "openai cookbook"
+
+# immersive google-ui flow with screenshots (visible browser)
+scripts/web_search_selenium_cli/immersive_search.sh --query "wearable glass paper" --results 5 --run-id my-run
 
 # JSON output
 scripts/web_search_selenium_cli/run_search.sh --engine google --output json --results 3 "lightmind"
