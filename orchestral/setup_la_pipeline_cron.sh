@@ -83,9 +83,10 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lazying.art pipeline exactly once.
 1) Execute:
-\`/Users/lachlan/Local/Clawbot/orchestral/run_la_pipeline.sh --to "$TO_ADDR" --from "$FROM_ADDR" --model "$MODEL" --reasoning "$REASONING"\`
+\`/Users/lachlan/Local/Clawbot/orchestral/run_la_pipeline.sh --to "$TO_ADDR" --from "$FROM_ADDR" --model "$MODEL" --reasoning "$REASONING" --skip-resource-analysis\`
 2) If execution fails, report stderr and stop.
-3) Do not run other commands.
+3) Resource analysis is already precomputed from previous weekly run and is not regenerated.
+4) Do not run other commands.
 EOF
 )"
 

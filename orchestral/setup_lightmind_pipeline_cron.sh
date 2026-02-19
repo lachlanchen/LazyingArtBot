@@ -71,10 +71,11 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lightmind pipeline exactly once via async launcher.
 1) Execute:
-\`/Users/lachlan/Local/Clawbot/orchestral/run_lightmind_pipeline_async.sh --model "$MODEL" --reasoning "$REASONING"\`
+\`/Users/lachlan/Local/Clawbot/orchestral/run_lightmind_pipeline_async.sh --model "$MODEL" --reasoning "$REASONING" --skip-resource-analysis\`
 2) The launcher returns quickly; pipeline logs are written under /tmp/lightmind_pipeline_runs.
-3) If execution fails, report stderr and stop.
-4) Do not run other commands.
+3) Resource analysis is already precomputed from previous weekly run and is not regenerated.
+4) If execution fails, report stderr and stop.
+5) Do not run other commands.
 EOF
 )"
 
