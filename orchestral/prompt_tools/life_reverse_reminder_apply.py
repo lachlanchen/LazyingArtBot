@@ -271,6 +271,19 @@ def parse_slot(name: str) -> tuple[str, str]:
     return "", raw
 
 
+def extract_duplication_key(body: str) -> str:
+    raw = (body or "").strip()
+    if not raw:
+        return ""
+    markers = ("[DUP_KEY]", "[DUPLICATION_KEY]", "[DuplicationKey]")
+    for line in raw.splitlines():
+        clean = line.strip()
+        for marker in markers:
+            if clean.startswith(marker):
+                return clean.replace(marker, "", 1).strip(" :")
+    return ""
+
+
 def normalize_plan(plan: dict[str, Any], now: datetime) -> list[dict[str, Any]]:
     by_slot: dict[str, dict[str, Any]] = {}
     for item in plan.get("reminders") or []:
@@ -424,6 +437,7 @@ def main() -> int:
         if slot not in open_by_slot:
             continue
         item["bare_title"] = bare
+        item["duplication_key"] = extract_duplication_key(item.get("body", ""))
         if item.get("completed") == "1":
             done_by_slot[slot].append(item)
         else:
@@ -441,10 +455,12 @@ def main() -> int:
         planned_title = item["title"]
         reminder_title = f"[LA-LIFE][{slot}] {planned_title}"
         due_iso = item["due_iso"]
+        desired_key = item["duplication_key"]
         notes = (
             f"[LA-LIFE slot] {slot}\n"
             f"[Generated] {now.isoformat(timespec='seconds')}\n"
             f"[Rationale] {item['rationale']}\n\n"
+            f"[DuplicationKey] {desired_key}\n\n"
             f"{item['notes_markdown']}"
         )
         sig = fingerprint(slot, planned_title, due_iso, item["notes_markdown"], item["reminder_minutes"])
@@ -452,6 +468,9 @@ def main() -> int:
         open_items = open_by_slot.get(slot, [])
         same_open = None
         for ex in open_items:
+            if desired_key and ex.get("duplication_key") and ex.get("duplication_key") == desired_key:
+                same_open = ex
+                break
             if ex.get("bare_title", "").strip() == planned_title.strip() and due_close(ex.get("due_iso", ""), due_iso, tz):
                 same_open = ex
                 break
@@ -472,6 +491,12 @@ def main() -> int:
         # If same reminder already open, keep it.
         if same_open is not None:
             kept_count += 1
+            for ex in open_items:
+                if ex.get("id") == same_open.get("id"):
+                    continue
+                outcome = complete_reminder(args.list_name, ex.get("id", ""))
+                if outcome in {"completed", "ok"}:
+                    completed_old_count += 1
             result["action"] = "keep"
             result["status"] = "ok"
             result["existing_id"] = same_open.get("id", "")

@@ -53,6 +53,13 @@ For each reminder:
 - If context contains an old reminder state, refresh each slot by matching `duplication_key`.
 - If intent does not change, keep the existing body and update only freshness/notes when needed.
 
+## Deduplication and event hygiene
+
+- Emit one reminder per slot only; if the same intent stays for a slot, keep the same `duplication_key`.
+- Prefer deterministic `duplication_key` values so reminder identity is stable across runs and slight wording changes.
+- Set `duplication_key` to distinguish a new intent vs unchanged intent; changed intent should produce a new key so old slot reminders are replaced intentionally.
+- Avoid creating reminder plans that would result in duplicate titles/dates in the same slot without intent change.
+
 ## Output contract
 
 Return JSON only, matching the provided schema exactly.
