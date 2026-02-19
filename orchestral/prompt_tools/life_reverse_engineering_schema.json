@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "strategy_markdown", "reminders"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "strategy_markdown": {
+      "type": "string",
+      "minLength": 10
+    },
+    "reminders": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot",
+          "title",
+          "due_iso",
+          "reminder_minutes",
+          "priority",
+          "milestone_scope",
+          "duplication_key",
+          "notes_markdown",
+          "rationale"
+        ],
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "day_plan_8am",
+              "tomorrow_plan_8pm",
+              "week_plan",
+              "tonight_milestone",
+              "month_milestone",
+              "season_milestone",
+              "half_year_milestone",
+              "one_year_milestone"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "due_iso": {
+            "type": "string",
+            "minLength": 10
+          },
+          "reminder_minutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "milestone_scope": {
+            "type": "string",
+            "enum": ["day", "tomorrow", "week", "tonight", "month", "season", "half_year", "year"]
+          },
+          "duplication_key": {
+            "type": "string",
+            "minLength": 5
+          },
+          "notes_markdown": {
+            "type": "string",
+            "minLength": 5
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      }
+    }
+  }
+}

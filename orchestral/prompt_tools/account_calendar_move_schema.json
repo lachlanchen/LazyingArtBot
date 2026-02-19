@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execute_apply",
+    "decision_reason",
+    "dry_run_command",
+    "apply_command",
+    "post_check_command",
+    "notes"
+  ],
+  "properties": {
+    "execute_apply": {
+      "type": "boolean"
+    },
+    "decision_reason": {
+      "type": "string"
+    },
+    "dry_run_command": {
+      "type": "string"
+    },
+    "apply_command": {
+      "type": "string"
+    },
+    "post_check_command": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

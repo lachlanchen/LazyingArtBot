@@ -20,7 +20,7 @@
             "items": { "type": "string" }
           }
         },
-        "required": ["target_note", "html_body"],
+        "required": ["target_note", "folder", "html_body", "tags"],
         "additionalProperties": false
       }
     },
@@ -35,7 +35,7 @@
           "calendar": { "type": "string" },
           "notes": { "type": "string" }
         },
-        "required": ["title", "start_iso", "end_iso"],
+        "required": ["title", "start_iso", "end_iso", "calendar", "notes"],
         "additionalProperties": false
       }
     },
@@ -49,7 +49,7 @@
           "notes": { "type": "string" },
           "list": { "type": "string" }
         },
-        "required": ["title"],
+        "required": ["title", "due_iso", "notes", "list"],
         "additionalProperties": false
       }
     },
@@ -61,7 +61,7 @@
           "channel": { "type": "string" },
           "content_html": { "type": "string" }
         },
-        "required": ["content_html"],
+        "required": ["channel", "content_html"],
         "additionalProperties": false
       }
     },
@@ -74,11 +74,11 @@
           "description": { "type": "string" },
           "owner": { "type": "string" }
         },
-        "required": ["type", "description"],
+        "required": ["type", "description", "owner"],
         "additionalProperties": false
       }
     }
   },
-  "required": ["summary"],
+  "required": ["summary", "notes"],
   "additionalProperties": false
 }

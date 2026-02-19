@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "source_event_count",
+    "target_match_count",
+    "summary",
+    "recommended_commands"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "attention_needed"]
+    },
+    "source_event_count": {
+      "type": "integer"
+    },
+    "target_match_count": {
+      "type": "integer"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "recommended_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

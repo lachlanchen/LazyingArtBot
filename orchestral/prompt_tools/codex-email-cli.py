@@ -6,6 +6,7 @@ Draft and optionally send an email via Apple Mail using Codex non-interactive ou
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import subprocess
@@ -20,6 +21,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PROMPT_TOOLS = SCRIPT_DIR
 DEFAULT_MODEL = "gpt-5.1-codex-mini"
 DEFAULT_REASONING = "medium"
+BLOCKED_TEST_RECIPIENTS = {"lachlan.mia.chan@gmail.com"}
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -179,6 +181,101 @@ def normalize_action(
     }
 
 
+def validate_recipients_for_send(action: dict[str, Any]) -> None:
+    blocked = sorted(
+        (set(action["to"]) | set(action["cc"]) | set(action["bcc"])) & BLOCKED_TEST_RECIPIENTS
+    )
+    if blocked:
+        raise RuntimeError(
+            "Blocked recipient for test sends: "
+            + ", ".join(blocked)
+            + ". Use lachchen@qq.com for test runs."
+        )
+
+
+def build_html_document(body: str) -> str:
+    body_text = body.strip()
+    if not body_text:
+        return "<html><body><p>(empty)</p></body></html>"
+
+    if re.search(r"<(html|body|div|p|table|ul|ol|li|h[1-6]|br)\b", body_text, re.IGNORECASE):
+        if re.search(r"<html\b", body_text, re.IGNORECASE):
+            return body_text
+        return f"<html><body>{body_text}</body></html>"
+
+    paragraphs = [p for p in re.split(r"(?:\r?\n){2,}", body_text) if p.strip()]
+    if not paragraphs:
+        paragraphs = [body_text]
+
+    rendered: list[str] = []
+    for para in paragraphs:
+        escaped = html.escape(para.strip()).replace("\n", "<br/>")
+        rendered.append(f"<p>{escaped}</p>")
+
+    return (
+        "<html><head><meta charset=\"utf-8\"/></head><body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;"
+        "line-height:1.45;color:#111;\">"
+        + "".join(rendered)
+        + "</body></html>"
+    )
+
+
+def ensure_utf8_meta(html_text: str) -> str:
+    if re.search(r"<meta[^>]+charset\\s*=", html_text, re.IGNORECASE):
+        return html_text
+
+    if re.search(r"<head\\b[^>]*>", html_text, re.IGNORECASE):
+        return re.sub(
+            r"(?i)(<head\\b[^>]*>)",
+            r'\1<meta charset="utf-8"/>',
+            html_text,
+            count=1,
+        )
+
+    if re.search(r"<html\\b[^>]*>", html_text, re.IGNORECASE):
+        return re.sub(
+            r"(?i)(<html\\b[^>]*>)",
+            r'\1<head><meta charset="utf-8"/></head>',
+            html_text,
+            count=1,
+        )
+
+    return f'<html><head><meta charset="utf-8"/></head><body>{html_text}</body></html>'
+
+
+def convert_html_to_rtf(html_text: str) -> Path:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".html", encoding="utf-8", delete=False) as html_file:
+        html_file.write(html_text)
+        html_path = Path(html_file.name)
+
+    with tempfile.NamedTemporaryFile(suffix=".rtf", delete=False) as rtf_file:
+        rtf_path = Path(rtf_file.name)
+
+    proc = subprocess.run(
+        [
+            "textutil",
+            "-convert",
+            "rtf",
+            "-format",
+            "html",
+            "-inputencoding",
+            "UTF-8",
+            str(html_path),
+            "-output",
+            str(rtf_path),
+        ],
+        text=True,
+        capture_output=True,
+    )
+    html_path.unlink(missing_ok=True)
+    if proc.returncode != 0:
+        rtf_path.unlink(missing_ok=True)
+        err = (proc.stderr or proc.stdout or "textutil conversion failed").strip()
+        raise RuntimeError(err)
+
+    return rtf_path
+
+
 def send_via_mail(action: dict[str, Any], from_address: str | None = None) -> str:
     to_text = "\n".join(action["to"])
     cc_text = "\n".join(action["cc"])
@@ -190,7 +287,18 @@ def send_via_mail(action: dict[str, Any], from_address: str | None = None) -> st
         subject_path = subj_file.name
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as body_file:
         body_file.write(action["body"])
-        body_path = body_file.name
+        plain_body_path = body_file.name
+    body_path = plain_body_path
+
+    body_mode = "text"
+    rich_body_path: str | None = None
+    try:
+        html_doc = ensure_utf8_meta(build_html_document(action["body"]))
+        rich_body_path = str(convert_html_to_rtf(html_doc))
+        body_mode = "rtf"
+        body_path = rich_body_path
+    except Exception:
+        body_mode = "text"
 
     applescript = r'''
 on trimText(t)
@@ -258,11 +366,16 @@ on run argv
 	set fromRaw to item 4 of argv
 	set subjectPath to item 5 of argv
 	set bodyPath to item 6 of argv
+	set bodyMode to item 7 of argv
 	set subjectText to read (POSIX file subjectPath) as «class utf8»
-	set bodyText to read (POSIX file bodyPath) as «class utf8»
+	if bodyMode is "rtf" then
+		set bodyContent to read (POSIX file bodyPath) as «class RTF »
+	else
+		set bodyContent to read (POSIX file bodyPath) as «class utf8»
+	end if
 
 	tell application "Mail"
-		set msg to make new outgoing message with properties {subject:subjectText, content:bodyText & return & return, visible:false}
+		set msg to make new outgoing message with properties {subject:subjectText, content:bodyContent, visible:false}
 		if fromRaw is not "" then
 			set sender of msg to fromRaw
 			set matchedAccount to my findAccountByAddress(fromRaw)
@@ -283,14 +396,17 @@ end run
 '''
 
     proc = subprocess.run(
-        ["osascript", "-", to_text, cc_text, bcc_text, from_text, subject_path, body_path],
+        ["osascript", "-", to_text, cc_text, bcc_text, from_text, subject_path, body_path, body_mode],
         input=applescript,
         text=True,
         capture_output=True,
     )
 
     Path(subject_path).unlink(missing_ok=True)
+    Path(plain_body_path).unlink(missing_ok=True)
     Path(body_path).unlink(missing_ok=True)
+    if rich_body_path:
+        Path(rich_body_path).unlink(missing_ok=True)
 
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "osascript failed").strip()
@@ -384,6 +500,7 @@ def main() -> int:
         print("Dry run complete. Re-run with --send to send via Apple Mail.")
         return 0
 
+    validate_recipients_for_send(action)
     result = send_via_mail(action, from_address=from_hint)
     print(f"Mail result: {result}")
     return 0

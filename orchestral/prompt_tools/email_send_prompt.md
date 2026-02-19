@@ -10,7 +10,8 @@ Output rules:
 
 - Return JSON only.
 - Follow the schema exactly.
-- Use plain text for `body` (no Markdown fences).
+- Use HTML for `body` (full `<html>...</html>` or a clean fragment with semantic tags).
+- Keep HTML email-safe: inline styles only, simple tables/lists/headings, no scripts, no external assets.
 - Keep `subject` short and specific.
 - Use `send=false` if critical details are missing.
 

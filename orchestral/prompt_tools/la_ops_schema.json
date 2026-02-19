@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "notes"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_note", "folder", "html_body", "tags"],
+        "properties": {
+          "target_note": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "html_body": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

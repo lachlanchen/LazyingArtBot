@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "summary", "remaining_items", "risks", "recommended_commands"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "attention_needed"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "remaining_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
