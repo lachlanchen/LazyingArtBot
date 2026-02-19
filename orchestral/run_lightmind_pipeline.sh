@@ -20,10 +20,12 @@ SEND_EMAIL=1
 FROM_ADDR="$DEFAULT_FROM"
 TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachlan@lightmind.art")
 CUSTOM_TO=0
+RUN_LEGAL_DEPT=0
 RUN_LIFE_REMINDER=1
 LIFE_INPUT_MD="$LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md"
 LIFE_STATE_JSON="$NOTES_ROOT/lightmind_life_reminder_state.json"
 LIFE_STATE_MD="$LIGHTMIND_OUTPUT_ROOT/LightMindLifeReminderState.md"
+LEGAL_INPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/Legal"
 MARKET_CONTEXT_FILE=""
 RUN_RESOURCE_ANALYSIS=1
 RESOURCE_OUTPUT_DIR="$LIGHTMIND_OUTPUT_ROOT/ResourceAnalysis"
@@ -61,6 +63,7 @@ Usage: run_lightmind_pipeline.sh [options]
 
 Runs the Lightmind chain:
   confidential+web context -> market research -> optional high-impact academic research ->
+  optional legal compliance review ->
   funding -> monetization strategy -> milestone plan draft ->
   entrepreneurship mentor -> save notes under AutoLife ->
   compose/send HTML email
@@ -72,6 +75,8 @@ Options:
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>       Reasoning level (default: xhigh)
+  --legal-dept              Enable legal/compliance stage (default: off)
+  --no-legal-dept           Disable legal/compliance stage
   --market-context <path>   Optional extra context file for market step
   --confidential-root <p>   Lightmind confidential root path override
   --resource-root <path>    Add resource root (repeatable; default: Lightmind resources)
@@ -170,6 +175,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-academic-research)
       ACADEMIC_RESEARCH=0
+      ;;
+    --legal-dept)
+      RUN_LEGAL_DEPT=1
+      ;;
+    --no-legal-dept)
+      RUN_LEGAL_DEPT=0
       ;;
     --academic-max-results)
       shift
@@ -811,6 +822,9 @@ fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
@@ -823,6 +837,7 @@ fi
 
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
+LEGAL_RESULT="$ARTIFACT_DIR/legal.result.json"
 FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
 MONEY_REVENUE_RESULT="$ARTIFACT_DIR/money_revenue.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
@@ -831,6 +846,7 @@ MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 MARKET_HTML="$ARTIFACT_DIR/market.html"
 ACADEMIC_CONTEXT="$ARTIFACT_DIR/academic_context.txt"
 ACADEMIC_HTML="$ARTIFACT_DIR/academic.html"
+LEGAL_HTML="$ARTIFACT_DIR/legal.html"
 FUNDING_HTML="$ARTIFACT_DIR/funding.html"
 MONEY_REVENUE_HTML="$ARTIFACT_DIR/money_revenue.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
@@ -838,6 +854,7 @@ MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 
 MARKET_SUMMARY="$ARTIFACT_DIR/market.summary.txt"
 ACADEMIC_SUMMARY="$ARTIFACT_DIR/academic.summary.txt"
+LEGAL_SUMMARY="$ARTIFACT_DIR/legal.summary.txt"
 FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
 MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
@@ -853,30 +870,62 @@ CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   ACADEMIC_STEP=$((BASE_STEP + 3))
-  FUNDING_STEP=$((BASE_STEP + 4))
-  MONEY_STEP=$((BASE_STEP + 5))
-  PLAN_STEP=$((BASE_STEP + 6))
-  MENTOR_STEP=$((BASE_STEP + 7))
-  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-    LIFE_STEP=$((BASE_STEP + 8))
-    LOG_STEP=$((BASE_STEP + 9))
-    EMAIL_STEP=$((BASE_STEP + 10))
+  if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+    LEGAL_STEP=$((BASE_STEP + 4))
+    FUNDING_STEP=$((BASE_STEP + 5))
+    MONEY_STEP=$((BASE_STEP + 6))
+    PLAN_STEP=$((BASE_STEP + 7))
+    MENTOR_STEP=$((BASE_STEP + 8))
+    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+      LIFE_STEP=$((BASE_STEP + 9))
+      LOG_STEP=$((BASE_STEP + 10))
+      EMAIL_STEP=$((BASE_STEP + 11))
+    else
+      LOG_STEP=$((BASE_STEP + 9))
+      EMAIL_STEP=$((BASE_STEP + 10))
+    fi
   else
-    LOG_STEP=$((BASE_STEP + 8))
-    EMAIL_STEP=$((BASE_STEP + 9))
+    FUNDING_STEP=$((BASE_STEP + 4))
+    MONEY_STEP=$((BASE_STEP + 5))
+    PLAN_STEP=$((BASE_STEP + 6))
+    MENTOR_STEP=$((BASE_STEP + 7))
+    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+      LIFE_STEP=$((BASE_STEP + 8))
+      LOG_STEP=$((BASE_STEP + 9))
+      EMAIL_STEP=$((BASE_STEP + 10))
+    else
+      LOG_STEP=$((BASE_STEP + 8))
+      EMAIL_STEP=$((BASE_STEP + 9))
+    fi
   fi
 else
-  FUNDING_STEP=$((BASE_STEP + 3))
-  MONEY_STEP=$((BASE_STEP + 4))
-  PLAN_STEP=$((BASE_STEP + 5))
-  MENTOR_STEP=$((BASE_STEP + 6))
-  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-    LIFE_STEP=$((BASE_STEP + 7))
-    LOG_STEP=$((BASE_STEP + 8))
-    EMAIL_STEP=$((BASE_STEP + 9))
+  if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+    LEGAL_STEP=$((BASE_STEP + 3))
+    FUNDING_STEP=$((BASE_STEP + 4))
+    MONEY_STEP=$((BASE_STEP + 5))
+    PLAN_STEP=$((BASE_STEP + 6))
+    MENTOR_STEP=$((BASE_STEP + 7))
+    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+      LIFE_STEP=$((BASE_STEP + 8))
+      LOG_STEP=$((BASE_STEP + 9))
+      EMAIL_STEP=$((BASE_STEP + 10))
+    else
+      LOG_STEP=$((BASE_STEP + 8))
+      EMAIL_STEP=$((BASE_STEP + 9))
+    fi
   else
-    LOG_STEP=$((BASE_STEP + 7))
-    EMAIL_STEP=$((BASE_STEP + 8))
+    FUNDING_STEP=$((BASE_STEP + 3))
+    MONEY_STEP=$((BASE_STEP + 4))
+    PLAN_STEP=$((BASE_STEP + 5))
+    MENTOR_STEP=$((BASE_STEP + 6))
+    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+      LIFE_STEP=$((BASE_STEP + 7))
+      LOG_STEP=$((BASE_STEP + 8))
+      EMAIL_STEP=$((BASE_STEP + 9))
+    else
+      LOG_STEP=$((BASE_STEP + 7))
+      EMAIL_STEP=$((BASE_STEP + 8))
+    fi
   fi
 fi
 
@@ -961,6 +1010,38 @@ else
 fi
 
 merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY"
+
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  log "Step $LEGAL_STEP/$TOTAL_STEPS: legal compliance and tax review (HK + Mainland)"
+  "$PROMPT_DIR/prompt_legal_dept.sh" \
+    --company-focus "Lightmind" \
+    --legal-root "$LEGAL_INPUT_ROOT" \
+    --context-file "$CONTEXT_FILE" \
+    --market-summary-file "$PLAN_INPUT_SUMMARY" \
+    --resource-summary-file "$RESOURCE_APPEND_PATH" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    --label "lm-legal" \
+    > "$LEGAL_RESULT"
+
+  extract_note_html "$LEGAL_RESULT" "$LEGAL_HTML"
+  extract_summary "$LEGAL_RESULT" "$LEGAL_SUMMARY"
+  cp "$LEGAL_RESULT" "$NOTES_ROOT/last_legal_result.json"
+  cp "$LEGAL_HTML" "$NOTES_ROOT/last_legal.html"
+
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/👓 Lightmind.art" \
+    --note "⚖️ Lightmind 法务与税务合规 / 法務與稅務コンプライアンス" \
+    --mode append \
+    --html-file "$LEGAL_HTML"
+else
+  printf '%s\n' "Legal compliance stage disabled for this run." > "$LEGAL_SUMMARY"
+  printf '%s\n' "<p>Legal compliance stage skipped for this run.</p>" > "$LEGAL_HTML"
+fi
 
 log "Step $FUNDING_STEP/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
@@ -1125,7 +1206,7 @@ else
 fi
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -1134,12 +1215,13 @@ from pathlib import Path
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
 funding = Path(sys.argv[2]).read_text(encoding="utf-8")
 money = Path(sys.argv[3]).read_text(encoding="utf-8")
-plan = Path(sys.argv[4]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[5]).read_text(encoding="utf-8")
-academic = Path(sys.argv[6]).read_text(encoding="utf-8")
-plan_input = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[9])
+legal = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[6]).read_text(encoding="utf-8")
+academic = Path(sys.argv[7]).read_text(encoding="utf-8")
+plan_input = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[10])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -1151,6 +1233,8 @@ digest = (
     f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}"
     "<hr/>"
     f"<h2>💰 Monetization & Revenue Strategy / 盈利增长策略 / 收益戦略</h2>{money}"
+    "<hr/>"
+    f"<h2>⚖️ Legal / Compliance / Tax / 法务合规税务</h2>{legal}"
     "<hr/>"
     f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}"
     "<hr/>"
@@ -1167,7 +1251,7 @@ PY
 
 log "Step $LOG_STEP/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$LEGAL_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
@@ -1176,11 +1260,12 @@ run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
 funding = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
 money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-academic = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[9])
+legal = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+academic = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[10])
 
 content = (
     f"<h3>📌 Lightmind Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
@@ -1188,6 +1273,7 @@ content = (
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
     f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
+    f"<li><strong>⚖️ Legal / Compliance</strong>: {html.escape(legal)}</li>"
     f"<li><strong>💡 Plan</strong>: {html.escape(plan)}</li>"
     f"<li><strong>🧭 Mentor</strong>: {html.escape(mentor)}</li>"
     f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"
@@ -1214,7 +1300,7 @@ Requirements:
 - Use the provided digest HTML as the core content.
 - Keep sections structured and readable in Apple Mail.
 - Use Chinese-first copy with concise English/Japanese labels where useful.
-- Subject must include: [AutoLife] Lightmind 08:00/20:00 Update
+ - Subject should include: [AutoLife] Lightmind Daily Intelligence Update
 - Do not invent facts outside the provided digest.
 - Keep company scope strict to Lightmind only.
 

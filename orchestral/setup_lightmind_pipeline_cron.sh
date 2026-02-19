@@ -5,8 +5,8 @@ REPO_DIR="/Users/lachlan/Local/Clawbot"
 cd "$REPO_DIR"
 
 TZ_NAME="Asia/Hong_Kong"
-JOB_NAME_AM="Lightmind Pipeline 08:00 HK"
-JOB_NAME_PM="Lightmind Pipeline 20:00 HK"
+JOB_NAME_AM="Lightmind Pipeline 06:00 HK"
+JOB_NAME_PM="Lightmind Pipeline 18:00 HK"
 MODEL="gpt-5.3-codex-spark"
 REASONING="xhigh"
 RUN_LIFE_REMINDER=1
@@ -18,7 +18,7 @@ usage() {
   cat <<'USAGE'
 Usage: setup_lightmind_pipeline_cron.sh [options]
 
-Creates/refreshes OpenClaw cron jobs (08:00 + 20:00 Asia/Hong_Kong) that trigger
+Creates/refreshes OpenClaw cron jobs (06:00 + 18:00 Asia/Hong_Kong) that trigger
 the Lightmind pipeline script through agent exec.
 
 Options:
@@ -81,14 +81,14 @@ fi
 
 list_json="$(pnpm openclaw cron list --json | sed -n '/^{/,$p')"
 existing_ids="$(
-  python3 - "$list_json" "$JOB_NAME_AM" "$JOB_NAME_PM" <<'PY'
+  python3 - "$list_json" <<'PY'
 import json
 import sys
 
 data = json.loads(sys.argv[1])
-names = {sys.argv[2], sys.argv[3]}
 for job in data.get("jobs", []):
-  if job.get("name") in names and job.get("id"):
+  name = job.get("name", "")
+  if name.startswith("Lightmind Pipeline ") and job.get("id"):
     print(job["id"])
 PY
 )"
@@ -126,7 +126,7 @@ EOF
 
 pnpm openclaw cron add \
   --name "$JOB_NAME_AM" \
-  --cron "0 8 * * *" \
+  --cron "0 6 * * *" \
   --tz "$TZ_NAME" \
   --session isolated \
   --message "$MESSAGE_TEMPLATE" \
@@ -135,7 +135,7 @@ pnpm openclaw cron add \
 
 pnpm openclaw cron add \
   --name "$JOB_NAME_PM" \
-  --cron "0 20 * * *" \
+  --cron "0 18 * * *" \
   --tz "$TZ_NAME" \
   --session isolated \
   --message "$MESSAGE_TEMPLATE" \

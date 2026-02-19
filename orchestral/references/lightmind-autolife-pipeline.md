@@ -1,6 +1,6 @@
 # Lightmind AutoLife Pipeline (OpenClaw Scheduler)
 
-This pipeline runs at 08:00 and 20:00 (Asia/Hong_Kong) for Lightmind only.
+This pipeline runs at 06:00 and 18:00 (Asia/Hong_Kong) for Lightmind only.
 
 ## Scope separation
 
@@ -8,9 +8,11 @@ This pipeline runs at 08:00 and 20:00 (Asia/Hong_Kong) for Lightmind only.
 - Notes, milestones, and mentor outputs write under:
   - iCloud Notes
   - `AutoLife/🏢 Companies/👓 Lightmind.art`
-- Lightmind now includes a life reverse planning stage by default (driven by
+- Lightmind includes life reverse planning by default (driven by
   `prompt_life_reverse_engineering_tool.sh`) and writes stateful reminders under the
   Lightmind Life Reverse notes.
+- Legal review is optional (`--legal-dept`), and when enabled it runs after academic
+  research and before funding/monetization.
 - Language policy: Chinese-first output with mixed EN/JP labels.
 - Academic add-on stage is enabled by default and uses a high-impact paper set (Nature / Cell / Science / CVPR / SIGGRAPH / ICML + arXiv fallback).
 
@@ -30,6 +32,8 @@ Resource analysis inputs:
   - `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input`
 - Output context:
   - `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output`
+- Legal inputs:
+  - `/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/Legal`
 
 Results are exported as markdown under:
 
@@ -49,12 +53,13 @@ These markdowns are generated from:
 4. `prompt_la_market.sh` + `lm_academic_research_prompt.md` (high-impact academic context)
 5. `prompt_funding_vc.sh` (funding, VC, grant and partnership opportunities)
 6. `prompt_money_revenue.sh` (monetization and revenue strategy)
-7. `prompt_la_plan.sh` + `lm_plan_draft_prompt.md`
-8. `prompt_entrepreneurship_mentor.sh` + `lm_entrepreneurship_mentor_prompt.md`
-9. `prompt_la_note_save.sh` (write notes)
-10. `prompt_life_reverse_engineering_tool.sh` + `life state` files
-11. `prompt_la_note_save.sh` (append `🗓️ Lightmind Life Reverse Plan / 反向規劃`)
-12. `codex-email-cli.py` (send rendered HTML digest)
+7. `prompt_legal_dept.sh` + `legal_dept_prompt.md` (optional HK/Mainland legal-compliance stage, enabled with `--legal-dept`)
+8. `prompt_la_plan.sh` + `lm_plan_draft_prompt.md`
+9. `prompt_entrepreneurship_mentor.sh` + `lm_entrepreneurship_mentor_prompt.md`
+10. `prompt_la_note_save.sh` (write notes)
+11. `prompt_life_reverse_engineering_tool.sh` + `life state` files
+12. `prompt_la_note_save.sh` (append `🗓️ Lightmind Life Reverse Plan / 反向規劃`)
+13. `codex-email-cli.py` (send rendered HTML digest)
 
 Locking and scheduler behavior:
 
@@ -92,6 +97,7 @@ Default recipients:
 - `🧭 Lightmind Entrepreneurship Mentor / 創業メンター / 創業導航` (append)
 - `🗓️ Lightmind Life Reverse Plan / 反向規劃` (append)
 - `🪵 Lightmind Pipeline Log / ログ / 日誌` (append)
+- `⚖️ Lightmind 法务与税务合规 / 法務與稅務コンプライアンス` (append, only when `--legal-dept` is enabled)
 
 ## Commands
 

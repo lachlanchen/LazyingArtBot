@@ -37,6 +37,8 @@ Options:
   --list-name <name>           Reminders list name (default: LazyingArt)
   --model <name>               Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>          Reasoning level (default: high)
+  --safety <mode>              Safety mode (currently ignored; for compatibility only)
+  --approval <policy>          Approval policy (currently ignored; for compatibility only)
   --output-dir <path>          Codex artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>               Codex run label (default: la-life-reverse)
   --run-id <id>                External run id for state tracking
@@ -93,6 +95,12 @@ while [[ $# -gt 0 ]]; do
     --reasoning)
       shift
       REASONING="${1:-}"
+      ;;
+    --safety)
+      shift
+      ;;
+    --approval)
+      shift
       ;;
     --output-dir)
       shift
