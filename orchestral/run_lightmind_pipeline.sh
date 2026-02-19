@@ -248,15 +248,35 @@ Path(sys.argv[2]).write_text(summary.strip() + "\n", encoding="utf-8")
 PY
 }
 
+find_latest_resource_markdown_dir() {
+  local base_dir="$1"
+  python3 - "$base_dir" <<'PY'
+import sys
+from pathlib import Path
+
+base = Path(sys.argv[1]).expanduser()
+if not base.is_dir():
+  raise SystemExit(0)
+
+dirs = [p for p in base.iterdir() if p.is_dir()]
+if not dirs:
+  raise SystemExit(0)
+
+dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+print(dirs[0].as_posix())
+PY
+}
+
 append_resource_summary() {
   local result_json="$1"
   local output_file="$2"
-  if [[ ! -f "$result_json" ]]; then
-    echo "Resource analysis result unavailable." >> "$output_file"
+  if [[ -z "${result_json}" || ! -e "$result_json" ]]; then
+    echo "Resource analysis result unavailable." > "$output_file"
     return 0
   fi
 
-  python3 - "$result_json" "$output_file" <<'PY'
+  if [[ -f "$result_json" ]]; then
+    python3 - "$result_json" "$output_file" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -281,6 +301,61 @@ for rec in data.get("resource_recommendations", [])[:12]:
     lines.append(f"- {rec}")
 out.write_text("\n".join(lines), encoding="utf-8")
 PY
+    return 0
+  fi
+
+  if [[ -d "$result_json" ]]; then
+    python3 - "$result_json" "$output_file" <<'PY'
+from pathlib import Path
+import sys
+
+md_root = Path(sys.argv[1])
+out = Path(sys.argv[2])
+
+md_files = sorted(md_root.glob("*.md"))
+if not md_files:
+  out.write_text("Resource analysis result unavailable.\n", encoding="utf-8")
+  raise SystemExit(0)
+
+def _pick(patterns):
+  for pattern in patterns:
+    matches = sorted(md_root.glob(pattern))
+    if matches:
+      return matches[0]
+  return None
+
+summary_file = _pick(["*summary*.md", "*Summary*.md"])
+if summary_file is None:
+  summary_file = md_files[0]
+
+lines = [
+  "Resource analysis summary:",
+  f"Loaded from markdown folder: {md_root}",
+]
+try:
+  summary_text = summary_file.read_text(encoding="utf-8").strip()
+except Exception:
+  summary_text = ""
+if summary_text:
+  lines.append(summary_text)
+
+recommendation_file = _pick(["*recommendations*.md", "*Recommendation*.md"])
+if recommendation_file is not None:
+  lines.append("")
+  lines.append("Resource recommendations:")
+  try:
+    for row in recommendation_file.read_text(encoding="utf-8").splitlines():
+      if row.strip():
+        lines.append(f"- {row.strip()}")
+  except Exception:
+    pass
+
+out.write_text("\\n".join(lines).strip() + "\\n", encoding="utf-8")
+PY
+    return 0
+  fi
+
+  echo "Resource analysis result unavailable." > "$output_file"
 }
 
 build_confidential_summary() {
@@ -609,6 +684,7 @@ build_website_snapshot "https://lightmind.art" "$WEBSITE_SNAPSHOT"
 RESOURCE_ANALYSIS_RUN_DIR="$ARTIFACT_DIR/resource_analysis"
 RESOURCE_ANALYSIS_RESULT=""
 RESOURCE_ANALYSIS_MARKDOWN_DIR="$RESOURCE_OUTPUT_DIR/$RUN_ID"
+HAS_RESOURCE_CACHE=0
 if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
   mkdir -p "$RESOURCE_ANALYSIS_RUN_DIR" "$RESOURCE_OUTPUT_DIR" "$RESOURCE_ANALYSIS_MARKDOWN_DIR"
   RESOURCE_ANALYSIS_ARGS=()
@@ -640,20 +716,36 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
   if [[ -n "$latest_ra" ]]; then
     RESOURCE_ANALYSIS_RESULT="$latest_ra/latest-result.json"
   fi
+  HAS_RESOURCE_CACHE=1
 else
-  log "Step 0/7: resource analysis skipped."
+  RESOURCE_ANALYSIS_MARKDOWN_DIR="$(find_latest_resource_markdown_dir "$RESOURCE_OUTPUT_DIR" || true)"
+  if [[ -n "$RESOURCE_ANALYSIS_MARKDOWN_DIR" ]]; then
+    log "Step 0/8: use latest cached resource analysis markdown."
+    HAS_RESOURCE_CACHE=1
+  else
+    log "Step 0/7: resource analysis skipped."
+  fi
 fi
 
 CONTEXT_FILE="$ARTIFACT_DIR/market_context.txt"
 RESOURCE_APPEND_PATH="$ARTIFACT_DIR/resource_analysis.txt"
 : > "$RESOURCE_APPEND_PATH"
-append_resource_summary "$RESOURCE_ANALYSIS_RESULT" "$RESOURCE_APPEND_PATH"
+if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
+  append_resource_summary "$RESOURCE_ANALYSIS_RESULT" "$RESOURCE_APPEND_PATH"
+else
+  append_resource_summary "$RESOURCE_ANALYSIS_MARKDOWN_DIR" "$RESOURCE_APPEND_PATH"
+fi
 {
   echo "Run time: $(TZ=Asia/Hong_Kong date '+%Y-%m-%d %H:%M:%S %Z')"
   echo "Primary brand: Lightmind"
   echo "Must inspect https://lightmind.art and confidential context below."
   echo
   if [[ -n "$RESOURCE_ANALYSIS_RESULT" && -f "$RESOURCE_ANALYSIS_RESULT" ]]; then
+    cat "$RESOURCE_APPEND_PATH"
+    echo
+    echo "Resource analysis markdown outputs:"
+    find "$RESOURCE_ANALYSIS_MARKDOWN_DIR" -maxdepth 1 -type f -print
+  elif [[ -n "$RESOURCE_ANALYSIS_MARKDOWN_DIR" && -d "$RESOURCE_ANALYSIS_MARKDOWN_DIR" ]]; then
     cat "$RESOURCE_APPEND_PATH"
     echo
     echo "Resource analysis markdown outputs:"
@@ -695,7 +787,7 @@ CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
 
 TOTAL_STEPS=7
-if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
+if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   TOTAL_STEPS=8
 fi
 
