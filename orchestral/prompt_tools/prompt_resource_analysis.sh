@@ -286,7 +286,7 @@ print(json.dumps(result, ensure_ascii=False, indent=2))
 PY
 fi
 
-python3 - "$LATEST_RESULT" "$MARKDOWN_OUTPUT_DIR" "$RUN_ID" <<'PY'
+python3 - "$LATEST_RESULT" "$MARKDOWN_OUTPUT_DIR" "$RUN_ID" "$PAYLOAD_PATH" <<'PY'
 import json
 import re
 import sys
@@ -296,9 +296,16 @@ from pathlib import Path
 result_path = Path(sys.argv[1])
 md_dir = Path(sys.argv[2]).expanduser()
 run_id = sys.argv[3]
+payload_path = Path(sys.argv[4]).expanduser()
 
 result = json.loads(result_path.read_text(encoding="utf-8"))
 md_dir.mkdir(parents=True, exist_ok=True)
+payload = {}
+if payload_path.is_file():
+    try:
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
 
 
 def safe_name(name: str, fallback: str = "note") -> str:
@@ -356,6 +363,50 @@ if recommendations:
     "# Recommendations\n\n" + "\n".join(f"- {r}" for r in recommendations) + "\n",
     encoding="utf-8",
   )
+
+resource_roots = payload.get("resource_roots", [])
+if isinstance(resource_roots, list) and resource_roots:
+  for root in resource_roots:
+    label = root.get("label", "resource-root")
+    path = root.get("path", "")
+    status = root.get("status", "")
+    file_count = int(root.get("file_count", 0))
+    total_bytes = int(root.get("total_bytes", 0))
+    samples = root.get("sample_files", [])
+
+    files_lines = ["# Resource Root Inventory\n", f"- label: {label}\n", f"- path: `{path}`\n"]
+    files_lines.append(f"- status: {status}\n")
+    files_lines.append(f"- files: {file_count}\n")
+    files_lines.append(f"- total_bytes: {total_bytes}\n")
+    files_lines.append("")
+
+    if isinstance(samples, list) and samples:
+      files_lines.append("## Sample files\n")
+      files_lines.append("| Relative path | Size | Modified UTC | Type | Has snippet |")
+      files_lines.append("| --- | ---: | --- | --- | --- |")
+      for item in samples[:80]:
+        if not isinstance(item, dict):
+          continue
+        rel = item.get("path", "")
+        size = item.get("size", 0)
+        mtime = item.get("mtime", "")
+        mime = item.get("mime_type", "")
+        has_snippet = "yes" if item.get("snippet") else "no"
+        files_lines.append(f"| `{rel}` | {int(size)} | {mtime} | `{mime}` | {has_snippet} |")
+      files_lines.append("")
+
+      for item in samples:
+        snippet = item.get("snippet", "")
+        if snippet:
+          files_lines.append(f"### {item.get('path', 'file')}\n")
+          files_lines.append("```text")
+          files_lines.append(str(snippet).strip())
+          files_lines.append("```")
+
+    inventory_file = md_dir / f"{run_id}-{safe_name(label, 'resource-root')}"
+    if inventory_file.suffix.lower() != ".md":
+      inventory_file = Path(f"{inventory_file}.md")
+    inventory_file.write_text("\n".join(files_lines).strip() + "\n", encoding="utf-8")
 PY
 
 echo "[resource-analysis] company=$COMPANY run_id=$RUN_ID artifacts=$RUN_OUTPUT_DIR latest_result=$LATEST_RESULT"
