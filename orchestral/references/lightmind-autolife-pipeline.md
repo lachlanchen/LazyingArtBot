@@ -8,7 +8,9 @@ This pipeline runs at 08:00 and 20:00 (Asia/Hong_Kong) for Lightmind only.
 - Notes, milestones, and mentor outputs write under:
   - iCloud Notes
   - `AutoLife/🏢 Companies/👓 Lightmind.art`
-- No reminder-planning step is included in this pipeline.
+- Lightmind now includes a life reverse planning stage by default (driven by
+  `prompt_life_reverse_engineering_tool.sh`) and writes stateful reminders under the
+  Lightmind Life Reverse notes.
 - Language policy: Chinese-first output with mixed EN/JP labels.
 - Academic add-on stage is enabled by default and uses a high-impact paper set (Nature / Cell / Science / CVPR / SIGGRAPH / ICML + arXiv fallback).
 
@@ -50,7 +52,9 @@ These markdowns are generated from:
 7. `prompt_la_plan.sh` + `lm_plan_draft_prompt.md`
 8. `prompt_entrepreneurship_mentor.sh` + `lm_entrepreneurship_mentor_prompt.md`
 9. `prompt_la_note_save.sh` (write notes)
-10. `codex-email-cli.py` (send rendered HTML digest)
+10. `prompt_life_reverse_engineering_tool.sh` + `life state` files
+11. `prompt_la_note_save.sh` (append `🗓️ Lightmind Life Reverse Plan / 反向規劃`)
+12. `codex-email-cli.py` (send rendered HTML digest)
 
 Locking and scheduler behavior:
 
@@ -86,6 +90,7 @@ Default recipients:
 - `💰 盈利模式與增長策略 / 収益化戦略 / 收益战略` (append)
 - `💡 Lightmind Milestones / 里程碑 / マイルストーン` (replace)
 - `🧭 Lightmind Entrepreneurship Mentor / 創業メンター / 創業導航` (append)
+- `🗓️ Lightmind Life Reverse Plan / 反向規劃` (append)
 - `🪵 Lightmind Pipeline Log / ログ / 日誌` (append)
 
 ## Commands
