@@ -14,8 +14,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
+import subprocess
 import socket
+import tempfile
 import sys
 import time
 import urllib.parse
@@ -669,6 +673,265 @@ def _extract_text(node, selectors: List[str]) -> str:
     return ""
 
 
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\n{3,}", "\n\n", re.sub(r"[ \t]+", " ", (text or "").strip()))
+
+
+def _is_pdf_resource_url(url: str) -> bool:
+    if not isinstance(url, str):
+        return False
+    parsed = urllib.parse.urlparse(url)
+    path = (parsed.path or "").lower()
+    if re.search(r"\.pdf$", path):
+        return True
+    if re.search(r"\.pdf[/?#]", path):
+        return True
+    query_pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    for _, value in query_pairs:
+        value_text = (value or "").lower()
+        if value_text.endswith(".pdf") or value_text.startswith("http") and ".pdf" in value_text:
+            return True
+    if ".pdf" in (parsed.fragment or "").lower():
+        return True
+    return False
+
+
+def _is_pdf_page(driver: webdriver.Chrome) -> bool:
+    try:
+        if _is_pdf_resource_url(driver.current_url):
+            return True
+    except Exception:
+        pass
+
+    try:
+        content_type = str(driver.execute_script("return (document.contentType || '').toLowerCase();"))
+        if "application/pdf" in content_type or "pdf" in content_type:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _download_pdf_for_summary(
+    url: str,
+    timeout: float = 15.0,
+    max_bytes: int = 25_000_000,
+) -> Optional[Path]:
+    if not url:
+        return None
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/pdf,application/octet-stream,*/*",
+    }
+    request = urllib.request.Request(url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            content_type = (response.getheader("Content-Type") or "").lower()
+            if "text/html" in content_type and ".pdf" not in url.lower():
+                return None
+            raw_length = response.getheader("Content-Length")
+            if raw_length and raw_length.isdigit():
+                try:
+                    if int(raw_length) > max_bytes:
+                        return None
+                except ValueError:
+                    pass
+            fd, path = tempfile.mkstemp(suffix=".pdf", prefix="websearch-scholar-")
+            bytes_read = 0
+            too_large = False
+            try:
+                with os.fdopen(fd, "wb") as handle:
+                    while True:
+                        chunk = response.read(65536)
+                        if not chunk:
+                            break
+                        bytes_read += len(chunk)
+                        if bytes_read > max_bytes:
+                            too_large = True
+                            break
+                        handle.write(chunk)
+            except Exception:
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+                return None
+            if too_large:
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+                return None
+            return Path(path)
+    except Exception:
+        return None
+
+
+def _extract_pdf_text_bytes(pdf_path: Path) -> str:
+    try:
+        from pypdf import PdfReader as PdfReaderAlias  # type: ignore
+
+        try:
+            reader = PdfReaderAlias(str(pdf_path))
+        except TypeError:
+            with open(pdf_path, "rb") as handle:
+                reader = PdfReaderAlias(handle)
+        page_texts: List[str] = []
+        for page in list(reader.pages)[:20]:
+            try:
+                page_text = page.extract_text() or ""
+            except Exception:
+                page_text = ""
+            if page_text:
+                page_texts.append(_normalize_text(page_text))
+        if page_texts:
+            return " ".join(page_texts)
+    except Exception:
+        pass
+
+    try:
+        from PyPDF2 import PdfReader as PdfReaderLegacy  # type: ignore
+
+        page_texts = []
+        with open(pdf_path, "rb") as handle:
+            reader = PdfReaderLegacy(handle)
+            for page in reader.pages[:20]:
+                try:
+                    page_text = page.extract_text() or ""
+                except Exception:
+                    page_text = ""
+                if page_text:
+                    page_texts.append(_normalize_text(page_text))
+        if page_texts:
+            return " ".join(page_texts)
+    except Exception:
+        pass
+
+    pdftotext = shutil.which("pdftotext")
+    if pdftotext:
+        try:
+            result = subprocess.run(
+                [pdftotext, str(pdf_path), "-"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=20.0,
+                check=False,
+                text=True,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return _normalize_text(result.stdout)
+        except Exception:
+            pass
+
+    return ""
+
+
+def _extract_pdf_text_from_url(url: str, max_chars: int) -> str:
+    if not _is_pdf_resource_url(url):
+        return ""
+    pdf_path = _download_pdf_for_summary(url)
+    if not pdf_path:
+        return ""
+    try:
+        text = _extract_pdf_text_bytes(pdf_path)
+        return text[:max_chars].strip()
+    finally:
+        try:
+            os.unlink(pdf_path)
+        except Exception:
+            pass
+
+
+def _extract_pdf_viewer_text(
+    driver: webdriver.Chrome,
+    max_chars: int = 12000,
+) -> str:
+    try:
+        current_url = str(driver.current_url or "")
+    except Exception:
+        current_url = ""
+    if current_url:
+        downloaded_text = _extract_pdf_text_from_url(current_url, max_chars)
+        if downloaded_text:
+            return downloaded_text
+
+    script = """
+    function normalizeText(raw) {
+      return (raw || "").replace(/\\u200b/g, " ").replace(/\\s+/g, " ").trim();
+    }
+    function addChunk(chunks, seen, raw) {
+      const cleaned = normalizeText(raw);
+      if (!cleaned) {
+        return;
+      }
+      if (cleaned.length < 4) {
+        return;
+      }
+      const bucket = cleaned.toLowerCase();
+      if (seen.has(bucket)) {
+        return;
+      }
+      seen.add(bucket);
+      chunks.push(cleaned);
+    }
+    const chunks = [];
+    const seen = new Set();
+
+    const textSelectors = [
+      ".textLayer span",
+      ".textLayer",
+      "#viewer .textLayer",
+      "#viewerContainer .textLayer",
+      "#page-container .textLayer",
+      "#reader-container .textLayer",
+      "body",
+    ];
+    for (const selector of textSelectors) {
+      const nodes = Array.from(document.querySelectorAll(selector));
+      if (!nodes.length) {
+        continue;
+      }
+      for (const node of nodes) {
+        addChunk(chunks, seen, node.textContent);
+        addChunk(chunks, seen, node.innerText);
+      }
+    }
+
+    const embeds = Array.from(document.querySelectorAll("embed, object, iframe"));
+    for (const node of embeds) {
+      try {
+        const src = (node.getAttribute("src") || "").toLowerCase();
+        const title = (node.getAttribute("title") || "").toLowerCase();
+        const label = (node.getAttribute("aria-label") || "").toLowerCase();
+        if (src.includes(".pdf") || title.includes("pdf") || label.includes("pdf")) {
+          addChunk(chunks, seen, node.getAttribute("title"));
+          addChunk(chunks, seen, node.getAttribute("aria-label"));
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+
+    if (!chunks.length) {
+      addChunk(chunks, seen, document.title);
+      addChunk(chunks, seen, document.body ? document.body.textContent : "");
+    }
+    return chunks.join("\\n\\n");
+    """
+    try:
+        extracted = driver.execute_script(script) or ""
+    except Exception:
+        return ""
+
+    return _normalize_text(str(extracted))
+
+
 def dismiss_cookie_overlays(driver: webdriver.Chrome) -> None:
     def _norm(text: str) -> str:
         return re.sub(r"\s+", " ", (text or "").strip().lower())
@@ -996,6 +1259,11 @@ def collect_links(
 
 
 def extract_page_summary(driver: webdriver.Chrome, max_chars: int) -> str:
+    if _is_pdf_page(driver):
+        pdf_text = _extract_pdf_viewer_text(driver, max_chars=max_chars)
+        if pdf_text:
+            return pdf_text[:max_chars]
+
     selectors = ["article", "main", "body"]
     for selector in selectors:
         try:
@@ -1005,8 +1273,7 @@ def extract_page_summary(driver: webdriver.Chrome, max_chars: int) -> str:
         for node in nodes:
             text = (node.text or "").strip()
             if text:
-                normalized = re.sub(r"\n{3,}", "\n\n", text)
-                normalized = re.sub(r"[ \t]+", " ", normalized)
+                normalized = _normalize_text(text)
                 return normalized[:max_chars].strip()
     return ""
 

@@ -7,6 +7,7 @@ Purpose:
 - Return click targets (coordinates) for each ranked result so a second pass can use `--click-at x,y`.
 - Save and return both result-page and opened-page screenshots.
 - Optionally click a coordinate and summarize the opened page in the same browser session.
+- If an opened link is a PDF, the tool will attempt to retrieve the PDF directly with a short timeout (or parse browser-rendered text) so scholar PDFs can be summarized in notes, while still keeping screenshot evidence.
 - Support multi-page crawling by setting `--start-page` and `--end-page`.
 - Optional `--scroll-steps` + `--scroll-pause` is used when summarizing opened pages so long pages can be scanned in segments.
 

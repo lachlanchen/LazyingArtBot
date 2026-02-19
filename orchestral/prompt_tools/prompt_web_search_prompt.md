@@ -51,7 +51,7 @@ Output location:
 
 Quality constraints:
 
-- Never fetch binary downloads.
+- Prefer not to fetch arbitrary binaries. For PDF-based results, the tool may fetch the PDF directly with a short timeout so the content can be summarized, then still keep screenshot evidence for traceability.
 - Save one query block per output file.
 - Include raw query, run id, status code, query timestamp.
 - Confirm/close cookie and consent overlays automatically so the prompt can focus on extracted content.

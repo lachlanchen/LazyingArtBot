@@ -550,22 +550,22 @@ with summary_path.open("a", encoding="utf-8") as summary:
             row_summary = str(row.get("summary", "")).strip()
             if row_summary:
                 summary.write(f"    - page {page}: {row_summary[:280]}\n")
-if opened_display_count:
-    summary.write(f"  - opened result details: {opened_display_count}\n")
-    for item in opened_items[:opened_display_count]:
-            title = to_str(item.get("title", "")) or "(untitled)"
-            url = to_str(item.get("url", ""))
-            item_summary = to_str(item.get("summary", ""))
-            summary.write(f"    - {title} | {url}\n")
-            if item_summary:
-                summary.write(f"      - summary: {truncate(item_summary, 320)}\n")
+    if opened_display_count:
+      summary.write(f"  - opened result details: {opened_display_count}\n")
+      for item in opened_items[:opened_display_count]:
+        title = to_str(item.get("title", "")) or "(untitled)"
+        url = to_str(item.get("url", ""))
+        item_summary = to_str(item.get("summary", ""))
+        summary.write(f"    - {title} | {url}\n")
+        if item_summary:
+          summary.write(f"      - summary: {truncate(item_summary, 320)}\n")
     elif clicked:
-        title = to_str(clicked.get("title", "")) or "(untitled)"
-        url = to_str(clicked.get("url", ""))
-        clicked_summary = to_str(clicked.get("summary", ""))
-        summary.write(f"  - clicked: {title} | {url}\n")
-        if clicked_summary:
-            summary.write(f"    - summary: {truncate(clicked_summary, 320)}\n")
+      title = to_str(clicked.get("title", "")) or "(untitled)"
+      url = to_str(clicked.get("url", ""))
+      clicked_summary = to_str(clicked.get("summary", ""))
+      summary.write(f"  - clicked: {title} | {url}\n")
+      if clicked_summary:
+        summary.write(f"    - summary: {truncate(clicked_summary, 320)}\n")
 
 with html_path.open("a", encoding="utf-8") as html_out:
     html_out.write(
@@ -798,7 +798,7 @@ for item in values:
         if q:
             print(q)
 PY
-)}"
+  )}") 
 
   if [[ "${#academic_queries[@]}" -eq 0 ]]; then
     academic_queries=(
