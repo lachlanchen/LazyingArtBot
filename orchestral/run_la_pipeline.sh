@@ -10,13 +10,28 @@ ARTIFACT_BASE="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs"
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="high"
+REASONING="xhigh"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
 RUN_LIFE_REMINDER=1
 TO_ADDR="$DEFAULT_TO"
 FROM_ADDR="$DEFAULT_FROM"
+ACADEMIC_RESEARCH=1
+ACADEMIC_MAX_RESULTS=5
+ACADEMIC_QUERIES=(
+  "optical memory platform"
+  "wearable AI personal knowledge capture"
+  "privacy-preserving multimodal systems"
+  "optical computing"
+  "memory indexing and retrieval"
+)
+ACADEMIC_RSS_SOURCES=(
+  "Nature:https://www.nature.com/nature.rss"
+  "Science:https://www.science.org/action/showFeed?type=site&jc=science"
+  "Cell:https://www.cell.com/cell/rss"
+  "Nature Machine Intelligence:https://www.nature.com/natmachintell.rss"
+)
 MARKET_CONTEXT_FILE=""
 LIFEPATH_BASE="$HOME/Documents/LazyingArtBotIO/LazyingArt"
 LIFE_INPUT_MD="$LIFEPATH_BASE/Input/LazyingArtCompanyInput.md"
@@ -48,12 +63,15 @@ Options:
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
-  --reasoning <level>       Reasoning level (default: high)
+  --reasoning <level>       Reasoning level (default: xhigh)
   --market-context <path>   Optional extra context file for market step
   --resource-output-dir <p> Resource analysis markdown output directory
   --resource-label <name>   Resource analysis marker/label
   --resource-root <path>    Add resource root (repeatable; default LazyingArt roots)
   --skip-resource-analysis   Skip upfront resource analysis stage
+  --academic-query <text>    Add/override an academic query (repeatable)
+  --no-academic-research    Disable academic research stage
+  --academic-max-results <n> Max results per arXiv query (default: 5)
   --life-input-md <path>    Input markdown for life reminder planner
   --life-reminder           Run life reminder planner (default)
   --no-life-reminder        Disable life reminder planner
@@ -100,6 +118,17 @@ while [[ $# -gt 0 ]]; do
     --resource-root)
       shift
       RESOURCE_ROOTS+=("${1:-}")
+      ;;
+    --academic-query)
+      shift
+      ACADEMIC_QUERIES+=("${1:-}")
+      ;;
+    --no-academic-research)
+      ACADEMIC_RESEARCH=0
+      ;;
+    --academic-max-results)
+      shift
+      ACADEMIC_MAX_RESULTS="${1:-5}"
       ;;
     --skip-resource-analysis)
       RUN_RESOURCE_ANALYSIS=0
@@ -294,6 +323,139 @@ print(dirs[0].as_posix())
 PY
 }
 
+build_academic_context() {
+  local out_path="$1"
+  local queries_json="$2"
+  local max_results="$3"
+  shift 3
+
+  python3 - "$out_path" "$max_results" "$queries_json" "$@" <<'PY'
+import json
+import sys
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from html import unescape
+from pathlib import Path
+
+out = Path(sys.argv[1])
+max_results = int(sys.argv[2]) if sys.argv[2].strip() else 5
+queries = json.loads(sys.argv[3]) if len(sys.argv) > 3 else []
+high_impact_sources = [s for s in sys.argv[4:] if s.strip()]
+sections = [
+    f"[academic] mode=high_impact_research",
+    f"[academic] source_count={len(high_impact_sources)}",
+]
+
+entries = []
+
+
+def fetch_arxiv(query: str):
+    encoded = urllib.parse.quote_plus(query)
+    url = (
+        "https://export.arxiv.org/api/query"
+        f"?search_query=all:{encoded}&start=0&max_results={max_results}"
+        "&sortBy=submittedDate&sortOrder=descending"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "OpenClawLazyingArtPipeline/1.0"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+    ns = "{http://www.w3.org/2005/Atom}"
+    root = ET.fromstring(raw)
+    for entry in root.findall(f"{ns}entry"):
+        title = (entry.findtext(f"{ns}title") or "").replace("\n", " ").strip()
+        summary = (entry.findtext(f"{ns}summary") or "").replace("\n", " ").strip()
+        updated = (entry.findtext(f"{ns}updated") or "").strip()
+        link = (entry.findtext(f"{ns}id") or "").strip()
+        authors = []
+        for author in entry.findall(f"{ns}author"):
+            name = (author.findtext(f"{ns}name") or "").strip()
+            if name:
+                authors.append(name)
+        entries.append({
+            "query": query,
+            "title": title,
+            "summary": unescape(summary),
+            "updated": updated,
+            "link": link,
+            "authors": ", ".join(authors),
+        })
+
+
+for raw_query in queries:
+    query = raw_query.strip()
+    if not query:
+        continue
+    try:
+        fetch_arxiv(query)
+    except Exception as exc:  # noqa: BLE001
+        entries.append({"query": query, "error": f"{type(exc).__name__}: {exc}"})
+
+sections.extend([
+    "[academic] arXiv entries:",
+    f"- count={len(entries)}",
+    f"- query_count={len([q for q in queries if q.strip()])}",
+    f"- source_count={len(high_impact_sources)}",
+])
+
+for item in entries:
+    if "error" in item:
+        sections.append(f"- QUERY_ERROR {item['query']}: {item['error']}")
+        continue
+    line = "- {query} | {updated} | {title} | {authors} | {link}".format(**item)
+    sections.append(line)
+
+for source_name, source_url in [item.split(":", 1) for item in high_impact_sources if ":" in item]:
+    try:
+        req = urllib.request.Request(source_url.strip(), headers={"User-Agent": "OpenClawLazyingArtPipeline/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw = resp.read()
+        text = raw.decode("utf-8", errors="ignore")
+        sections.append(f"[academic] rss={source_name}: fetched {len(text)} bytes")
+    except Exception as exc:  # noqa: BLE001
+        sections.append(f"[academic] rss={source_name}: fetch_failed {type(exc).__name__}: {exc}")
+
+out.write_text("\\n".join([line for line in sections if line]) + "\\n", encoding="utf-8")
+PY
+}
+
+merge_market_and_academic_summaries() {
+  local market_path="$1"
+  local academic_path="$2"
+  local merged_path="$3"
+  if [[ -f "$market_path" ]] && [[ -f "$academic_path" ]]; then
+    python3 - "$market_path" "$academic_path" "$merged_path" <<'PY'
+from pathlib import Path
+import sys
+
+market_path = Path(sys.argv[1])
+academic_path = Path(sys.argv[2])
+output_path = Path(sys.argv[3])
+
+parts = []
+if market_path.exists():
+    m = market_path.read_text(encoding="utf-8").strip()
+    if m:
+        parts.append("[market]")
+        parts.append(m)
+if academic_path.exists():
+    a = academic_path.read_text(encoding="utf-8").strip()
+    if a:
+        parts.append("[academic]")
+        parts.append(a)
+if not parts:
+    parts.append("No market or academic summary available.")
+output_path.write_text("\\n\\n".join(parts) + "\\n", encoding="utf-8")
+PY
+  elif [[ -f "$market_path" ]]; then
+    cp "$market_path" "$merged_path"
+  elif [[ -f "$academic_path" ]]; then
+    cp "$academic_path" "$merged_path"
+  else
+    printf '%s\n' "No market or academic summary available." > "$merged_path"
+  fi
+}
+
 log "Pipeline start run_id=$RUN_ID model=$MODEL reasoning=$REASONING"
 
 RESOURCE_ANALYSIS_RUN_DIR="$ARTIFACT_DIR/resource_analysis"
@@ -382,22 +544,27 @@ fi
 } > "$CONTEXT_FILE"
 
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
+ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
 MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
 MONEY_REVENUE_RESULT="$ARTIFACT_DIR/money_revenue.result.json"
 
 MARKET_HTML="$ARTIFACT_DIR/market.html"
+ACADEMIC_CONTEXT="$ARTIFACT_DIR/academic_context.txt"
+ACADEMIC_HTML="$ARTIFACT_DIR/academic.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
 MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 FUNDING_HTML="$ARTIFACT_DIR/funding.html"
 MONEY_REVENUE_HTML="$ARTIFACT_DIR/money_revenue.html"
 
 MARKET_SUMMARY="$ARTIFACT_DIR/market.summary.txt"
+ACADEMIC_SUMMARY="$ARTIFACT_DIR/academic.summary.txt"
 PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
 FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
 MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
+PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
 LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
 LIFE_HTML="$ARTIFACT_DIR/life.html"
@@ -408,9 +575,14 @@ CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 
 TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
-  TOTAL_STEPS=9
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
-TOTAL_STEPS=$((TOTAL_STEPS + 1))
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
 
 BASE_STEP=0
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
@@ -420,17 +592,33 @@ fi
 
 READ_NOTE_STEP=$((BASE_STEP + 1))
 MARKET_STEP=$((BASE_STEP + 2))
-FUNDING_STEP=$((BASE_STEP + 3))
-MONEY_STEP=$((BASE_STEP + 4))
-PLAN_STEP=$((BASE_STEP + 5))
-MENTOR_STEP=$((BASE_STEP + 6))
-if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-  LIFE_STEP=$((BASE_STEP + 7))
-  LOG_STEP=$((BASE_STEP + 8))
-  EMAIL_STEP=$((BASE_STEP + 9))
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  ACADEMIC_STEP=$((BASE_STEP + 3))
+  FUNDING_STEP=$((BASE_STEP + 4))
+  MONEY_STEP=$((BASE_STEP + 5))
+  PLAN_STEP=$((BASE_STEP + 6))
+  MENTOR_STEP=$((BASE_STEP + 7))
+  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+    LIFE_STEP=$((BASE_STEP + 8))
+    LOG_STEP=$((BASE_STEP + 9))
+    EMAIL_STEP=$((BASE_STEP + 10))
+  else
+    LOG_STEP=$((BASE_STEP + 8))
+    EMAIL_STEP=$((BASE_STEP + 9))
+  fi
 else
-  LOG_STEP=$((BASE_STEP + 7))
-  EMAIL_STEP=$((BASE_STEP + 8))
+  FUNDING_STEP=$((BASE_STEP + 3))
+  MONEY_STEP=$((BASE_STEP + 4))
+  PLAN_STEP=$((BASE_STEP + 5))
+  MENTOR_STEP=$((BASE_STEP + 6))
+  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+    LIFE_STEP=$((BASE_STEP + 7))
+    LOG_STEP=$((BASE_STEP + 8))
+    EMAIL_STEP=$((BASE_STEP + 9))
+  else
+    LOG_STEP=$((BASE_STEP + 7))
+    EMAIL_STEP=$((BASE_STEP + 8))
+  fi
 fi
 
 log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoLife"
@@ -463,10 +651,58 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --mode append \
   --html-file "$MARKET_HTML"
 
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  log "Step ${ACADEMIC_STEP}/$TOTAL_STEPS: academic research (high-impact)"
+
+  ACADEMIC_QUERIES_JSON="$(python3 - <<'PY' "${ACADEMIC_QUERIES[@]}"
+import json
+import sys
+
+print(json.dumps([q for q in sys.argv[1:] if q.strip()], ensure_ascii=False))
+PY
+)"
+  build_academic_context "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
+
+  "$PROMPT_DIR/prompt_la_market.sh" \
+    --context-file "$ACADEMIC_CONTEXT" \
+    --company-focus "Lazying.art" \
+    --reference-source "https://arxiv.org" \
+    --reference-source "Nature" \
+    --reference-source "Science" \
+    --reference-source "Cell" \
+    --reference-source "Nature Machine Intelligence" \
+    --prompt-file "$PROMPT_DIR/la_academic_research_prompt.md" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    --label "la-academic" \
+    > "$ACADEMIC_RESULT"
+
+  extract_note_html "$ACADEMIC_RESULT" "$ACADEMIC_HTML"
+  extract_summary "$ACADEMIC_RESULT" "$ACADEMIC_SUMMARY"
+  cp "$ACADEMIC_RESULT" "$NOTES_ROOT/last_academic_result.json"
+  cp "$ACADEMIC_HTML" "$NOTES_ROOT/last_academic.html"
+
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/🐼 Lazying.art" \
+    --note "📚 Lazying.art Academic Research / 论文追踪 / 論文追蹤" \
+    --mode append \
+    --html-file "$ACADEMIC_HTML"
+else
+  printf '%s\n' "Academic research disabled for this run." > "$ACADEMIC_SUMMARY"
+  printf '%s\n' "<p>Academic research skipped.</p>" > "$ACADEMIC_HTML"
+  printf '%s\n' "{}" > "$ACADEMIC_RESULT"
+fi
+
+merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY"
+
 log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
-  --market-summary-file "$MARKET_SUMMARY" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --company-focus "Lazying.art" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
@@ -495,9 +731,10 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
 log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
 "$PROMPT_DIR/prompt_money_revenue.sh" \
   --context-file "$CONTEXT_FILE" \
-  --market-summary-file "$MARKET_SUMMARY" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
+  --academic-summary-file "$ACADEMIC_SUMMARY" \
   --company-focus "Lazying.art" \
   --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
   --reference-source "https://lazying.art" \
@@ -525,7 +762,8 @@ cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
 log "Step ${PLAN_STEP}/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
   --note-html "$CURRENT_MILESTONE_HTML" \
-  --market-summary-file "$MARKET_SUMMARY" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
+  --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
@@ -548,8 +786,9 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
 
 log "Step ${MENTOR_STEP}/$TOTAL_STEPS: entrepreneurship mentor"
 "$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
-  --market-summary-file "$MARKET_SUMMARY" \
+  --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --plan-summary-file "$PLAN_SUMMARY" \
+  --academic-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
   --milestone-html-file "$PLAN_HTML" \
   --model "$MODEL" \
@@ -586,8 +825,6 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --run-id "$RUN_ID" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
-    --safety "$SAFETY" \
-    --approval "$APPROVAL" \
     >/dev/null
 
   extract_summary "$LIFE_RESULT" "$LIFE_SUMMARY"
@@ -609,19 +846,20 @@ else
 fi
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
 from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
-funding = Path(sys.argv[2]).read_text(encoding="utf-8")
-money = Path(sys.argv[3]).read_text(encoding="utf-8")
-plan = Path(sys.argv[4]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[5]).read_text(encoding="utf-8")
-life = Path(sys.argv[6]).read_text(encoding="utf-8")
-out = Path(sys.argv[7])
+academic = Path(sys.argv[2]).read_text(encoding="utf-8")
+funding = Path(sys.argv[3]).read_text(encoding="utf-8")
+money = Path(sys.argv[4]).read_text(encoding="utf-8")
+plan = Path(sys.argv[5]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[6]).read_text(encoding="utf-8")
+life = Path(sys.argv[7]).read_text(encoding="utf-8")
+out = Path(sys.argv[8])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -629,6 +867,8 @@ digest = (
     f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
     "<hr/>"
     f"<h2>🧠 Market Research</h2>{market}"
+    "<hr/>"
+    f"<h2>📚 Academic Research</h2>{academic}"
     "<hr/>"
     f"<h2>🏦 Funding & VC Opportunities</h2>{funding}"
     "<hr/>"
@@ -645,24 +885,26 @@ PY
 
 log "Step ${LOG_STEP}/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
 
 run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
-funding = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
-money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[8])
+academic = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
+funding = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
+money = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[9])
 
 content = (
     f"<h3>📌 Lazying.art Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
     "<ul>"
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
+    f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
     f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
     f"<li><strong>🗺️ Plan</strong>: {html.escape(plan)}</li>"

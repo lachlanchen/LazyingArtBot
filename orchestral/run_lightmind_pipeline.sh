@@ -13,7 +13,7 @@ LIGHTMIND_OUTPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output
 
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="high"
+REASONING="xhigh"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
@@ -67,7 +67,7 @@ Options:
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
-  --reasoning <level>       Reasoning level (default: high)
+  --reasoning <level>       Reasoning level (default: xhigh)
   --market-context <path>   Optional extra context file for market step
   --confidential-root <p>   Lightmind confidential root path override
   --resource-root <path>    Add resource root (repeatable; default: Lightmind resources)

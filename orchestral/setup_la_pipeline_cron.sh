@@ -10,7 +10,7 @@ JOB_NAME_PM="LazyingArt Pipeline 20:00 HK"
 TO_ADDR="lachchen@qq.com"
 FROM_ADDR="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="high"
+REASONING="xhigh"
 
 usage() {
   cat <<'USAGE'
@@ -23,7 +23,7 @@ Options:
   --to <email>            Digest recipient (default: lachchen@qq.com)
   --from <email>          Sender hint (default: lachlan.miao.chen@gmail.com)
   --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
-  --reasoning <level>     Agent reasoning level (default: medium)
+  --reasoning <level>     Agent reasoning level (default: xhigh)
   -h, --help              Show help
 USAGE
 }
@@ -83,7 +83,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lazying.art pipeline exactly once.
 1) Execute:
-`/Users/lachlan/Local/Clawbot/orchestral/run_la_pipeline.sh --to "$TO_ADDR" --from "$FROM_ADDR" --model "$MODEL" --reasoning "$REASONING"`
+./orchestral/run_la_pipeline.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
 2) If execution fails, report stderr and stop.
 3) Run a full pipeline cycle (including resource analysis and online refresh) unless the model
    itself decides to short-circuit.

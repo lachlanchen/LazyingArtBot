@@ -8,7 +8,7 @@ TZ_NAME="Asia/Hong_Kong"
 JOB_NAME_AM="Lightmind Pipeline 08:00 HK"
 JOB_NAME_PM="Lightmind Pipeline 20:00 HK"
 MODEL="gpt-5.3-codex-spark"
-REASONING="high"
+REASONING="xhigh"
 
 usage() {
   cat <<'USAGE'
@@ -19,7 +19,7 @@ the Lightmind pipeline script through agent exec.
 
 Options:
   --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
-  --reasoning <level>     Agent reasoning level (default: medium)
+  --reasoning <level>     Agent reasoning level (default: xhigh)
   -h, --help              Show help
 USAGE
 }
@@ -71,7 +71,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lightmind pipeline exactly once via async launcher.
 1) Execute:
-\`/Users/lachlan/Local/Clawbot/orchestral/run_lightmind_pipeline_async.sh --model "$MODEL" --reasoning "$REASONING"\`
+./orchestral/run_lightmind_pipeline_async.sh --model \"$MODEL\" --reasoning \"$REASONING\"
 2) The launcher returns quickly; pipeline logs are written under /tmp/lightmind_pipeline_runs.
 3) Run a full cycle (resource analysis + all context refresh stages) by default.
 4) If execution fails, report stderr and stop.
