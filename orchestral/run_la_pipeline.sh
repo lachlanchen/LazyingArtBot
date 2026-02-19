@@ -14,11 +14,13 @@ REASONING="xhigh"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
+RUN_WEB_SEARCH=1
 RUN_LIFE_REMINDER=1
 TO_ADDR="$DEFAULT_TO"
 FROM_ADDR="$DEFAULT_FROM"
 ACADEMIC_RESEARCH=1
 ACADEMIC_MAX_RESULTS=5
+WEB_SEARCH_TOP_RESULTS=3
 ACADEMIC_QUERIES=(
   "optical memory platform"
   "wearable AI personal knowledge capture"
@@ -32,7 +34,14 @@ ACADEMIC_RSS_SOURCES=(
   "Cell:https://www.cell.com/cell/rss"
   "Nature Machine Intelligence:https://www.nature.com/natmachintell.rss"
 )
+LA_WEB_SEARCH_QUERIES=(
+  "auto:latest developments in wearable AI personal memory systems"
+  "news:Lazying.art wearable product updates"
+  "scholar:optical computing memory indexing multimodal retrieval"
+)
 MARKET_CONTEXT_FILE=""
+WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
+WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 LIFEPATH_BASE="$HOME/Documents/LazyingArtBotIO/LazyingArt"
 LIFE_INPUT_MD="$LIFEPATH_BASE/Input/LazyingArtCompanyInput.md"
 LIFE_STATE_MD="$LIFEPATH_BASE/Output/LazyingArtLifeReminderState.md"
@@ -72,6 +81,9 @@ Options:
   --academic-query <text>    Add/override an academic query (repeatable)
   --no-academic-research    Disable academic research stage
   --academic-max-results <n> Max results per arXiv query (default: 5)
+  --no-web-search            Disable keyword web search stage
+  --web-search-top-results <n> Max search results per keyword (default: 3)
+  --web-search-query <text>  Add/override a web search query (repeatable)
   --life-input-md <path>    Input markdown for life reminder planner
   --life-reminder           Run life reminder planner (default)
   --no-life-reminder        Disable life reminder planner
@@ -129,6 +141,17 @@ while [[ $# -gt 0 ]]; do
     --academic-max-results)
       shift
       ACADEMIC_MAX_RESULTS="${1:-5}"
+      ;;
+    --no-web-search)
+      RUN_WEB_SEARCH=0
+      ;;
+    --web-search-query)
+      shift
+      LA_WEB_SEARCH_QUERIES+=("${1:-}")
+      ;;
+    --web-search-top-results)
+      shift
+      WEB_SEARCH_TOP_RESULTS="${1:-3}"
       ;;
     --skip-resource-analysis)
       RUN_RESOURCE_ANALYSIS=0
@@ -303,6 +326,201 @@ PY
 
   printf '%s\n' "No resource-analysis result available." > "$output_txt"
 }
+
+parse_web_query() {
+  local raw="$1"
+  local parsed_kind="auto"
+  local parsed_query="$raw"
+
+  if [[ "$raw" == *:* ]]; then
+    local kind_candidate="${raw%%:*}"
+    local rest="${raw#*:}"
+    case "$kind_candidate" in
+      auto|general|scholar|news)
+        parsed_kind="$kind_candidate"
+        parsed_query="$rest"
+        ;;
+      *)
+        parsed_kind="auto"
+        parsed_query="$raw"
+        ;;
+    esac
+  fi
+
+  printf '%s|%s\n' "$parsed_kind" "$parsed_query"
+}
+
+slugify_query() {
+  local raw="$1"
+  local value
+  value="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-24)"
+  if [[ -z "$value" ]]; then
+    echo "query"
+  else
+    echo "$value"
+  fi
+}
+
+append_web_search_reports() {
+  local query_label="$1"
+  local query_kind="$2"
+  local result_json="$3"
+  local summary_file="$4"
+  local html_file="$5"
+
+  python3 - "$query_label" "$query_kind" "$result_json" "$summary_file" "$html_file" <<'PY'
+import html
+import json
+import sys
+from pathlib import Path
+
+query_label = sys.argv[1]
+query_kind = sys.argv[2]
+result_json = Path(sys.argv[3]).expanduser()
+summary_path = Path(sys.argv[4]).expanduser()
+html_path = Path(sys.argv[5]).expanduser()
+
+if not result_json.is_file():
+    line = f"- ❌ {query_label} ({query_kind}): no results (search did not return JSON)."
+    with summary_path.open("a", encoding="utf-8") as summary:
+        summary.write(line + "\n")
+    with html_path.open("a", encoding="utf-8") as html_out:
+        html_out.write(f"<h3>❌ {html.escape(query_label)} ({html.escape(query_kind)})</h3><p>no results (search error)</p>")
+    raise SystemExit(0)
+
+try:
+    payload = json.loads(result_json.read_text(encoding="utf-8"))
+except Exception as exc:  # noqa: BLE001
+    with summary_path.open("a", encoding="utf-8") as summary:
+        summary.write(f"- ⚠️ {query_label} ({query_kind}): failed to read results ({exc}).\n")
+    with html_path.open("a", encoding="utf-8") as html_out:
+        html_out.write(
+            f"<h3>⚠️ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
+            f"<p>Failed to parse search results: {html.escape(str(exc))}</p>"
+        )
+    raise SystemExit(0)
+
+items = payload.get("items") if isinstance(payload, dict) else []
+if not isinstance(items, list):
+    items = []
+
+with summary_path.open("a", encoding="utf-8") as summary:
+    summary.write(f"- ✅ {query_label} ({query_kind}): {len(items)} result(s)\n")
+
+with html_path.open("a", encoding="utf-8") as html_out:
+    html_out.write(
+        f"<h3>✅ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
+        f"<p><strong>source:</strong> {html.escape(payload.get('query', ''))}</p>"
+    )
+    for item in items:
+        title = str(item.get("title", "")).strip() or "(untitled)"
+        url = str(item.get("url", "")).strip()
+        snippet = str(item.get("snippet", "")).strip()
+        codex_summary = str(item.get("codex_summary", "")).strip()
+        screenshot = str(item.get("screenshot", "")).strip()
+
+        with summary_path.open("a", encoding="utf-8") as summary:
+            summary.write(f"  - {title} | {url}\n")
+            if snippet:
+                summary.write(f"    - snippet: {snippet}\n")
+
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        if url:
+            html_out.write(
+                f"<p><strong>{html.escape(title)}</strong><br/>"
+                f"<a href=\"{html.escape(url)}\">{html.escape(url)}</a></p>"
+            )
+        else:
+            html_out.write(f"<p><strong>{html.escape(title)}</strong></p>")
+        if snippet:
+            html_out.write(f"<p>{html.escape(snippet)}</p>")
+        if screenshot:
+            html_out.write(f"<p><strong>Screenshot:</strong> {html.escape(screenshot)}</p>")
+        if codex_summary:
+            html_out.write(f"<p><strong>Codex summary:</strong> {html.escape(codex_summary)}</p>")
+        html_out.write("</div>")
+
+PY
+}
+
+run_web_search_queries() {
+  local context_label="$1"
+  local output_dir="$2"
+  local top_n="$3"
+  local model="$4"
+  local reasoning="$5"
+  local safety="$6"
+  local approval="$7"
+  local run_id="$8"
+  shift 8
+  local query_list=("$@")
+
+  local query_summary_file="${output_dir}/${context_label}.summary.txt"
+  local query_html_file="${output_dir}/${context_label}.html"
+  : > "$query_summary_file"
+  : > "$query_html_file"
+
+  if [[ ${#query_list[@]} -eq 0 ]]; then
+    printf '%s\n' "No web search queries configured." >> "$query_summary_file"
+    printf '<p>No web search queries configured.</p>' > "$query_html_file"
+    WEB_SEARCH_SUMMARY_FILE="$query_summary_file"
+    WEB_SEARCH_HTML_FILE="$query_html_file"
+    return 0
+  fi
+
+  local idx=1
+  for raw_query in "${query_list[@]}"; do
+    local parse
+    parse="$(parse_web_query "$raw_query")"
+    local query_kind="${parse%%|*}"
+    local query_text="${parse#*|}"
+    local query_slug
+    query_slug="$(slugify_query "$query_text")"
+    local query_run_id="$run_id-${context_label}-${idx}-${query_slug}"
+    local run_output_dir="${output_dir}/${context_label}"
+    local query_result_dir="${run_output_dir}/${query_run_id}"
+    mkdir -p "$run_output_dir"
+
+    local query_result_file="$query_result_dir/search_batch_result.json"
+    local query_log_file="$query_result_dir/search.log"
+
+    mkdir -p "$query_result_dir"
+    if ! "$PROMPT_DIR/prompt_web_search_batch.sh" \
+      --query "$query_text" \
+      --kind "$query_kind" \
+      --top-results "$top_n" \
+      --output-dir "$run_output_dir" \
+      --run-id "$query_run_id" \
+      --codex-model "$model" \
+      --codex-reasoning "$reasoning" \
+      --codex-safety "$safety" \
+      --codex-approval "$approval" \
+      --keep-open \
+      --hold-seconds "3.0" \
+      >"$query_log_file" 2>&1; then
+      printf '%s\n' "- ❌ Web search failed for: $query_text" >> "$query_summary_file"
+      printf '<p>⚠️ %s (%s): failed, see query log.</p>' "$query_text" "$query_kind" >> "$query_html_file"
+      idx=$((idx + 1))
+      continue
+    fi
+
+    if [[ ! -f "$query_result_file" ]]; then
+      if ! ls "$query_result_dir"/search_batch_result.json >/dev/null 2>&1; then
+        printf '%s\n' "- ⚠️ Web search result file missing for: $query_text" >> "$query_summary_file"
+        printf '<p>⚠️ %s (%s): result missing.</p>' "$query_text" "$query_kind" >> "$query_html_file"
+        idx=$((idx + 1))
+        continue
+      fi
+      query_result_file="$query_result_dir/search_batch_result.json"
+    fi
+
+    append_web_search_reports "$query_text" "$query_kind" "$query_result_file" "$query_summary_file" "$query_html_file"
+    idx=$((idx + 1))
+  done
+
+  WEB_SEARCH_SUMMARY_FILE="$query_summary_file"
+  WEB_SEARCH_HTML_FILE="$query_html_file"
+  }
 
 find_latest_resource_markdown_dir() {
   local base_dir="$1"
@@ -569,12 +787,17 @@ LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
 LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
 LIFE_HTML="$ARTIFACT_DIR/life.html"
 LIFE_MD="$ARTIFACT_DIR/life.md"
+WEB_SUMMARY_FILE="$ARTIFACT_DIR/web_search.summary.txt"
+WEB_HTML_FILE="$ARTIFACT_DIR/web_search_digest.html"
 
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
 
 TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
@@ -590,36 +813,46 @@ if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   log "Step 0/$TOTAL_STEPS: analyze resources and create reference summary"
 fi
 
-READ_NOTE_STEP=$((BASE_STEP + 1))
-MARKET_STEP=$((BASE_STEP + 2))
-if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
-  ACADEMIC_STEP=$((BASE_STEP + 3))
-  FUNDING_STEP=$((BASE_STEP + 4))
-  MONEY_STEP=$((BASE_STEP + 5))
-  PLAN_STEP=$((BASE_STEP + 6))
-  MENTOR_STEP=$((BASE_STEP + 7))
-  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-    LIFE_STEP=$((BASE_STEP + 8))
-    LOG_STEP=$((BASE_STEP + 9))
-    EMAIL_STEP=$((BASE_STEP + 10))
-  else
-    LOG_STEP=$((BASE_STEP + 8))
-    EMAIL_STEP=$((BASE_STEP + 9))
-  fi
+STEP_CURSOR=$((BASE_STEP + 1))
+READ_NOTE_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  WEB_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
 else
-  FUNDING_STEP=$((BASE_STEP + 3))
-  MONEY_STEP=$((BASE_STEP + 4))
-  PLAN_STEP=$((BASE_STEP + 5))
-  MENTOR_STEP=$((BASE_STEP + 6))
-  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-    LIFE_STEP=$((BASE_STEP + 7))
-    LOG_STEP=$((BASE_STEP + 8))
-    EMAIL_STEP=$((BASE_STEP + 9))
-  else
-    LOG_STEP=$((BASE_STEP + 7))
-    EMAIL_STEP=$((BASE_STEP + 8))
-  fi
+  WEB_STEP="$BASE_STEP"
 fi
+
+MARKET_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  ACADEMIC_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  ACADEMIC_STEP="$BASE_STEP"
+fi
+
+FUNDING_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+MONEY_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+PLAN_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+MENTOR_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  LIFE_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  LIFE_STEP="$BASE_STEP"
+fi
+
+LOG_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+EMAIL_STEP=$STEP_CURSOR
 
 log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoLife"
 "$PROMPT_DIR/prompt_la_note_reader.sh" \
@@ -628,6 +861,30 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
   --folder-path "🏢 Companies/🐼 Lazying.art" \
   --note "🎨 Lazying.art · Milestones / 里程碑 / マイルストーン" \
   --out "$CURRENT_MILESTONE_HTML" || true
+
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
+  : > "$WEB_SUMMARY_FILE"
+  : > "$WEB_HTML_FILE"
+  if ! run_web_search_queries "lazyingart" "$WEB_OUTPUT_DIR" "$WEB_SEARCH_TOP_RESULTS" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${LA_WEB_SEARCH_QUERIES[@]}"; then
+    printf '%s\n' "Web search stage failed; continuing with available context." > "$WEB_SUMMARY_FILE"
+    printf '%s\n' "<p>Web search stage failed; continuing with other sources.</p>" > "$WEB_HTML_FILE"
+  fi
+
+  cp "$WEB_SUMMARY_FILE" "$NOTES_ROOT/last_web_search.summary.txt"
+  cp "$WEB_HTML_FILE" "$NOTES_ROOT/last_web_search.html"
+  {
+    echo "Web search summary:"
+    cat "$WEB_SUMMARY_FILE"
+  } >> "$CONTEXT_FILE"
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/🐼 Lazying.art" \
+    --note "🕸️ Web Search Signals / 网页信号 / ウェブシグナル" \
+    --mode append \
+    --html-file "$WEB_HTML_FILE"
+fi
 
 log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
