@@ -5,8 +5,8 @@ REPO_DIR="/Users/lachlan/Local/Clawbot"
 cd "$REPO_DIR"
 
 TZ_NAME="Asia/Hong_Kong"
-JOB_NAME_AM="Lightmind Pipeline 06:00 HK"
-JOB_NAME_PM="Lightmind Pipeline 18:00 HK"
+JOB_NAME_AM="Lightmind Pipeline 07:00 HK"
+JOB_NAME_PM="Lightmind Pipeline 19:00 HK"
 MODEL="gpt-5.3-codex-spark"
 REASONING="xhigh"
 RUN_LIFE_REMINDER=1
@@ -19,7 +19,7 @@ usage() {
   cat <<'USAGE'
 Usage: setup_lightmind_pipeline_cron.sh [options]
 
-Creates/refreshes OpenClaw cron jobs (06:00 + 18:00 Asia/Hong_Kong) that trigger
+Creates/refreshes OpenClaw cron jobs (07:00 + 19:00 Asia/Hong_Kong) that trigger
 the Lightmind pipeline script through agent exec.
 
 Options:
@@ -129,7 +129,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lightmind pipeline exactly once via async launcher.
 1) Execute:
-./orchestral/run_lightmind_pipeline_async.sh \
+$REPO_DIR/orchestral/run_lightmind_pipeline_async.sh \
   --model \"$MODEL\" --reasoning \"$REASONING\" --web-search-headless \\
 $(printf '  %q ' "${LEGAL_ARGS[@]}")
 $(printf '  %q ' "${LIFE_ARGS[@]}")
@@ -157,7 +157,7 @@ EOF
 
 pnpm openclaw cron add \
   --name "$JOB_NAME_AM" \
-  --cron "0 6 * * *" \
+  --cron "0 7 * * *" \
   --tz "$TZ_NAME" \
   --session isolated \
   --message "$MESSAGE_TEMPLATE" \
@@ -166,7 +166,7 @@ pnpm openclaw cron add \
 
 pnpm openclaw cron add \
   --name "$JOB_NAME_PM" \
-  --cron "0 18 * * *" \
+  --cron "0 19 * * *" \
   --tz "$TZ_NAME" \
   --session isolated \
   --message "$MESSAGE_TEMPLATE" \
