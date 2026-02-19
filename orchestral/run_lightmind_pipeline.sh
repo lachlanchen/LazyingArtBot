@@ -20,6 +20,10 @@ SEND_EMAIL=1
 FROM_ADDR="$DEFAULT_FROM"
 TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachlan@lightmind.art")
 CUSTOM_TO=0
+RUN_LIFE_REMINDER=1
+LIFE_INPUT_MD="$LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md"
+LIFE_STATE_JSON="$NOTES_ROOT/lightmind_life_reminder_state.json"
+LIFE_STATE_MD="$LIGHTMIND_OUTPUT_ROOT/LightMindLifeReminderState.md"
 MARKET_CONTEXT_FILE=""
 RUN_RESOURCE_ANALYSIS=1
 RESOURCE_OUTPUT_DIR="$LIGHTMIND_OUTPUT_ROOT/ResourceAnalysis"
@@ -78,6 +82,11 @@ Options:
   --no-academic-research     Disable high-impact academic research stage
   --academic-max-results <n> Max results per arXiv query (default: 5)
   --academic-query <text>    Add/override an academic query (repeatable)
+  --life-reminder            Run life reverse reminder planning (default on for Lightmind)
+  --no-life-reminder         Disable life reverse reminder planning
+  --life-input-md <path>     Life input markdown path (default: $LIFE_INPUT_MD)
+  --life-state-json <path>   Life reminder state JSON path
+  --life-state-md <path>     Life reminder state Markdown path
   -h, --help                Show help
 USAGE
 }
@@ -91,6 +100,24 @@ while [[ $# -gt 0 ]]; do
         CUSTOM_TO=1
       fi
       TO_ADDRS+=("${1:-}")
+      ;;
+    --life-reminder)
+      RUN_LIFE_REMINDER=1
+      ;;
+    --no-life-reminder)
+      RUN_LIFE_REMINDER=0
+      ;;
+    --life-input-md)
+      shift
+      LIFE_INPUT_MD="${1:-}"
+      ;;
+    --life-state-json)
+      shift
+      LIFE_STATE_JSON="${1:-}"
+      ;;
+    --life-state-md)
+      shift
+      LIFE_STATE_MD="${1:-}"
       ;;
     --from)
       shift
@@ -784,6 +811,9 @@ fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
 
 BASE_STEP=0
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
@@ -813,6 +843,10 @@ MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
+LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
+LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
+LIFE_HTML="$ARTIFACT_DIR/life.html"
+LIFE_MD="$ARTIFACT_DIR/life.md"
 
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
@@ -823,15 +857,27 @@ if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   MONEY_STEP=$((BASE_STEP + 5))
   PLAN_STEP=$((BASE_STEP + 6))
   MENTOR_STEP=$((BASE_STEP + 7))
-  LOG_STEP=$((BASE_STEP + 8))
-  EMAIL_STEP=$((BASE_STEP + 9))
+  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+    LIFE_STEP=$((BASE_STEP + 8))
+    LOG_STEP=$((BASE_STEP + 9))
+    EMAIL_STEP=$((BASE_STEP + 10))
+  else
+    LOG_STEP=$((BASE_STEP + 8))
+    EMAIL_STEP=$((BASE_STEP + 9))
+  fi
 else
   FUNDING_STEP=$((BASE_STEP + 3))
   MONEY_STEP=$((BASE_STEP + 4))
   PLAN_STEP=$((BASE_STEP + 5))
   MENTOR_STEP=$((BASE_STEP + 6))
-  LOG_STEP=$((BASE_STEP + 7))
-  EMAIL_STEP=$((BASE_STEP + 8))
+  if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+    LIFE_STEP=$((BASE_STEP + 7))
+    LOG_STEP=$((BASE_STEP + 8))
+    EMAIL_STEP=$((BASE_STEP + 9))
+  else
+    LOG_STEP=$((BASE_STEP + 7))
+    EMAIL_STEP=$((BASE_STEP + 8))
+  fi
 fi
 
 log "Step $((BASE_STEP))/$TOTAL_STEPS: read current milestone note from AutoLife"
@@ -1039,8 +1085,47 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --mode append \
   --html-file "$MENTOR_HTML"
 
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  log "Step $LIFE_STEP/$TOTAL_STEPS: life reverse reminder planning"
+  "$PROMPT_DIR/prompt_life_reverse_engineering_tool.sh" \
+    --input-md "$LIFE_INPUT_MD" \
+    --state-json "$LIFE_STATE_JSON" \
+    --state-md "$LIFE_STATE_MD" \
+    --list-name "Lightmind" \
+    --market-summary-file "$MARKET_SUMMARY" \
+    --plan-summary-file "$PLAN_SUMMARY" \
+    --mentor-summary-file "$MENTOR_SUMMARY" \
+    --output-dir "$ARTIFACT_DIR/life-codex" \
+    --report-json "$LIFE_RESULT" \
+    --report-md "$LIFE_MD" \
+    --report-html "$LIFE_HTML" \
+    --run-id "$RUN_ID" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    >/dev/null
+
+  extract_summary "$LIFE_RESULT" "$LIFE_SUMMARY"
+  cp "$LIFE_RESULT" "$NOTES_ROOT/last_life_result.json"
+  cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
+  cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
+
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/👓 Lightmind.art" \
+    --note "🗓️ Lightmind Life Reverse Plan / 反向规划 / 逆算計画" \
+    --mode replace \
+    --html-file "$LIFE_HTML"
+else
+  log "Step ${LOG_STEP}/$TOTAL_STEPS: life reminder skipped (disabled)"
+  printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"
+  printf '%s\n' "<p>Life reminder planner disabled.</p>" > "$LIFE_HTML"
+fi
+
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -1053,7 +1138,8 @@ plan = Path(sys.argv[4]).read_text(encoding="utf-8")
 mentor = Path(sys.argv[5]).read_text(encoding="utf-8")
 academic = Path(sys.argv[6]).read_text(encoding="utf-8")
 plan_input = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[8])
+life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[9])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -1073,13 +1159,15 @@ digest = (
     f"<h2>💡 Milestones / 里程碑 / マイルストーン</h2>{plan}"
     "<hr/>"
     f"<h2>🧭 Entrepreneurship Mentor / 创业导师 / 創業メンター</h2>{mentor}"
+    "<hr/>"
+    f"<h2>🗓️ Life Reverse Reminder / 反向规划 / 逆算計画</h2>{life}"
 )
 out.write_text(digest, encoding="utf-8")
 PY
 
 log "Step $LOG_STEP/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
@@ -1091,7 +1179,8 @@ money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
 plan = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
 mentor = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
 academic = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[8])
+life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[9])
 
 content = (
     f"<h3>📌 Lightmind Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
@@ -1102,6 +1191,7 @@ content = (
     f"<li><strong>💡 Plan</strong>: {html.escape(plan)}</li>"
     f"<li><strong>🧭 Mentor</strong>: {html.escape(mentor)}</li>"
     f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"
+    f"<li><strong>🗓️ Life</strong>: {html.escape(life)}</li>"
     "</ul>"
 )
 out.write_text(content, encoding="utf-8")
