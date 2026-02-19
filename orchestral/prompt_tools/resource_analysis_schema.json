@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResourceAnalysisResult",
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "resource_signature": {
+      "type": "string",
+      "minLength": 10
+    },
+    "resource_recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resource_overview": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "status": { "type": "string" },
+          "file_count": { "type": "integer", "minimum": 0 },
+          "total_bytes": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["path", "status", "file_count", "total_bytes"],
+        "additionalProperties": false
+      }
+    },
+    "markdown_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_name": { "type": "string" },
+          "title": { "type": "string" },
+          "section_scope": { "type": "string" },
+          "scope_hint": { "type": "string" },
+          "importance": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "markdown": { "type": "string", "minLength": 20 }
+        },
+        "required": ["file_name", "title", "section_scope", "scope_hint", "importance", "markdown"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "summary",
+    "resource_signature",
+    "resource_recommendations",
+    "resource_overview",
+    "markdown_documents"
+  ],
+  "additionalProperties": false
+}
