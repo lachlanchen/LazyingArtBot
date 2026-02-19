@@ -1,0 +1,6 @@
+[submodule "openai-cookbook"]
+	path = vendor/openai-cookbook
+	url = https://github.com/openai/openai-cookbook.git
+[submodule "SillyTavern-WebSearch-Selenium"]
+	path = vendor/SillyTavern-WebSearch-Selenium
+	url = https://github.com/SillyTavern/SillyTavern-WebSearch-Selenium.git
