@@ -34,7 +34,8 @@ Output folder (run-id scoped):
 Recommended interaction pattern for Codex-assisted extraction:
 
 1. Run first pass with a results-page capture, e.g.
-   - `prompt_web_search_immersive.sh --engine google --query "wearable AI news" --results <top_n> --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 0.9`
+   - `prompt_web_search_immersive.sh --engine google --query "<query from context materials>" --results <top_n> --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 0.9`
+   - Ensure `<query from context materials>` is business-theme-based from provided evidence, not a bare brand/domain term.
 2. Read returned JSON/TXT and pick top results from the search-result page and opened details.
 3. Re-run only if needed with:
    - `--open-result --result-index N` for deep capture, where N follows the opened result set from `opened_items`, and
@@ -72,3 +73,27 @@ Downstream note/email rule:
 
 - Include opened result titles + URLs + summaries for the query-configured result depth, and provide screenshot references for evidence.
 - Use the `top_results_per_query` / `opened_count` values from the same run; do not hard-code top-3.
+
+Quick test run (topic query):
+
+```bash
+run_id="site-nature-quantum-$(date +%Y%m%d-%H%M%S)"
+out_dir="$HOME/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs"
+bash orchestral/prompt_tools/prompt_web_search_immersive.sh \
+  --query "site:nature.com quantum computing" \
+  --engine google \
+  --results 5 \
+  --open-top-results 2 \
+  --summarize-open-url \
+  --scroll-steps 2 \
+  --scroll-pause 0.8 \
+  --output-dir "$out_dir" \
+  --run-id "$run_id" \
+  --keep-open --hold-seconds 6
+```
+
+- Browser is visible by default (non-headless). Omit `--headless` to keep it in UI.
+- Artifacts are written to:
+  - `$out_dir/$run_id/query-site-nature-com-quantum-computing.json`
+  - `$out_dir/$run_id/query-site-nature-com-quantum-computing.txt`
+  - `$out_dir/$run_id/screenshots/`
