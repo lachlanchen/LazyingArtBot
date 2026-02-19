@@ -208,6 +208,12 @@ def parse_args() -> argparse.Namespace:
         help="After search, click/open the selected result (index via --result-index).",
     )
     parser.add_argument(
+        "--open-top-results",
+        type=int,
+        default=0,
+        help="Open and summarize the first N results (default: 0 = only --result-index).",
+    )
+    parser.add_argument(
         "--result-index",
         type=int,
         default=1,
@@ -222,6 +228,11 @@ def parse_args() -> argparse.Namespace:
         "--summarize-open-url",
         action="store_true",
         help="Extract and print a plain-text summary from opened URL/clicked page.",
+    )
+    parser.add_argument(
+        "--keep-opened-tabs",
+        action="store_true",
+        help="Keep opened result tabs/windows instead of closing them after summarization.",
     )
     parser.add_argument(
         "--capture-screenshots",
@@ -403,6 +414,60 @@ def switch_to_best_content_window(
                     pass
         if handles:
             driver.switch_to.window(handles[-1])
+
+
+def open_result_in_new_tab(
+    driver: webdriver.Chrome,
+    item: SearchResult,
+    prior_handles: List[str],
+) -> Optional[str]:
+    url = str(item.get("url", ""))
+    element = item.get("element")
+    if not url:
+        return None
+    new_handle: Optional[str] = None
+    # Open directly in a separate tab and use window handles as the source of truth.
+    # This avoids mutating the search tab for each click.
+    try:
+        if hasattr(element, "get_attribute"):
+            try:
+                candidate_href = element.get_attribute("href")
+            except Exception:
+                candidate_href = ""
+            if candidate_href:
+                driver.execute_script("window.open(arguments[0], '_blank');", candidate_href)
+            else:
+                driver.execute_script("window.open(arguments[0], '_blank');", url)
+        else:
+            driver.execute_script("window.open(arguments[0], '_blank');", url)
+    except Exception:
+        pass
+
+    new_handle = wait_for_new_window(driver, prior_handles, timeout=6.0)
+    if new_handle:
+        try:
+            driver.switch_to.window(new_handle)
+            return new_handle
+        except Exception:
+            pass
+
+    # Selenium native fallback: force-open a new tab, then navigate there.
+    # This keeps deterministic tab behavior where possible.
+    try:
+        opened_handle = driver.switch_to.new_window("tab")
+        if opened_handle:
+            driver.get(url)
+            return str(opened_handle)
+        new_handle = wait_for_new_window(driver, prior_handles, timeout=2.5)
+        if new_handle:
+            driver.switch_to.window(new_handle)
+            return new_handle
+    except Exception:
+        pass
+
+    # If all fallback methods fail, explicitly return None so caller can handle safely.
+    # Do not navigate current tab here; that causes false positives in link-switching logic.
+    return None
 
 
 
@@ -1083,11 +1148,14 @@ def click_result_and_summary(
     results: List[SearchResult],
     index: int,
     summary_max_chars: int,
+    open_in_new_tab: bool = False,
+    base_window: Optional[str] = None,
     screenshot_dir: Optional[Path] = None,
     screenshot_prefix: str = "websearch",
     capture: bool = False,
     scroll_steps: int = 0,
     scroll_pause: float = 0.9,
+    keep_opened_tabs: bool = False,
 ) -> SearchResult:
     selected_idx = max(1, index)
     if selected_idx > len(results):
@@ -1098,23 +1166,32 @@ def click_result_and_summary(
     element = item.get("element")
 
     prior_handles = list(driver.window_handles)
+    opened_handle = None
 
-    # Some result anchors are not reliably clickable, so fallback to direct URL navigation.
-    if hasattr(element, "click"):
-        try:
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
-            driver.execute_script("arguments[0].click();", element)
-        except (ElementClickInterceptedException, ElementNotInteractableException):
+    if open_in_new_tab:
+        opened_handle = open_result_in_new_tab(driver=driver, item=item, prior_handles=prior_handles)
+    else:
+        # Some result anchors are not reliably clickable, so fallback to direct URL navigation.
+        if hasattr(element, "click"):
+            try:
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+                driver.execute_script("arguments[0].click();", element)
+            except (ElementClickInterceptedException, ElementNotInteractableException):
+                pass
+            except Exception:
+                pass
+        if not driver.current_url or driver.current_url == "about:blank":
             try:
                 driver.get(url)
             except Exception as exc:
                 raise SystemExit(f"clicking result failed: {exc}") from exc
-        except Exception:
-            driver.get(url)
+        opened_handle = driver.current_window_handle
+        if opened_handle in prior_handles and url and not any(w in (driver.current_url or "") for w in ["google", "bing", "duckduckgo"]):
+            # If click failed and navigation happened in search tab, keep deterministic by opening in-place.
+            pass
         else:
-            driver.get(url)
-
-    switch_to_best_content_window(driver, prior_handles)
+            switch_to_best_content_window(driver, prior_handles)
+            opened_handle = driver.current_window_handle
 
     # Give page time to render before summary/next actions.
     time.sleep(1.5)
@@ -1144,6 +1221,18 @@ def click_result_and_summary(
         summary_item["opened_screenshots"] = opened_screenshots
     if open_steps:
         summary_item["open_scroll_steps"] = open_steps
+
+    if not keep_opened_tabs:
+        if opened_handle is not None and base_window:
+            try:
+                if driver.current_window_handle != base_window:
+                    try:
+                        driver.close()
+                    except Exception:
+                        pass
+                driver.switch_to.window(base_window)
+            except Exception:
+                pass
     return summary_item
 
 
@@ -1193,13 +1282,29 @@ def print_results(query: str, items: List[SearchResult], output: str) -> None:
             print(f"    snippet: {snippet}")
 
 
+def sanitize_for_json(value: object) -> object:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, list):
+        return [sanitize_for_json(item) for item in value]
+    if isinstance(value, dict):
+        safe: Dict[str, object] = {}
+        for key, item in value.items():
+            if key == "element":
+                continue
+            safe[key] = sanitize_for_json(item)
+        return safe
+    return str(value)
+
+
 def print_open_payload(
     payload: Dict[str, str],
     output_format: str,
     context: str,
 ) -> None:
     if output_format == "json":
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        safe_payload = sanitize_for_json(payload)
+        print(json.dumps(safe_payload, ensure_ascii=False, indent=2))
         return
     if context:
         print(context)
@@ -1245,6 +1350,7 @@ def main() -> None:
     viewport_info: Dict[str, Union[int, float, str]] = {}
     query_results: List[SearchResult] = []
     clicked_result: Optional[SearchResult] = None
+    clicked_results: List[SearchResult] = []
     remaining_results = max(0, args.results)
     seen_urls: set[str] = set()
     engine_key = _coerce_engine_name(args.engine)
@@ -1373,7 +1479,13 @@ def main() -> None:
                         query_results.append(item)
                         remaining_results -= 1
 
-            if args.open_result or click_point is not None:
+            if args.open_result or click_point is not None or args.open_top_results > 0:
+                base_window: Optional[str] = None
+                try:
+                    base_window = driver.current_window_handle
+                except Exception:
+                    base_window = None
+
                 if click_point is not None:
                     prior_handles = list(driver.window_handles)
                     click_result = click_by_coordinates(driver, click_point[0], click_point[1])
@@ -1407,20 +1519,45 @@ def main() -> None:
                         clicked_result["summary"] = open_summary
                     if args.capture_screenshots:
                         screenshot_steps.append(take_screenshot(driver, screenshot_dir, "after-coordinate-click", args.screenshot_prefix))
+                    clicked_results = [clicked_result]
                 else:
-                    clicked_result = click_result_and_summary(
-                        driver=driver,
-                        results=query_results,
-                        index=args.result_index,
-                        summary_max_chars=args.summary_max_chars,
-                        screenshot_dir=screenshot_dir if args.capture_screenshots else None,
-                        screenshot_prefix=args.screenshot_prefix,
-                        capture=args.capture_screenshots,
-                        scroll_steps=args.scroll_steps,
-                        scroll_pause=args.scroll_pause,
-                    )
-                    if args.capture_screenshots:
-                        screenshot_steps.append(take_screenshot(driver, screenshot_dir, "after-result-click", args.screenshot_prefix))
+                    open_indices: List[int] = []
+                    if args.open_top_results > 0:
+                        open_indices = list(
+                            range(1, min(len(query_results), max(1, args.open_top_results)) + 1)
+                        )
+                    else:
+                        open_indices = [args.result_index]
+
+                    for idx in open_indices:
+                        clicked = click_result_and_summary(
+                            driver=driver,
+                            results=query_results,
+                            index=idx,
+                            summary_max_chars=args.summary_max_chars,
+                            screenshot_dir=screenshot_dir if args.capture_screenshots else None,
+                            screenshot_prefix=f"{args.screenshot_prefix}-idx{idx:02d}",
+                            capture=args.capture_screenshots,
+                            scroll_steps=args.scroll_steps,
+                            scroll_pause=args.scroll_pause,
+                            open_in_new_tab=True,
+                            base_window=base_window,
+                            keep_opened_tabs=args.keep_opened_tabs,
+                        )
+                        clicked_results.append(clicked)
+                        if args.capture_screenshots:
+                            screenshot_steps.append(take_screenshot(driver, screenshot_dir, f"after-result-click-{idx:02d}", args.screenshot_prefix))
+                        if base_window:
+                            try:
+                                driver.switch_to.window(base_window)
+                            except Exception:
+                                pass
+                        if base_window is None:
+                            try:
+                                clicked_results[-1]["search_backed"] = "unable"
+                            except Exception:
+                                pass
+                    clicked_result = clicked_results[0] if clicked_results else None
                 if args.summarize_open_url and clicked_result.get("summary"):
                     open_summary = str(clicked_result.get("summary", ""))
     except TimeoutException as err:
@@ -1455,7 +1592,15 @@ def main() -> None:
         print_open_payload(payload, args.output, f"Original query: {query}" if query else "")
         return
 
-    if args.open_result or click_point is not None:
+    if args.open_result or click_point is not None or args.open_top_results > 0:
+        safe_opened_items = [
+            sanitize_for_json(item)
+            for item in (clicked_results if isinstance(clicked_results, list) else [])
+        ]
+        safe_clicked = sanitize_for_json(clicked_result) if isinstance(clicked_result, dict) else {}
+        if isinstance(safe_clicked, dict) and "element" in safe_clicked:
+            del safe_clicked["element"]
+
         payload = {
             "mode": "search-and-open",
             "query": query,
@@ -1468,23 +1613,46 @@ def main() -> None:
             "viewport": viewport_info,
             "count": len(query_results),
             "clicked": {
-                "result_index": clicked_result.get("result_index") if isinstance(clicked_result, dict) else args.result_index,
-                "title": str(clicked_result.get("title", "") if clicked_result else ""),
-                "url": str(clicked_result.get("url", "") if clicked_result else ""),
-                "summary": str(clicked_result.get("summary", "") if clicked_result else ""),
+                "result_index": safe_clicked.get("result_index", ""),
+                "title": str(safe_clicked.get("title", "")),
+                "url": str(safe_clicked.get("url", "")),
+                "summary": str(safe_clicked.get("summary", "")),
                 "coordinate_click": args.click_at or "",
+                "open_top_results": args.open_top_results,
             },
+            "opened_items": safe_opened_items,
         }
         if isinstance(clicked_result, dict):
-            for extra_key in ("opened_screenshots", "open_scroll_steps", "click_point", "scroll_steps", "scroll_pause"):
+            for extra_key in (
+                "opened_screenshots",
+                "open_scroll_steps",
+                "click_point",
+                "scroll_steps",
+                "scroll_pause",
+            ):
                 if extra_key in clicked_result:
                     payload["clicked"][extra_key] = clicked_result[extra_key]
+        if args.open_top_results > 0:
+            payload["opened_count"] = len(clicked_results)
 
         if args.output == "json":
-            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            print(json.dumps(sanitize_for_json(payload), ensure_ascii=False, indent=2))
         else:
             print_results(query, query_results, "text")
-            if clicked_result:
+            if clicked_results:
+                print("--- Opened Items ---")
+                for item in clicked_results:
+                    index = item.get("result_index", "")
+                    title = item.get("title", "(untitled)")
+                    url = item.get("url", "")
+                    print(f"- [{index}] {title}")
+                    if url:
+                        print(f"  URL: {url}")
+                    item_summary = str(item.get("summary", "") or "")
+                    if item_summary:
+                        print("  Summary:")
+                        print(f"  {item_summary[:2800]}")
+            elif clicked_result:
                 print(f"Opened [{clicked_result.get('result_index', args.result_index)}] {clicked_result.get('title','(untitled)')}")
                 print(f"Opened URL: {clicked_result.get('url')}")
                 if open_summary:
@@ -1504,7 +1672,7 @@ def main() -> None:
         "viewport": viewport_info,
     }
     if args.output == "json":
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        print(json.dumps(sanitize_for_json(payload), ensure_ascii=False, indent=2))
     else:
         print_results(query, query_results, "text")
 

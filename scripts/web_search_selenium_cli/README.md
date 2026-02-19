@@ -41,3 +41,32 @@ scripts/web_search_selenium_cli/run_search.sh --engine google --output json "new
 The default driver cache is `~/.local/share/web-search-selenium/chromedriver`.
 
 You can use a specific driver path with `--driver`.
+
+## Batch pipeline (top-N click-and-summarize)
+
+Use this flow when you want one search command to open multiple links, capture screenshots, and generate per-link summaries:
+
+```bash
+python3 scripts/web_search_selenium_cli/batch_search_pipeline.py \
+  --query "wearable glass paper" \
+  --kind scholar \
+  --top-results 3 \
+  --scroll-steps 3 \
+  --summary-max-chars 2600
+```
+
+Artifacts:
+
+- `search_batch_result.json`
+- `search_batch_summary.md`
+- `items/result-01.md` ...
+- `screenshots/*.png`
+
+You can also call the prompt wrapper:
+
+```bash
+orchestral/prompt_tools/prompt_web_search_batch.sh \
+  --query "wearable glass paper" \
+  --kind scholar \
+  --top-results 3
+```

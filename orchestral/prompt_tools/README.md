@@ -15,6 +15,7 @@ This directory is the dedicated home for LAB Codex prompt-driven tooling.
 | ------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `prompt_web_search.sh`                | `prompt_web_search_prompt.md`                  | Capture Nature/Science paper references into plaintext artifacts for downstream analysis. |
 | `prompt_web_search_immersive.sh`      | `prompt_web_search_immersive_prompt.md`        | Immersive (UI) Google flow with screenshot capture and optional coordinate click.         |
+| `prompt_web_search_batch.sh`          | `prompt_web_search_batch_prompt.md`            | Batch search + top-N result opening, screenshots, and per-item Codex summaries.           |
 | `prompt_web_search_click.sh`          | `prompt_web_search_click_prompt.md`            | Search, click selected result in same window, and summarize opened page content.          |
 | `prompt_web_search_google.sh`         | (wrapper)                                      | Google search + click-mode helper (default engine google).                                |
 | `prompt_web_search_google_scholar.sh` | (wrapper)                                      | Google Scholar search + click-mode helper.                                                |
