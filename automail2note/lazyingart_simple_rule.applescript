@@ -5,6 +5,7 @@ property pythonPath : "/Users/lachlan/.openclaw/workspace/.venv/bin/python"
 property logPath : "/Users/lachlan/.openclaw/workspace/logs/lazyingart_simple_rule.log"
 property lockDir : "/tmp/lazyingart_simple_rule.lock"
 property defaultCalendar : "LazyingArt"
+property blockedAccounts : {"qq"}
 property triggerWaitSeconds : 180
 property triggerPollSeconds : 10
 property triggerGraceSeconds : 45
@@ -21,6 +22,29 @@ on oneLine(rawText)
 	set txt to do shell script "printf '%s' " & quoted form of txt & " | tr '\\r\\n' '  '"
 	return txt
 end oneLine
+
+on lowerText(rawText)
+	set txt to my oneLine(rawText)
+	if txt is "" then return ""
+	return do shell script "printf '%s' " & quoted form of txt & " | tr '[:upper:]' '[:lower:]'"
+end lowerText
+
+on inList(needle, values)
+	repeat with v in values
+		if needle is (v as text) then return true
+	end repeat
+	return false
+end inList
+
+on accountNameForMessage(oneMessage)
+	try
+		tell application "Mail"
+			return (name of account of mailbox of oneMessage) as text
+		end tell
+	on error
+		return ""
+	end try
+end accountNameForMessage
 
 on acquireLock()
 	try
@@ -70,7 +94,14 @@ using terms from application "Mail"
 			my appendLog("trigger_received count=" & triggerCount & " trigger_epoch=" & triggerEpoch)
 			repeat with i from 1 to triggerCount
 				try
+					set msgObj to item i of theMessages
+					set msgAccount to my accountNameForMessage(msgObj)
+					if my inList(my lowerText(msgAccount), blockedAccounts) then
+						my appendLog("skip_blocked_account idx=" & i & "/" & triggerCount & " account=" & my oneLine(msgAccount))
+						set outputText to "{\"status\":\"skipped_early\",\"reason\":\"blocked_account\"}"
+					else
 					set outputText to do shell script my pipelineCommand(triggerEpoch)
+					end if
 					my appendLog("processed_ok idx=" & i & "/" & triggerCount & " output=" & my oneLine(outputText))
 				on error errMsg number errNum
 					my appendLog("processed_error idx=" & i & "/" & triggerCount & " code=" & errNum & " msg=" & my oneLine(errMsg))

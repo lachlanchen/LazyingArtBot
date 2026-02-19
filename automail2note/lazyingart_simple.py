@@ -43,6 +43,8 @@ LOG_NOTE_ROOT = "Lazyingart/Log"
 DEFAULT_CALENDAR = "LazyingArt"
 DEFAULT_REMINDER_LIST = "LazyingArt"
 LEGACY_CALENDAR_PLACEHOLDERS = {"lachlan", "calendar"}
+HARD_BLOCKED_ACCOUNTS = {"qq"}
+HARD_BLOCKED_SENDER_EMAILS = {"lachchen@qq.com"}
 
 ACTION_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -365,6 +367,30 @@ def normalize_message(message: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def parse_sender_email(sender_text: str) -> str:
+    raw = (sender_text or "").strip().lower()
+    if not raw:
+        return ""
+    angle = re.search(r"<\s*([^>\s]+@[^>\s]+)\s*>", raw)
+    if angle:
+        return angle.group(1).strip().lower()
+    direct = re.search(r"([a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,})", raw)
+    if direct:
+        return direct.group(1).strip().lower()
+    return ""
+
+
+def should_skip_message_early(message: Dict[str, str], skip_accounts: set[str]) -> tuple[bool, str]:
+    account_name = str(message.get("account", "")).strip().lower()
+    effective_skip_accounts = {item.strip().lower() for item in skip_accounts if item.strip()} | HARD_BLOCKED_ACCOUNTS
+    if account_name and account_name in effective_skip_accounts:
+        return True, f"blocked_account:{account_name}"
+    sender_email = parse_sender_email(str(message.get("sender", "")))
+    if sender_email and sender_email in HARD_BLOCKED_SENDER_EMAILS:
+        return True, f"blocked_sender:{sender_email}"
+    return False, ""
+
+
 def applescript_string_literal(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
@@ -390,7 +416,8 @@ def parse_osascript_kv(text: str) -> Dict[str, str]:
 
 
 def fetch_recent_email_candidates(skip_accounts: set[str], per_inbox_limit: int = 12) -> list[Dict[str, str]]:
-    skip_literal = build_skip_accounts_literal(skip_accounts)
+    effective_skip_accounts = set(skip_accounts) | HARD_BLOCKED_ACCOUNTS
+    skip_literal = build_skip_accounts_literal(effective_skip_accounts)
     script = f"""
 use framework "Foundation"
 use scripting additions
@@ -1114,7 +1141,8 @@ end run
 
 
 def fetch_latest_email_payload(skip_accounts: set[str]) -> Dict[str, str]:
-    skip_literal = build_skip_accounts_literal(skip_accounts)
+    effective_skip_accounts = set(skip_accounts) | HARD_BLOCKED_ACCOUNTS
+    skip_literal = build_skip_accounts_literal(effective_skip_accounts)
     script = f"""
 use framework "Foundation"
 use scripting additions
@@ -2131,8 +2159,10 @@ def main() -> None:
     processed_ids = load_processed_ids()
 
     source_ref = ""
+    skip_accounts: set[str] = set()
     if args.latest_email:
         skip_accounts = {item.strip().lower() for item in args.skip_accounts.split(",") if item.strip()}
+        skip_accounts |= HARD_BLOCKED_ACCOUNTS
         trigger_epoch = max(0, int(args.trigger_epoch or 0))
         trigger_wait_seconds = max(0, int(args.trigger_wait_seconds or 0))
         trigger_poll_seconds = max(1, int(args.trigger_poll_seconds or 1))
@@ -2197,6 +2227,25 @@ def main() -> None:
         except Exception as exc:
             logging.error("message_parse_failed path=%s err=%s", source_path, exc)
             sys.exit(1)
+
+    skip_now, skip_reason = should_skip_message_early(message, skip_accounts)
+    if skip_now:
+        skip_payload = {
+            "status": "skipped_early",
+            "reason": skip_reason,
+            "message_id": message.get("messageID", ""),
+            "account": message.get("account", ""),
+            "sender": message.get("sender", ""),
+        }
+        logging.info(
+            "early_skip reason=%s message_id=%s account=%s sender=%s",
+            skip_reason,
+            message.get("messageID", ""),
+            message.get("account", ""),
+            message.get("sender", ""),
+        )
+        print(json.dumps(skip_payload, ensure_ascii=False))
+        return
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     message_token = safe_token(message.get("messageID", ""))
