@@ -20,7 +20,7 @@ SEND_EMAIL=1
 FROM_ADDR="$DEFAULT_FROM"
 TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachlan@lightmind.art")
 CUSTOM_TO=0
-RUN_LEGAL_DEPT=0
+RUN_LEGAL_DEPT=1
 RUN_LIFE_REMINDER=1
 RUN_WEB_SEARCH=1
 LIFE_INPUT_MD="$LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md"
@@ -77,7 +77,7 @@ Options:
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>       Reasoning level (default: xhigh)
-  --legal-dept              Enable legal/compliance stage (default: off)
+  --legal-dept              Enable legal/compliance stage (default: on)
   --no-legal-dept           Disable legal/compliance stage
   --market-context <path>   Optional extra context file for market step
   --confidential-root <p>   Lightmind confidential root path override
