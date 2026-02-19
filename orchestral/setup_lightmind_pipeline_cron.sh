@@ -10,6 +10,7 @@ JOB_NAME_PM="Lightmind Pipeline 18:00 HK"
 MODEL="gpt-5.3-codex-spark"
 REASONING="xhigh"
 RUN_LIFE_REMINDER=1
+RUN_LEGAL_DEPT=1
 LIFE_INPUT_MD="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/PitchDemoTraning.md"
 LIFE_STATE_JSON="/Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/Lightmind/lightmind_life_reminder_state.json"
 LIFE_STATE_MD="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output/LightMindLifeReminderState.md"
@@ -26,6 +27,8 @@ Options:
   --reasoning <level>     Reasoning level (default: xhigh)
   --life-reminder         Enable life reverse planning (default: on)
   --no-life-reminder      Disable life reverse planning
+  --legal-dept            Enable legal compliance review (default: on)
+  --no-legal-dept         Disable legal compliance review
   --life-input-md <path>  Life reverse input markdown path
   --life-state-json <path> Life reverse state JSON path
   --life-state-md <path>  Life reverse state markdown path
@@ -48,6 +51,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-life-reminder)
       RUN_LIFE_REMINDER=0
+      ;;
+    --legal-dept)
+      RUN_LEGAL_DEPT=1
+      ;;
+    --no-legal-dept)
+      RUN_LEGAL_DEPT=0
       ;;
     --life-input-md)
       shift
@@ -111,11 +120,18 @@ else
   LIFE_ARGS=(--no-life-reminder)
 fi
 
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  LEGAL_ARGS=(--legal-dept)
+else
+  LEGAL_ARGS=(--no-legal-dept)
+fi
+
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lightmind pipeline exactly once via async launcher.
 1) Execute:
 ./orchestral/run_lightmind_pipeline_async.sh \
   --model \"$MODEL\" --reasoning \"$REASONING\" \\
+$(printf '  %q ' "${LEGAL_ARGS[@]}")
 $(printf '  %q ' "${LIFE_ARGS[@]}")
 2) The launcher returns quickly; pipeline logs are written under /tmp/lightmind_pipeline_runs.
 3) Run a full cycle (resource analysis + all context refresh stages) by default.
