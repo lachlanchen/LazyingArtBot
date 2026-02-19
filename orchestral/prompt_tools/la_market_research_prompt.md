@@ -9,6 +9,11 @@ High-priority context to use every run:
 - All public repositories under that profile
 - Broader market signals: AI creator tools, automation SaaS, indie maker launches, creative hardware, APAC/Shenzhen product trends.
 
+Web-search handoff (when provided by caller):
+
+- If context includes artifacts from `prompt_web_search_immersive.sh`, use the latest `search page screenshots`, `query-*.txt`, and `query-*.json`.
+- Prioritize opened result entries from `opened_items` using the per-query `opened_count` (configured `--open-top-results`) with title + URL + evidence snippet + optional screenshot references in the final note summary.
+
 You must act as a conservative analyst:
 
 - Prefer concrete signals over hype.

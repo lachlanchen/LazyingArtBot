@@ -134,9 +134,17 @@ Run the local Lightmind pipeline exactly once via async launcher.
 $(printf '  %q ' "${LEGAL_ARGS[@]}")
 $(printf '  %q ' "${LIFE_ARGS[@]}")
 2) The launcher returns quickly; pipeline logs are written under /tmp/lightmind_pipeline_runs.
-3) Run a full cycle (resource analysis + all context refresh stages) by default.
-4) If execution fails, report stderr and stop.
-5) Do not run other commands.
+3) Run a full cycle (resource analysis + context refresh) by default.
+4) web-search outputs are written to pipeline run directory:
+   /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/Lightmind/pipeline_runs/<run_id>/
+   including web_search.summary.txt and web_search_digest.html.
+   query artifacts include:
+     - query-*.json
+     - query-*.txt
+     - screenshots/*.png
+   summary should include top result entries plus results-page screenshot paths from prompt_web_search_immersive.
+5) If execution fails, report stderr and stop.
+6) Do not run other commands.
 EOF
 )"
 

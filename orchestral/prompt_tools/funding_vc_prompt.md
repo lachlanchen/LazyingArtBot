@@ -11,6 +11,16 @@ Inputs:
 - `reference_sources`: optional source hints
 - `run_context`: runtime context
 
+Search evidence inputs:
+
+- `run_context` may include web-search metadata emitted by `run_la_pipeline.sh` / `run_lightmind_pipeline.sh`:
+  - `query_file_root`
+  - `query_file_pattern` / `query_file_pattern_txt` / `query_file_pattern_screenshots`
+  - `top_results_per_query`
+- Use `query-*.json` and `query-*.txt` under the file root for first-page scan and artifact links.
+- Use `search_page_screenshots`, `search_page_overviews`, and `opened_items` as evidence anchors.
+- Do not constrain synthesis to exactly three entries; use the actual `opened_count` per keyword from the web-search stage.
+
 Conservative rules:
 
 - Only include opportunities with clear signals and enough details to act on (title, date/deadline, source, reason).

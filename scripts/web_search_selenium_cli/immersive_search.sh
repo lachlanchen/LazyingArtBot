@@ -25,6 +25,7 @@ QUERY=""
 CLICK_AT=""
 RESULT_INDEX=1
 OPEN_RESULT=0
+OPEN_TOP_RESULTS=0
 SUMMARIZE_OPEN=0
 OPEN_URL=""
 
@@ -49,6 +50,7 @@ Options:
   --headless                    Run browser headless (default: off)
   --open-result                 Click selected result index instead of coordinate click
   --result-index <n>            Result index for --open-result (default: 1)
+  --open-top-results <n>        Open and summarize the first N results (default: 0)
   --click-at <x,y>              Click absolute browser coords before summary
   --summarize-open-url          Extract visible-page text after open/click
   --summary-max-chars <n>       Max chars from open page summary (default: 2500)
@@ -153,6 +155,11 @@ while [[ "$#" -gt 0 ]]; do
       shift
       [[ "$#" -gt 0 ]] || { echo "--result-index requires value" >&2; exit 1; }
       RESULT_INDEX="$1"
+      ;;
+    --open-top-results)
+      shift
+      [[ "$#" -gt 0 ]] || { echo "--open-top-results requires value" >&2; exit 1; }
+      OPEN_TOP_RESULTS="$1"
       ;;
     --click-at)
       shift
@@ -274,6 +281,9 @@ fi
 if [[ "$OPEN_RESULT" -eq 1 ]]; then
   CLI_ARGS+=(--open-result --result-index "$RESULT_INDEX")
 fi
+if [[ "$OPEN_TOP_RESULTS" -gt 0 ]]; then
+  CLI_ARGS+=(--open-top-results "$OPEN_TOP_RESULTS")
+fi
 
 if [[ "$SUMMARIZE_OPEN" -eq 1 ]]; then
   CLI_ARGS+=(--summarize-open-url --summary-max-chars "$SUMMARY_MAX_CHARS" --scroll-steps "$SCROLL_STEPS" --scroll-pause "$SCROLL_PAUSE")
@@ -331,6 +341,11 @@ else:
         txt_lines.append(
             f"results_count={payload.get('count') if payload.get('count') is not None else payload.get('results_count', 0)}"
         )
+        items = payload.get("items")
+        if not isinstance(items, list):
+            items = payload.get("results", [])
+            if not isinstance(items, list):
+                items = []
         txt_lines.append(f"screenshots={payload.get('screenshots', [])}")
         viewport = payload.get("viewport") or {}
         if isinstance(viewport, dict) and viewport:
@@ -338,15 +353,48 @@ else:
                 "viewport="
                 + ",".join(f"{key}={viewport[key]}" for key in sorted(viewport.keys()))
             )
+        overviews = payload.get("search_page_overviews", [])
+        if isinstance(overviews, list) and overviews:
+            txt_lines.append("search_page_overviews:")
+            for row in overviews[:3]:
+                if not isinstance(row, dict):
+                    continue
+                page = row.get("page", "")
+                row_summary = str(row.get("summary", "")).strip()
+                if row_summary:
+                    txt_lines.append(f"  page={page} {row_summary[:320]}")
         clicked = payload.get("clicked") if isinstance(payload.get("clicked"), dict) else {}
         if clicked:
             txt_lines.append(f"clicked_index={clicked.get('result_index', '')}")
             txt_lines.append(f"clicked_title={clicked.get('title', '')}")
             txt_lines.append(f"clicked_url={clicked.get('url', '')}")
-            summary = clicked.get("summary", "")
-            if summary:
-                txt_lines.append("clicked_summary=" + summary)
-        for item in payload.get("items", [])[:8]:
+            clicked_summary = str(clicked.get("summary", "")).strip()
+            if clicked_summary:
+                txt_lines.append("clicked_summary=" + clicked_summary)
+            clicked_screenshots = clicked.get("opened_screenshots")
+            if isinstance(clicked_screenshots, list) and clicked_screenshots:
+                txt_lines.append("clicked_screenshots=" + str(clicked_screenshots))
+            clicked_steps = clicked.get("open_scroll_steps")
+            if isinstance(clicked_steps, list) and clicked_steps:
+                txt_lines.append(f"clicked_open_scroll_steps={len(clicked_steps)}")
+        opened_items = payload.get("opened_items")
+        if isinstance(opened_items, list):
+            txt_lines.append(f"opened_count={len(opened_items)}")
+            for item in opened_items[:8]:
+                txt_lines.append("OPENED")
+                txt_lines.append(f"  result_index={item.get('result_index', '')}")
+                txt_lines.append(f"  title={item.get('title', '')}")
+                txt_lines.append(f"  url={item.get('url', '')}")
+                item_summary = str(item.get("summary", "")).strip()
+                if item_summary:
+                    txt_lines.append(f"  summary={item_summary[:2800]}")
+                item_screenshots = item.get("opened_screenshots")
+                if isinstance(item_screenshots, list) and item_screenshots:
+                    txt_lines.append(f"  screenshots={item_screenshots}")
+                item_steps = item.get("open_scroll_steps")
+                if isinstance(item_steps, list) and item_steps:
+                    txt_lines.append(f"  open_scroll_steps={len(item_steps)}")
+        for item in items[:8]:
             txt_lines.append("RESULT")
             txt_lines.append(f"  title={item.get('title', '')}")
             txt_lines.append(f"  url={item.get('url', '')}")

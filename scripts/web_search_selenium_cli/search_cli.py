@@ -1120,6 +1120,38 @@ def collect_scrolled_summary(
     return {"summary": "", "screenshots": [str(step.get("screenshot")) for step in steps if step.get("screenshot")], "steps": steps}
 
 
+def collect_search_page_overview(
+    driver: webdriver.Chrome,
+    page: int,
+    max_chars: int,
+    scroll_steps: int,
+    scroll_pause: float,
+    screenshot_dir: Optional[Path],
+    screenshot_prefix: str,
+    capture: bool,
+) -> Dict[str, Union[str, int, List[Dict[str, Union[str, float, int]]], List[str]]]:
+    payload = collect_scrolled_summary(
+        driver=driver,
+        max_chars=max_chars,
+        scroll_steps=scroll_steps,
+        scroll_pause=scroll_pause,
+        screenshot_dir=screenshot_dir,
+        screenshot_prefix=f"{screenshot_prefix}-page-{page:02d}",
+        capture=capture,
+    )
+    screenshots = payload.get("screenshots", [])
+    steps = payload.get("steps", [])
+    summary = payload.get("summary", "")
+    return {
+        "page": str(page),
+        "summary": str(summary),
+        "scroll_steps": int(scroll_steps),
+        "screenshot_count": len(screenshots) if isinstance(screenshots, list) else 0,
+        "screenshot_paths": [str(path) for path in screenshots] if isinstance(screenshots, list) else [],
+        "steps": steps if isinstance(steps, list) else [],
+    }
+
+
 def capture_viewport_info(driver: webdriver.Chrome) -> Dict[str, Union[int, float, str]]:
     return driver.execute_script(
         """
@@ -1351,6 +1383,8 @@ def main() -> None:
     query_results: List[SearchResult] = []
     clicked_result: Optional[SearchResult] = None
     clicked_results: List[SearchResult] = []
+    search_page_overviews: List[Dict[str, Union[str, int, List[Dict[str, Union[str, float, int]]], List[str]]]] = []
+    search_page_screenshots: List[str] = []
     remaining_results = max(0, args.results)
     seen_urls: set[str] = set()
     engine_key = _coerce_engine_name(args.engine)
@@ -1430,6 +1464,21 @@ def main() -> None:
                         seen_urls=seen_urls,
                         max_results=remaining_results,
                     )
+                    page_overview = collect_search_page_overview(
+                        driver=driver,
+                        page=page,
+                        max_chars=min(max(600, args.summary_max_chars), 1200),
+                        scroll_steps=max(0, min(args.scroll_steps, 1)),
+                        scroll_pause=args.scroll_pause,
+                        screenshot_dir=screenshot_dir if args.capture_screenshots else None,
+                        screenshot_prefix=args.screenshot_prefix,
+                        capture=args.capture_screenshots,
+                    )
+                    page_overview["results_found"] = len(page_results)
+                    search_page_overviews.append(page_overview)
+                    for path in page_overview.get("screenshot_paths", []):
+                        if isinstance(path, str) and path not in search_page_screenshots:
+                            search_page_screenshots.append(path)
                     if args.capture_screenshots:
                         screenshot_steps.append(take_screenshot(driver, screenshot_dir, "results", args.screenshot_prefix))
                     for item in page_results:
@@ -1469,6 +1518,21 @@ def main() -> None:
                         seen_urls=seen_urls,
                         max_results=remaining_results,
                     )
+                    page_overview = collect_search_page_overview(
+                        driver=driver,
+                        page=page,
+                        max_chars=min(max(600, args.summary_max_chars), 1200),
+                        scroll_steps=max(0, min(args.scroll_steps, 1)),
+                        scroll_pause=args.scroll_pause,
+                        screenshot_dir=screenshot_dir if args.capture_screenshots else None,
+                        screenshot_prefix=args.screenshot_prefix,
+                        capture=args.capture_screenshots,
+                    )
+                    page_overview["results_found"] = len(page_results)
+                    search_page_overviews.append(page_overview)
+                    for path in page_overview.get("screenshot_paths", []):
+                        if isinstance(path, str) and path not in search_page_screenshots:
+                            search_page_screenshots.append(path)
                     for item in page_results:
                         result_counter += 1
                         if result_counter > args.results:
@@ -1523,9 +1587,19 @@ def main() -> None:
                 else:
                     open_indices: List[int] = []
                     if args.open_top_results > 0:
-                        open_indices = list(
-                            range(1, min(len(query_results), max(1, args.open_top_results)) + 1)
-                        )
+                        open_indices = []
+                        seen_urls: set[str] = set()
+                        for idx, item in enumerate(query_results, start=1):
+                            if len(open_indices) >= max(1, args.open_top_results):
+                                break
+                            url_value = str(item.get("url", "")).strip()
+                            if not url_value:
+                                continue
+                            url_key = url_value.split("#", 1)[0]
+                            if url_key in seen_urls:
+                                continue
+                            seen_urls.add(url_key)
+                            open_indices.append(idx)
                     else:
                         open_indices = [args.result_index]
 
@@ -1586,6 +1660,8 @@ def main() -> None:
             "url": args.open_url,
             "summary": open_summary,
             "summary_max_chars": args.summary_max_chars,
+            "search_page_overviews": [],
+            "search_page_screenshots": [],
             "screenshots": screenshot_steps,
             "viewport": viewport_info,
         }
@@ -1609,6 +1685,8 @@ def main() -> None:
             "end_page": end_page,
             "results_count": len(query_results),
             "results": results_payload(query_results),
+            "search_page_overviews": search_page_overviews,
+            "search_page_screenshots": search_page_screenshots,
             "screenshots": screenshot_steps,
             "viewport": viewport_info,
             "count": len(query_results),
@@ -1665,6 +1743,8 @@ def main() -> None:
         "engine": args.engine,
         "count": len(query_results),
         "items": results_payload(query_results),
+        "search_page_overviews": search_page_overviews,
+        "search_page_screenshots": search_page_screenshots,
         "start_page": start_page,
         "end_page": end_page,
         "results_count": len(query_results),

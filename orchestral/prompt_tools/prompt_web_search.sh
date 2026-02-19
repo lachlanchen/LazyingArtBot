@@ -21,16 +21,16 @@ PROFILE_DIR="$DEFAULT_PROFILE_DIR"
 DEBUG_PORT="$DEFAULT_DEBUG_PORT"
 OPEN_URL=""
 DISMISS_COOKIES="${WEB_SEARCH_DISMISS_COOKIES:-1}"
-QUERIES=("site:nature.com research paper" "site:sciencemag.org research paper" "site:science.org research paper")
+QUERIES=("AI technology market updates" "latest AI research highlights" "AI startup and funding signals")
 
 usage() {
   cat <<'USAGE'
 Usage: prompt_web_search.sh [options]
 
-Generate plaintext web-search evidence from Nature/Science and save to files.
+Generate web-search evidence for the configured queries and save evidence files.
 
 Options:
-  --query <text>              Add a query (repeatable). Defaults to Nature + Science.
+  --query <text>              Add a query (repeatable). Defaults to generic web probes.
   --engine <google|duckduckgo|bing>  Search engine (default: google)
   --results <n>               Max results per query (default: 5)
   --output-dir <path>         Base output dir (default: ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs)
@@ -54,6 +54,7 @@ Output:
   <output-dir>/<run-id>/web_search_results.txt
   <output-dir>/<run-id>/query-<safe-name>.json (raw JSON from search tool)
   <output-dir>/<run-id>/query-<safe-name>.txt (parsed text for each query)
+  <output-dir>/<run-id>/screenshots/*.png (search results page capture)
 USAGE
   exit 1
 }
@@ -179,6 +180,9 @@ printf '%s\n' "conda_env=$CONDA_ENV" | tee -a "$SUMMARY_FILE"
 printf '%s\n' "open_url=$OPEN_URL" | tee -a "$SUMMARY_FILE"
 printf '%s\n' "profile_dir=$PROFILE_DIR" | tee -a "$SUMMARY_FILE"
 printf '%s\n' "debug_port=$DEBUG_PORT" | tee -a "$SUMMARY_FILE"
+SCREENSHOT_DIR="${RUN_DIR}/screenshots"
+mkdir -p "$SCREENSHOT_DIR"
+printf '%s\n' "screenshot_dir=$SCREENSHOT_DIR" | tee -a "$SUMMARY_FILE"
 if [[ -n "$OPEN_URL" ]]; then
   printf '%s\n\n' "open_url_mode=1" | tee -a "$SUMMARY_FILE"
 else
@@ -228,6 +232,7 @@ for raw_query in "${QUERY_TASKS[@]}"; do
   else
     args=(--env "$CONDA_ENV" --engine "$ENGINE" --results "$RESULTS" --output json)
   fi
+  args+=(--capture-screenshots --screenshot-dir "$SCREENSHOT_DIR" --screenshot-prefix "${RUN_ID}-${slug}")
   if [[ "$DISMISS_COOKIES" -eq 1 ]]; then
     args+=(--dismiss-cookies)
   fi
@@ -298,6 +303,26 @@ except json.JSONDecodeError as exc:
 else:
     out.append(f"query: {payload.get('query', query)}")
     items = payload.get("items", []) if isinstance(payload, dict) else []
+    search_overviews = payload.get("search_page_overviews", []) if isinstance(payload, dict) else []
+    search_screenshots = payload.get("search_page_screenshots", []) if isinstance(payload, dict) else []
+    run_screenshots = payload.get("screenshots", []) if isinstance(payload, dict) else []
+    if search_overviews:
+        out.append("search_result_page_scan:")
+        for row in search_overviews:
+            if not isinstance(row, dict):
+                continue
+            page = row.get("page", "")
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                out.append(f"  - page {page}: {row_summary[:320]}")
+    if search_screenshots:
+        out.append("search_result_page_screenshots:")
+        for path in search_screenshots:
+            out.append(f"  - {path}")
+    if run_screenshots:
+        out.append("capture_screenshots:")
+        for path in run_screenshots:
+            out.append(f"  - {path}")
     out.append(f"count: {len(items)}")
     for idx, item in enumerate(items, 1):
         title = (item.get("title") or "").strip()

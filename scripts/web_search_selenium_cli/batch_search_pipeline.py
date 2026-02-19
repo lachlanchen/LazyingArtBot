@@ -263,8 +263,14 @@ def main() -> int:
 
     payload = search_once(args, engine, run_dir, search_tool, run_id)
     opened_items = payload.get("opened_items", []) if isinstance(payload, dict) else []
+    search_page_overviews = payload.get("search_page_overviews", [])
+    search_page_screenshots = payload.get("search_page_screenshots", [])
     if not isinstance(opened_items, list):
         opened_items = []
+    if not isinstance(search_page_overviews, list):
+        search_page_overviews = []
+    if not isinstance(search_page_screenshots, list):
+        search_page_screenshots = []
     if not opened_items:
         print(json.dumps({"status": "no_results", "run_id": run_id, "query": args.query, "engine": engine}, ensure_ascii=False, indent=2))
         return 0
@@ -316,6 +322,8 @@ def main() -> int:
         "engine": engine,
         "top_results": args.top_results,
         "count": len(processed),
+        "search_page_overviews": search_page_overviews,
+        "search_page_screenshots": search_page_screenshots,
         "items": processed,
         "item_markdown": item_files,
     }
@@ -326,6 +334,21 @@ def main() -> int:
     )
 
     overall = ["# Search Batch Summary", "", f"- run_id: `{run_id}`", f"- query: `{args.query}`", f"- kind: `{args.kind}`", f"- engine: `{engine}`", f"- items: `{len(processed)}`", ""]
+    if search_page_overviews:
+        overall.append("## Search results page scan")
+        for row in search_page_overviews:
+            if not isinstance(row, dict):
+                continue
+            page = str(row.get("page", ""))
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                overall.append(f"- page {page}: {row_summary[:320]}")
+        overall.append("")
+    if search_page_screenshots:
+        overall.append("## Search result page screenshots")
+        for path in search_page_screenshots:
+            overall.append(f"- {path}")
+        overall.append("")
     for item in processed:
         overall.append(f"## {item['index']}. {item['title'] or '(untitled)'}")
         overall.append(f"- URL: {item['url']}")

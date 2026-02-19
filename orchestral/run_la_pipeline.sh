@@ -6,6 +6,7 @@ WORKSPACE="/Users/lachlan/.openclaw/workspace"
 PROMPT_DIR="$REPO_DIR/orchestral/prompt_tools"
 NOTES_ROOT="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt"
 ARTIFACT_BASE="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs"
+PIPELINE_LOCK_FILE="$ARTIFACT_BASE/.la_pipeline.lock"
 
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
@@ -21,12 +22,17 @@ FROM_ADDR="$DEFAULT_FROM"
 ACADEMIC_RESEARCH=1
 ACADEMIC_MAX_RESULTS=5
 WEB_SEARCH_TOP_RESULTS=3
+WEB_SEARCH_HOLD_SECONDS="15"
+WEB_SEARCH_SCROLL_STEPS="3"
+WEB_SEARCH_SCROLL_PAUSE="0.9"
 ACADEMIC_QUERIES=(
-  "optical memory platform"
-  "wearable AI personal knowledge capture"
-  "privacy-preserving multimodal systems"
-  "optical computing"
-  "memory indexing and retrieval"
+  "Nature AI multimodal memory systems"
+  "Science AI memory indexing and retrieval"
+  "Cell memory and long context language models"
+  "Optica photonic AI memory"
+  "TIPAMI AI and optics publications"
+  "CVPR multimodal foundation models"
+  "ICML memory-augmented AI systems"
 )
 ACADEMIC_RSS_SOURCES=(
   "Nature:https://www.nature.com/nature.rss"
@@ -35,9 +41,9 @@ ACADEMIC_RSS_SOURCES=(
   "Nature Machine Intelligence:https://www.nature.com/natmachintell.rss"
 )
 LA_WEB_SEARCH_QUERIES=(
-  "auto:latest developments in wearable AI personal memory systems"
-  "news:Lazying.art wearable product updates"
-  "scholar:optical computing memory indexing multimodal retrieval"
+  "auto:Lazying.art latest public updates"
+  "news:AI startups, creator tools, and product launch updates"
+  "scholar:multimodal memory indexing and retrieval"
 )
 MARKET_CONTEXT_FILE=""
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
@@ -80,9 +86,12 @@ Options:
   --skip-resource-analysis   Skip upfront resource analysis stage
   --academic-query <text>    Add/override an academic query (repeatable)
   --no-academic-research    Disable academic research stage
-  --academic-max-results <n> Max results per arXiv query (default: 5)
+  --academic-max-results <n> Max web results per academic query (default: 5)
   --no-web-search            Disable keyword web search stage
   --web-search-top-results <n> Max search results per keyword (default: 3)
+  --web-search-scroll-steps <n> Number of scroll steps for opened pages (default: 3)
+  --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
+  --web-search-hold-seconds <sec> Keep browser open for N seconds per query (default: 15)
   --web-search-query <text>  Add/override a web search query (repeatable)
   --life-input-md <path>    Input markdown for life reminder planner
   --life-reminder           Run life reminder planner (default)
@@ -145,6 +154,18 @@ while [[ $# -gt 0 ]]; do
     --no-web-search)
       RUN_WEB_SEARCH=0
       ;;
+    --web-search-scroll-steps)
+      shift
+      WEB_SEARCH_SCROLL_STEPS="${1:-3}"
+      ;;
+    --web-search-scroll-pause)
+      shift
+      WEB_SEARCH_SCROLL_PAUSE="${1:-0.9}"
+      ;;
+    --web-search-hold-seconds)
+      shift
+      WEB_SEARCH_HOLD_SECONDS="${1:-15}"
+      ;;
     --web-search-query)
       shift
       LA_WEB_SEARCH_QUERIES+=("${1:-}")
@@ -190,6 +211,43 @@ LOG_FILE="$ARTIFACT_DIR/pipeline.log"
 log() {
   printf '[%s] %s\n' "$(TZ=Asia/Hong_Kong date '+%Y-%m-%d %H:%M:%S %Z')" "$1" | tee -a "$LOG_FILE"
 }
+
+acquire_pipeline_lock() {
+  mkdir -p "$ARTIFACT_BASE"
+  if [[ -f "$PIPELINE_LOCK_FILE" ]]; then
+    local lock_content
+    local lock_pid
+    local lock_ts
+    lock_content="$(cat "$PIPELINE_LOCK_FILE")"
+    lock_pid="${lock_content%%|*}"
+    lock_ts="${lock_content##*|}"
+    if [[ -n "$lock_pid" ]] && kill -0 "$lock_pid" >/dev/null 2>&1; then
+      log "Another Lazying.art pipeline run is active (pid=$lock_pid, started=$lock_ts). Exiting."
+      exit 0
+    fi
+    rm -f "$PIPELINE_LOCK_FILE"
+  fi
+
+  local lock_epoch
+  lock_epoch="$(TZ=Asia/Hong_Kong date '+%Y%m%d-%H%M%S')"
+  printf '%s|%s' "$$" "$lock_epoch" > "$PIPELINE_LOCK_FILE"
+  chmod 600 "$PIPELINE_LOCK_FILE"
+}
+
+release_pipeline_lock() {
+  if [[ ! -f "$PIPELINE_LOCK_FILE" ]]; then
+    return 0
+  fi
+  local lock_content
+  local lock_pid
+  lock_content="$(cat "$PIPELINE_LOCK_FILE")"
+  lock_pid="${lock_content%%|*}"
+  if [[ "$lock_pid" == "$$" ]]; then
+    rm -f "$PIPELINE_LOCK_FILE"
+  fi
+}
+
+trap release_pipeline_lock EXIT INT TERM
 
 extract_note_html() {
   local result_json="$1"
@@ -361,14 +419,34 @@ slugify_query() {
   fi
 }
 
+
+web_search_engine_from_kind() {
+  local kind="$1"
+  case "$kind" in
+    scholar)
+      echo "google-scholar"
+      ;;
+    news)
+      echo "google-news"
+      ;;
+    auto|general)
+      echo "google"
+      ;;
+    *)
+      echo "google"
+      ;;
+  esac
+}
+
 append_web_search_reports() {
   local query_label="$1"
   local query_kind="$2"
   local result_json="$3"
   local summary_file="$4"
   local html_file="$5"
+  local result_dir="$6"
 
-  python3 - "$query_label" "$query_kind" "$result_json" "$summary_file" "$html_file" <<'PY'
+  python3 - "$query_label" "$query_kind" "$result_json" "$summary_file" "$html_file" "$result_dir" <<'PY'
 import html
 import json
 import sys
@@ -379,6 +457,20 @@ query_kind = sys.argv[2]
 result_json = Path(sys.argv[3]).expanduser()
 summary_path = Path(sys.argv[4]).expanduser()
 html_path = Path(sys.argv[5]).expanduser()
+result_dir = Path(sys.argv[6]).expanduser()
+
+
+def as_list(value):
+    return value if isinstance(value, list) else []
+
+
+def to_str(value):
+    return str(value).strip()
+
+
+def truncate(value, limit=280):
+    text = to_str(value)
+    return text[:limit]
 
 if not result_json.is_file():
     line = f"- ❌ {query_label} ({query_kind}): no results (search did not return JSON)."
@@ -403,14 +495,85 @@ except Exception as exc:  # noqa: BLE001
 items = payload.get("items") if isinstance(payload, dict) else []
 if not isinstance(items, list):
     items = []
+search_overview = []
+search_screenshots = []
+opened_items = []
+clicked = {}
+if isinstance(payload, dict):
+    search_overview = as_list(payload.get("search_overviews"))
+    if not search_overview:
+        search_overview = as_list(payload.get("search_page_overviews"))
+    search_screenshots = as_list(payload.get("search_screenshots"))
+    if not search_screenshots:
+        search_screenshots = as_list(payload.get("search_page_screenshots"))
+    opened_items = as_list(payload.get("opened_items"))
+    clicked = payload.get("clicked", {})
+    if not isinstance(clicked, dict):
+        clicked = {}
+
+if not result_dir.is_dir():
+    result_dir = result_json.parent
+
+txt_candidates = sorted(result_dir.glob("query-*.txt"), key=lambda p: p.name)
+result_txt = txt_candidates[0] if txt_candidates else None
+
+opened_count = payload.get("opened_count")
+if not isinstance(opened_count, int):
+    opened_count = len(opened_items)
+opened_display_count = max(0, min(opened_count, len(opened_items)))
+
+if not search_overview:
+    fallback_summary = ""
+    if isinstance(payload.get("search_summary"), str):
+        fallback_summary = to_str(payload.get("search_summary"))
+    elif isinstance(payload.get("summary"), str):
+        fallback_summary = to_str(payload.get("summary"))
+    if fallback_summary:
+        search_overview = [{"page": "1", "summary": fallback_summary}]
 
 with summary_path.open("a", encoding="utf-8") as summary:
     summary.write(f"- ✅ {query_label} ({query_kind}): {len(items)} result(s)\n")
+    summary.write(f"  - result_json: {result_json}\n")
+    if result_txt is not None:
+        summary.write(f"  - result_txt: {result_txt}\n")
+    summary.write(f"  - result_dir: {result_dir}\n")
+    if search_screenshots:
+        summary.write("  - results_page_screenshots:\n")
+        for shot in search_screenshots[:6]:
+            summary.write(f"    - {shot}\n")
+    if search_overview:
+        summary.write("  - search result page scan:\n")
+        for row in search_overview:
+            if not isinstance(row, dict):
+                continue
+            page = row.get("page", "")
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                summary.write(f"    - page {page}: {row_summary[:280]}\n")
+if opened_display_count:
+    summary.write(f"  - opened result details: {opened_display_count}\n")
+    for item in opened_items[:opened_display_count]:
+            title = to_str(item.get("title", "")) or "(untitled)"
+            url = to_str(item.get("url", ""))
+            item_summary = to_str(item.get("summary", ""))
+            summary.write(f"    - {title} | {url}\n")
+            if item_summary:
+                summary.write(f"      - summary: {truncate(item_summary, 320)}\n")
+    elif clicked:
+        title = to_str(clicked.get("title", "")) or "(untitled)"
+        url = to_str(clicked.get("url", ""))
+        clicked_summary = to_str(clicked.get("summary", ""))
+        summary.write(f"  - clicked: {title} | {url}\n")
+        if clicked_summary:
+            summary.write(f"    - summary: {truncate(clicked_summary, 320)}\n")
 
 with html_path.open("a", encoding="utf-8") as html_out:
     html_out.write(
         f"<h3>✅ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
         f"<p><strong>source:</strong> {html.escape(payload.get('query', ''))}</p>"
+        f"<p><strong>result_json:</strong> {html.escape(str(result_json))}</p>"
+        f"<p><strong>result_dir:</strong> {html.escape(str(result_dir))}</p>"
+        f"<p><strong>result_txt:</strong> {html.escape(str(result_txt)) if result_txt else 'n/a'}</p>"
     )
     for item in items:
         title = str(item.get("title", "")).strip() or "(untitled)"
@@ -418,6 +581,12 @@ with html_path.open("a", encoding="utf-8") as html_out:
         snippet = str(item.get("snippet", "")).strip()
         codex_summary = str(item.get("codex_summary", "")).strip()
         screenshot = str(item.get("screenshot", "")).strip()
+        center_x = item.get("center_x", "")
+        center_y = item.get("center_y", "")
+        elem_x = item.get("element_x", "")
+        elem_y = item.get("element_y", "")
+        elem_w = item.get("element_width", "")
+        elem_h = item.get("element_height", "")
 
         with summary_path.open("a", encoding="utf-8") as summary:
             summary.write(f"  - {title} | {url}\n")
@@ -434,12 +603,64 @@ with html_path.open("a", encoding="utf-8") as html_out:
             html_out.write(f"<p><strong>{html.escape(title)}</strong></p>")
         if snippet:
             html_out.write(f"<p>{html.escape(snippet)}</p>")
+        if center_x != "" and center_y != "":
+            html_out.write(
+                f"<p><strong>location:</strong> center=({html.escape(str(center_x))},{html.escape(str(center_y))})</p>"
+            )
+        if elem_x != "" and elem_y != "" and elem_w != "" and elem_h != "":
+            html_out.write(
+                f"<p><strong>element:</strong> "
+                f"{html.escape(str(elem_x))},{html.escape(str(elem_y))} "
+                f"{html.escape(str(elem_w))}x{html.escape(str(elem_h))}</p>"
+            )
         if screenshot:
             html_out.write(f"<p><strong>Screenshot:</strong> {html.escape(screenshot)}</p>")
         if codex_summary:
             html_out.write(f"<p><strong>Codex summary:</strong> {html.escape(codex_summary)}</p>")
         html_out.write("</div>")
+    if search_overview:
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        html_out.write("<p><strong>Search results page scan:</strong></p>")
+        for row in search_overview:
+            if not isinstance(row, dict):
+                continue
+            page = row.get("page", "")
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                html_out.write(f"<p>- page {html.escape(str(page))}: {html.escape(row_summary[:400])}</p>")
+        if search_screenshots:
+            for item in search_screenshots[:6]:
+                html_out.write(f"<p><strong>Search screenshot:</strong> {html.escape(str(item))}</p>")
+        html_out.write("</div>")
 
+    opened_render = opened_items if opened_items else ([clicked] if clicked else [])
+    opened_render_count = len(opened_render)
+    if opened_items:
+        opened_render_count = min(opened_display_count, opened_render_count)
+        opened_render = opened_render[:opened_render_count]
+    if opened_render:
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        html_out.write(f"<p><strong>Opened result details (top {opened_render_count}):</strong></p>")
+        for item in opened_render:
+            if not isinstance(item, dict):
+                continue
+            idx = html.escape(to_str(item.get("result_index", "")))
+            title = html.escape(to_str(item.get("title", "")) or "(untitled)")
+            url = html.escape(to_str(item.get("url", "")))
+            item_summary = html.escape(truncate(item.get("summary", ""), 1800))
+            html_out.write(f"<p><strong>#{idx}</strong> {title}</p>")
+            if url:
+                html_out.write(f"<p><a href=\"{url}\">{url}</a></p>")
+            if item.get("center_x", "") != "" and item.get("center_y", "") != "":
+                html_out.write(
+                    f"<p><strong>location:</strong> center=({html.escape(str(item.get('center_x')))},{html.escape(str(item.get('center_y')) )})</p>"
+                )
+            if item_summary:
+                html_out.write(f"<p>{item_summary}</p>")
+            screenshots = as_list(item.get("opened_screenshots"))
+            for shot in screenshots:
+                html_out.write(f"<p><strong>Opened screenshot:</strong> {html.escape(str(shot))}</p>")
+        html_out.write("</div>")
 PY
 }
 
@@ -454,6 +675,7 @@ run_web_search_queries() {
   local run_id="$8"
   shift 8
   local query_list=("$@")
+  mkdir -p "$output_dir"
 
   local query_summary_file="${output_dir}/${context_label}.summary.txt"
   local query_html_file="${output_dir}/${context_label}.html"
@@ -481,22 +703,22 @@ run_web_search_queries() {
     local query_result_dir="${run_output_dir}/${query_run_id}"
     mkdir -p "$run_output_dir"
 
-    local query_result_file="$query_result_dir/search_batch_result.json"
+    local query_result_file=""
     local query_log_file="$query_result_dir/search.log"
 
     mkdir -p "$query_result_dir"
-    if ! "$PROMPT_DIR/prompt_web_search_batch.sh" \
+  if ! "$PROMPT_DIR/prompt_web_search_immersive.sh" \
       --query "$query_text" \
-      --kind "$query_kind" \
-      --top-results "$top_n" \
+      --engine "$(web_search_engine_from_kind "$query_kind")" \
+      --results "$top_n" \
+      --open-top-results "$top_n" \
+      --summarize-open-url \
       --output-dir "$run_output_dir" \
       --run-id "$query_run_id" \
-      --codex-model "$model" \
-      --codex-reasoning "$reasoning" \
-      --codex-safety "$safety" \
-      --codex-approval "$approval" \
+      --scroll-steps "$WEB_SEARCH_SCROLL_STEPS" \
+      --scroll-pause "$WEB_SEARCH_SCROLL_PAUSE" \
       --keep-open \
-      --hold-seconds "3.0" \
+      --hold-seconds "$WEB_SEARCH_HOLD_SECONDS" \
       >"$query_log_file" 2>&1; then
       printf '%s\n' "- ❌ Web search failed for: $query_text" >> "$query_summary_file"
       printf '<p>⚠️ %s (%s): failed, see query log.</p>' "$query_text" "$query_kind" >> "$query_html_file"
@@ -504,8 +726,17 @@ run_web_search_queries() {
       continue
     fi
 
+    for candidate in \
+      "$query_result_dir"/query-*.json \
+      "$query_result_dir"/search_batch_result.json; do
+      if [[ -f "$candidate" ]]; then
+        query_result_file="$candidate"
+        break
+      fi
+    done
+
     if [[ ! -f "$query_result_file" ]]; then
-      if ! ls "$query_result_dir"/search_batch_result.json >/dev/null 2>&1; then
+      if ! ls "$query_result_dir"/query-*.json >/dev/null 2>&1; then
         printf '%s\n' "- ⚠️ Web search result file missing for: $query_text" >> "$query_summary_file"
         printf '<p>⚠️ %s (%s): result missing.</p>' "$query_text" "$query_kind" >> "$query_html_file"
         idx=$((idx + 1))
@@ -514,13 +745,14 @@ run_web_search_queries() {
       query_result_file="$query_result_dir/search_batch_result.json"
     fi
 
-    append_web_search_reports "$query_text" "$query_kind" "$query_result_file" "$query_summary_file" "$query_html_file"
+    append_web_search_reports "$query_text" "$query_kind" "$query_result_file" "$query_summary_file" "$query_html_file" "$query_result_dir"
     idx=$((idx + 1))
   done
 
   WEB_SEARCH_SUMMARY_FILE="$query_summary_file"
   WEB_SEARCH_HTML_FILE="$query_html_file"
   }
+
 
 find_latest_resource_markdown_dir() {
   local base_dir="$1"
@@ -541,100 +773,92 @@ print(dirs[0].as_posix())
 PY
 }
 
-build_academic_context() {
+build_academic_context_websearch() {
   local out_path="$1"
   local queries_json="$2"
   local max_results="$3"
   shift 3
+  local -a academic_queries
+  local -i open_limit
+  local academic_output_root="$ARTIFACT_DIR/academic_search"
 
-  python3 - "$out_path" "$max_results" "$queries_json" "$@" <<'PY'
+  academic_queries=("${(@f)$(python3 - "$queries_json" <<'PY'
 import json
 import sys
-import urllib.parse
-import urllib.request
-import xml.etree.ElementTree as ET
-from html import unescape
-from pathlib import Path
 
-out = Path(sys.argv[1])
-max_results = int(sys.argv[2]) if sys.argv[2].strip() else 5
-queries = json.loads(sys.argv[3]) if len(sys.argv) > 3 else []
-high_impact_sources = [s for s in sys.argv[4:] if s.strip()]
-sections = [
-    f"[academic] mode=high_impact_research",
-    f"[academic] source_count={len(high_impact_sources)}",
-]
+raw = sys.argv[1]
+try:
+    values = json.loads(raw)
+except Exception:
+    values = []
 
-entries = []
-
-
-def fetch_arxiv(query: str):
-    encoded = urllib.parse.quote_plus(query)
-    url = (
-        "https://export.arxiv.org/api/query"
-        f"?search_query=all:{encoded}&start=0&max_results={max_results}"
-        "&sortBy=submittedDate&sortOrder=descending"
-    )
-    req = urllib.request.Request(url, headers={"User-Agent": "OpenClawLazyingArtPipeline/1.0"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        raw = resp.read()
-    ns = "{http://www.w3.org/2005/Atom}"
-    root = ET.fromstring(raw)
-    for entry in root.findall(f"{ns}entry"):
-        title = (entry.findtext(f"{ns}title") or "").replace("\n", " ").strip()
-        summary = (entry.findtext(f"{ns}summary") or "").replace("\n", " ").strip()
-        updated = (entry.findtext(f"{ns}updated") or "").strip()
-        link = (entry.findtext(f"{ns}id") or "").strip()
-        authors = []
-        for author in entry.findall(f"{ns}author"):
-            name = (author.findtext(f"{ns}name") or "").strip()
-            if name:
-                authors.append(name)
-        entries.append({
-            "query": query,
-            "title": title,
-            "summary": unescape(summary),
-            "updated": updated,
-            "link": link,
-            "authors": ", ".join(authors),
-        })
-
-
-for raw_query in queries:
-    query = raw_query.strip()
-    if not query:
-        continue
-    try:
-        fetch_arxiv(query)
-    except Exception as exc:  # noqa: BLE001
-        entries.append({"query": query, "error": f"{type(exc).__name__}: {exc}"})
-
-sections.extend([
-    "[academic] arXiv entries:",
-    f"- count={len(entries)}",
-    f"- query_count={len([q for q in queries if q.strip()])}",
-    f"- source_count={len(high_impact_sources)}",
-])
-
-for item in entries:
-    if "error" in item:
-        sections.append(f"- QUERY_ERROR {item['query']}: {item['error']}")
-        continue
-    line = "- {query} | {updated} | {title} | {authors} | {link}".format(**item)
-    sections.append(line)
-
-for source_name, source_url in [item.split(":", 1) for item in high_impact_sources if ":" in item]:
-    try:
-        req = urllib.request.Request(source_url.strip(), headers={"User-Agent": "OpenClawLazyingArtPipeline/1.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw = resp.read()
-        text = raw.decode("utf-8", errors="ignore")
-        sections.append(f"[academic] rss={source_name}: fetched {len(text)} bytes")
-    except Exception as exc:  # noqa: BLE001
-        sections.append(f"[academic] rss={source_name}: fetch_failed {type(exc).__name__}: {exc}")
-
-out.write_text("\\n".join([line for line in sections if line]) + "\\n", encoding="utf-8")
+for item in values:
+    if isinstance(item, str):
+        q = item.strip()
+        if q:
+            print(q)
 PY
+)}"
+
+  if [[ "${#academic_queries[@]}" -eq 0 ]]; then
+    academic_queries=(
+      "site:nature.com multimodal memory"
+      "site:science.org multimodal memory"
+      "site:cell.com memory systems"
+      "Nature and ICML multimodal AI"
+      "Optica and TIPAMI memory AI"
+      "site:arxiv.org multimodal memory models"
+    )
+  fi
+
+  if [[ "$max_results" == [1-9][0-9]* ]]; then
+    open_limit="$max_results"
+  else
+    open_limit=3
+  fi
+  (( open_limit > 3 )) && open_limit=3
+  (( open_limit < 1 )) && open_limit=3
+
+  if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
+    : > "$out_path"
+    {
+      echo "[academic] mode=web_search_research"
+      echo "[academic] status=web_search_failed"
+      echo "[academic] top_results_per_query=$open_limit"
+      echo "[academic] query_root=$academic_output_root"
+      echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
+      echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+      echo "[academic] query_file_root=$academic_output_root"
+      echo "[academic] query_file_pattern=query-*.json"
+      echo "[academic] query_file_pattern_txt=query-*.txt"
+      echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+    } > "$out_path"
+    return 0
+  fi
+
+  {
+    echo "[academic] mode=web_search_research"
+    echo "[academic] top_results_per_query=$open_limit"
+    echo "[academic] query_count=${#academic_queries[@]}"
+    echo "[academic] context_source=prompt_web_search_immersive"
+    echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
+    echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+    echo "[academic] query_root=$academic_output_root"
+    echo "[academic] query_file_root=$academic_output_root"
+    echo "[academic] query_file_pattern=query-*.json"
+    echo "[academic] query_file_pattern_txt=query-*.txt"
+    echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+    echo "[academic] queries:"
+    for q in "${academic_queries[@]}"; do
+      echo "  - $q"
+    done
+    echo
+    if [[ -f "$WEB_SEARCH_SUMMARY_FILE" ]]; then
+      cat "$WEB_SEARCH_SUMMARY_FILE"
+    else
+      echo "[academic] no academic web search summary found"
+    fi
+  } > "$out_path"
 }
 
 merge_market_and_academic_summaries() {
@@ -675,6 +899,8 @@ PY
 }
 
 log "Pipeline start run_id=$RUN_ID model=$MODEL reasoning=$REASONING"
+
+acquire_pipeline_lock
 
 RESOURCE_ANALYSIS_RUN_DIR="$ARTIFACT_DIR/resource_analysis"
 RESOURCE_ANALYSIS_RESULT=""
@@ -875,6 +1101,14 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   cp "$WEB_HTML_FILE" "$NOTES_ROOT/last_web_search.html"
   {
     echo "Web search summary:"
+    echo "  output_dir: $WEB_OUTPUT_DIR"
+    echo "  query_file_root: $WEB_OUTPUT_DIR/lazyingart"
+    echo "  summary_file: $WEB_SUMMARY_FILE"
+    echo "  html_file: $WEB_HTML_FILE"
+    echo "  top_results_per_query: $WEB_SEARCH_TOP_RESULTS"
+    echo "  query_file_pattern: query-*.json"
+    echo "  query_file_pattern_txt: query-*.txt"
+    echo "  query_file_pattern_screenshots: screenshots/*.png"
     cat "$WEB_SUMMARY_FILE"
   } >> "$CONTEXT_FILE"
   "$PROMPT_DIR/prompt_la_note_save.sh" \
@@ -918,7 +1152,7 @@ import sys
 print(json.dumps([q for q in sys.argv[1:] if q.strip()], ensure_ascii=False))
 PY
 )"
-  build_academic_context "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
+  build_academic_context_websearch "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
 
   "$PROMPT_DIR/prompt_la_market.sh" \
     --context-file "$ACADEMIC_CONTEXT" \
@@ -1103,20 +1337,21 @@ else
 fi
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
 from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
-academic = Path(sys.argv[2]).read_text(encoding="utf-8")
-funding = Path(sys.argv[3]).read_text(encoding="utf-8")
-money = Path(sys.argv[4]).read_text(encoding="utf-8")
-plan = Path(sys.argv[5]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[6]).read_text(encoding="utf-8")
-life = Path(sys.argv[7]).read_text(encoding="utf-8")
-out = Path(sys.argv[8])
+web = Path(sys.argv[2]).read_text(encoding="utf-8")
+academic = Path(sys.argv[3]).read_text(encoding="utf-8")
+funding = Path(sys.argv[4]).read_text(encoding="utf-8")
+money = Path(sys.argv[5]).read_text(encoding="utf-8")
+plan = Path(sys.argv[6]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[7]).read_text(encoding="utf-8")
+life = Path(sys.argv[8]).read_text(encoding="utf-8")
+out = Path(sys.argv[9])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -1124,6 +1359,8 @@ digest = (
     f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
     "<hr/>"
     f"<h2>🧠 Market Research</h2>{market}"
+    "<hr/>"
+    f"<h2>🕸️ Web Search Signals</h2>{web}"
     "<hr/>"
     f"<h2>📚 Academic Research</h2>{academic}"
     "<hr/>"
@@ -1142,25 +1379,27 @@ PY
 
 log "Step ${LOG_STEP}/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$WEB_SUMMARY_FILE" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
 
 run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
-academic = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
-funding = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-money = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[9])
+web = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
+academic = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
+funding = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+money = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[10])
 
 content = (
     f"<h3>📌 Lazying.art Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
     "<ul>"
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
+    f"<li><strong>🕸️ Web Search Signals</strong>: {html.escape(web)}</li>"
     f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
     f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"

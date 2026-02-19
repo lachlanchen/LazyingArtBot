@@ -22,11 +22,23 @@ TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachla
 CUSTOM_TO=0
 RUN_LEGAL_DEPT=0
 RUN_LIFE_REMINDER=1
+RUN_WEB_SEARCH=1
 LIFE_INPUT_MD="$LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md"
 LIFE_STATE_JSON="$NOTES_ROOT/lightmind_life_reminder_state.json"
 LIFE_STATE_MD="$LIGHTMIND_OUTPUT_ROOT/LightMindLifeReminderState.md"
 LEGAL_INPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/Legal"
 MARKET_CONTEXT_FILE=""
+WEB_SEARCH_TOP_RESULTS=3
+WEB_SEARCH_HOLD_SECONDS="15"
+WEB_SEARCH_SCROLL_STEPS="3"
+WEB_SEARCH_SCROLL_PAUSE="0.9"
+LIGHTMIND_WEB_SEARCH_QUERIES=(
+  "news:Lightmind funding and startup news"
+  "scholar:AI multimodal memory architecture"
+  "news:Lightmind product roadmap or launch updates"
+)
+WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
+WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 RUN_RESOURCE_ANALYSIS=1
 RESOURCE_OUTPUT_DIR="$LIGHTMIND_OUTPUT_ROOT/ResourceAnalysis"
 RESOURCE_LABEL="lightmind-resource-analysis"
@@ -92,8 +104,14 @@ Options:
   --life-input-md <path>     Life input markdown path (default: $LIFE_INPUT_MD)
   --life-state-json <path>   Life reminder state JSON path
   --life-state-md <path>     Life reminder state Markdown path
+  --no-web-search            Disable web search stage
+  --web-search-top-results <n> Max results per web search query (default: 3)
+  --web-search-scroll-steps <n> Number of scroll steps for opened pages (default: 3)
+  --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
+  --web-search-hold-seconds <sec> Keep browser open for N seconds per query (default: 15)
+  --web-search-query <text>  Add/override a web search query (repeatable)
   -h, --help                Show help
-USAGE
+  USAGE
 }
 
 while [[ $# -gt 0 ]]; do
@@ -123,6 +141,29 @@ while [[ $# -gt 0 ]]; do
     --life-state-md)
       shift
       LIFE_STATE_MD="${1:-}"
+      ;;
+    --no-web-search)
+      RUN_WEB_SEARCH=0
+      ;;
+    --web-search-top-results)
+      shift
+      WEB_SEARCH_TOP_RESULTS="${1:-3}"
+      ;;
+    --web-search-query)
+      shift
+      LIGHTMIND_WEB_SEARCH_QUERIES+=("${1:-}")
+      ;;
+    --web-search-scroll-steps)
+      shift
+      WEB_SEARCH_SCROLL_STEPS="${1:-3}"
+      ;;
+    --web-search-scroll-pause)
+      shift
+      WEB_SEARCH_SCROLL_PAUSE="${1:-0.9}"
+      ;;
+    --web-search-hold-seconds)
+      shift
+      WEB_SEARCH_HOLD_SECONDS="${1:-15}"
       ;;
     --from)
       shift
@@ -402,6 +443,370 @@ PY
   echo "Resource analysis result unavailable." > "$output_file"
 }
 
+parse_web_query() {
+  local raw="$1"
+  local parsed_kind="auto"
+  local parsed_query="$raw"
+
+  if [[ "$raw" == *:* ]]; then
+    local kind_candidate="${raw%%:*}"
+    local rest="${raw#*:}"
+    case "$kind_candidate" in
+      auto|general|scholar|news)
+        parsed_kind="$kind_candidate"
+        parsed_query="$rest"
+        ;;
+      *)
+        parsed_kind="auto"
+        parsed_query="$raw"
+        ;;
+    esac
+  fi
+
+  printf '%s|%s\n' "$parsed_kind" "$parsed_query"
+}
+
+slugify_query() {
+  local raw="$1"
+  local value
+  value="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-24)"
+  if [[ -z "$value" ]]; then
+    echo "query"
+  else
+    echo "$value"
+  fi
+}
+
+web_search_engine_from_kind() {
+  local kind="$1"
+  case "$kind" in
+    scholar)
+      echo "google-scholar"
+      ;;
+    news)
+      echo "google-news"
+      ;;
+    auto|general)
+      echo "google"
+      ;;
+    *)
+      echo "google"
+      ;;
+  esac
+}
+
+append_web_search_reports() {
+  local query_label="$1"
+  local query_kind="$2"
+  local result_json="$3"
+  local summary_file="$4"
+  local html_file="$5"
+  local result_dir="$6"
+
+  python3 - "$query_label" "$query_kind" "$result_json" "$summary_file" "$html_file" "$result_dir" <<'PY'
+import html
+import json
+import sys
+from pathlib import Path
+
+query_label = sys.argv[1]
+query_kind = sys.argv[2]
+result_json = Path(sys.argv[3]).expanduser()
+summary_path = Path(sys.argv[4]).expanduser()
+html_path = Path(sys.argv[5]).expanduser()
+result_dir = Path(sys.argv[6]).expanduser()
+
+
+def as_list(value):
+    return value if isinstance(value, list) else []
+
+
+def to_str(value):
+    return str(value).strip()
+
+
+def truncate(value, limit=280):
+    text = to_str(value)
+    return text[:limit]
+
+if not result_json.is_file():
+    line = f"- ❌ {query_label} ({query_kind}): no results (search did not return JSON)."
+    with summary_path.open("a", encoding="utf-8") as summary:
+        summary.write(line + "\n")
+    with html_path.open("a", encoding="utf-8") as html_out:
+        html_out.write(f"<h3>❌ {html.escape(query_label)} ({html.escape(query_kind)})</h3><p>no results (search error)</p>")
+    raise SystemExit(0)
+
+try:
+    payload = json.loads(result_json.read_text(encoding="utf-8"))
+except Exception as exc:  # noqa: BLE001
+    with summary_path.open("a", encoding="utf-8") as summary:
+        summary.write(f"- ⚠️ {query_label} ({query_kind}): failed to read results ({exc}).\n")
+    with html_path.open("a", encoding="utf-8") as html_out:
+        html_out.write(
+            f"<h3>⚠️ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
+            f"<p>Failed to parse search results: {html.escape(str(exc))}</p>"
+        )
+    raise SystemExit(0)
+
+items = payload.get("items") if isinstance(payload, dict) else []
+if not isinstance(items, list):
+    items = []
+search_overviews = []
+search_screenshots = []
+opened_items = []
+clicked = {}
+if isinstance(payload, dict):
+    search_overviews = as_list(payload.get("search_overviews"))
+    if not search_overviews:
+        search_overviews = as_list(payload.get("search_page_overviews"))
+    search_screenshots = as_list(payload.get("search_screenshots"))
+    if not search_screenshots:
+        search_screenshots = as_list(payload.get("search_page_screenshots"))
+    opened_items = as_list(payload.get("opened_items"))
+    clicked = payload.get("clicked", {})
+    if not isinstance(clicked, dict):
+        clicked = {}
+
+if not result_dir.is_dir():
+    result_dir = result_json.parent
+
+txt_candidates = sorted(result_dir.glob("query-*.txt"), key=lambda p: p.name)
+result_txt = txt_candidates[0] if txt_candidates else None
+
+opened_count = payload.get("opened_count")
+if not isinstance(opened_count, int):
+    opened_count = len(opened_items)
+opened_display_count = max(0, min(opened_count, len(opened_items)))
+
+if not search_overviews:
+    summary_search_text = ""
+    if isinstance(payload.get("search_summary"), str):
+        summary_search_text = to_str(payload.get("search_summary"))
+    elif isinstance(payload.get("summary"), str):
+        summary_search_text = to_str(payload.get("summary"))
+    if summary_search_text:
+        search_overviews = [{"page": "1", "summary": summary_search_text}]
+
+with summary_path.open("a", encoding="utf-8") as summary:
+    summary.write(f"- ✅ {query_label} ({query_kind}): {len(items)} result(s)\n")
+    summary.write(f"  - result_json: {result_json}\n")
+    if result_txt is not None:
+        summary.write(f"  - result_txt: {result_txt}\n")
+    summary.write(f"  - result_dir: {result_dir}\n")
+    if search_screenshots:
+        summary.write("  - results_page_screenshots:\n")
+        for shot in search_screenshots[:6]:
+            summary.write(f"    - {shot}\n")
+    if search_overviews:
+        summary.write("  - search result page scan:\n")
+        for row in search_overviews:
+            if not isinstance(row, dict):
+                continue
+            page = row.get("page", "")
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                summary.write(f"    - page {page}: {row_summary[:280]}\n")
+if opened_display_count:
+    summary.write(f"  - opened result details: {opened_display_count}\n")
+    for item in opened_items[:opened_display_count]:
+            title = to_str(item.get("title", "")) or "(untitled)"
+            url = to_str(item.get("url", ""))
+            item_summary = to_str(item.get("summary", ""))
+            summary.write(f"    - {title} | {url}\n")
+            if item_summary:
+                summary.write(f"      - summary: {truncate(item_summary, 320)}\n")
+    elif clicked:
+        title = to_str(clicked.get("title", "")) or "(untitled)"
+        url = to_str(clicked.get("url", ""))
+        clicked_summary = to_str(clicked.get("summary", ""))
+        summary.write(f"  - clicked: {title} | {url}\n")
+        if clicked_summary:
+            summary.write(f"    - summary: {truncate(clicked_summary, 320)}\n")
+
+with html_path.open("a", encoding="utf-8") as html_out:
+    html_out.write(
+        f"<h3>✅ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
+        f"<p><strong>source:</strong> {html.escape(payload.get('query', ''))}</p>"
+        f"<p><strong>result_json:</strong> {html.escape(str(result_json))}</p>"
+        f"<p><strong>result_dir:</strong> {html.escape(str(result_dir))}</p>"
+        f"<p><strong>result_txt:</strong> {html.escape(str(result_txt)) if result_txt else 'n/a'}</p>"
+    )
+    for item in items:
+        title = str(item.get("title", "")).strip() or "(untitled)"
+        url = str(item.get("url", "")).strip()
+        snippet = str(item.get("snippet", "")).strip()
+        screenshot = str(item.get("screenshot", "")).strip()
+        center_x = item.get("center_x", "")
+        center_y = item.get("center_y", "")
+        elem_x = item.get("element_x", "")
+        elem_y = item.get("element_y", "")
+        elem_w = item.get("element_width", "")
+        elem_h = item.get("element_height", "")
+
+        with summary_path.open("a", encoding="utf-8") as summary:
+            summary.write(f"  - {title} | {url}\n")
+            if snippet:
+                summary.write(f"    - snippet: {snippet}\n")
+
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        if url:
+            html_out.write(
+                f"<p><strong>{html.escape(title)}</strong><br/>"
+                f"<a href=\"{html.escape(url)}\">{html.escape(url)}</a></p>"
+            )
+        else:
+            html_out.write(f"<p><strong>{html.escape(title)}</strong></p>")
+        if snippet:
+            html_out.write(f"<p>{html.escape(snippet)}</p>")
+        if center_x != "" and center_y != "":
+            html_out.write(
+                f"<p><strong>location:</strong> center=({html.escape(str(center_x))},{html.escape(str(center_y))})</p>"
+            )
+        if elem_x != "" and elem_y != "" and elem_w != "" and elem_h != "":
+            html_out.write(
+                f"<p><strong>element:</strong> "
+                f"{html.escape(str(elem_x))},{html.escape(str(elem_y))} "
+                f"{html.escape(str(elem_w))}x{html.escape(str(elem_h))}"
+            )
+        if screenshot:
+            html_out.write(f"<p><strong>Screenshot:</strong> {html.escape(screenshot)}</p>")
+        html_out.write("</div>")
+    if search_overviews:
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        html_out.write("<p><strong>Search results page scan:</strong></p>")
+        for row in search_overviews:
+            if not isinstance(row, dict):
+                continue
+            page = row.get("page", "")
+            row_summary = str(row.get("summary", "")).strip()
+            if row_summary:
+                html_out.write(f"<p>- page {html.escape(str(page))}: {html.escape(row_summary[:400])}</p>")
+        if search_screenshots:
+            for item in search_screenshots[:6]:
+                html_out.write(f"<p><strong>Search screenshot:</strong> {html.escape(str(item))}</p>")
+        html_out.write("</div>")
+
+    opened_render = opened_items if opened_items else ([clicked] if clicked else [])
+    opened_render_count = len(opened_render)
+    if opened_items:
+        opened_render_count = min(opened_display_count, opened_render_count)
+        opened_render = opened_render[:opened_render_count]
+    if opened_render:
+        html_out.write("<div style=\"margin-left: 0.8rem; margin-bottom: 1rem;\">")
+        html_out.write(f"<p><strong>Opened result details (top {opened_render_count}):</strong></p>")
+        for item in opened_render:
+            if not isinstance(item, dict):
+                continue
+            idx = html.escape(to_str(item.get("result_index", "")))
+            title = html.escape(to_str(item.get("title", "")) or "(untitled)")
+            url = html.escape(to_str(item.get("url", "")))
+            item_summary = html.escape(truncate(item.get("summary", ""), 1800))
+            html_out.write(f"<p><strong>#{idx}</strong> {title}</p>")
+            if url:
+                html_out.write(f"<p><a href=\"{url}\">{url}</a></p>")
+            if item.get("center_x", "") != "" and item.get("center_y", "") != "":
+                html_out.write(
+                    f"<p><strong>location:</strong> center=({html.escape(str(item.get('center_x')))},{html.escape(str(item.get('center_y')) )})</p>"
+                )
+            if item_summary:
+                html_out.write(f"<p>{item_summary}</p>")
+            screenshots = as_list(item.get("opened_screenshots"))
+            for shot in screenshots:
+                html_out.write(f"<p><strong>Opened screenshot:</strong> {html.escape(str(shot))}</p>")
+        html_out.write("</div>")
+PY
+}
+
+run_web_search_queries() {
+  local context_label="$1"
+  local output_dir="$2"
+  local top_n="$3"
+  local model="$4"
+  local reasoning="$5"
+  local safety="$6"
+  local approval="$7"
+  local run_id="$8"
+  shift 8
+  local query_list=("$@")
+  mkdir -p "$output_dir"
+
+  local query_summary_file="${output_dir}/${context_label}.summary.txt"
+  local query_html_file="${output_dir}/${context_label}.html"
+  : > "$query_summary_file"
+  : > "$query_html_file"
+
+  if [[ ${#query_list[@]} -eq 0 ]]; then
+    printf '%s\n' "No web search queries configured." >> "$query_summary_file"
+    printf '<p>No web search queries configured.</p>' > "$query_html_file"
+    WEB_SUMMARY_FILE="$query_summary_file"
+    WEB_HTML_FILE="$query_html_file"
+    return 0
+  fi
+
+  local idx=1
+  for raw_query in "${query_list[@]}"; do
+    local parse
+    parse="$(parse_web_query "$raw_query")"
+    local query_kind="${parse%%|*}"
+    local query_text="${parse#*|}"
+    local query_slug
+    query_slug="$(slugify_query "$query_text")"
+    local query_run_id="$run_id-${context_label}-${idx}-${query_slug}"
+    local run_output_dir="${output_dir}/${context_label}"
+    local query_result_dir="${run_output_dir}/${query_run_id}"
+    mkdir -p "$run_output_dir"
+
+    local query_result_file=""
+    local query_log_file="$query_result_dir/search.log"
+
+    mkdir -p "$query_result_dir"
+    if ! "$PROMPT_DIR/prompt_web_search_immersive.sh" \
+      --query "$query_text" \
+      --engine "$(web_search_engine_from_kind "$query_kind")" \
+      --results "$top_n" \
+      --open-top-results "$top_n" \
+      --summarize-open-url \
+      --output-dir "$run_output_dir" \
+      --run-id "$query_run_id" \
+      --scroll-steps "$WEB_SEARCH_SCROLL_STEPS" \
+      --scroll-pause "$WEB_SEARCH_SCROLL_PAUSE" \
+      --keep-open \
+      --hold-seconds "$WEB_SEARCH_HOLD_SECONDS" \
+      >"$query_log_file" 2>&1; then
+      printf '%s\n' "- ❌ Web search failed for: $query_text" >> "$query_summary_file"
+      printf '<p>⚠️ %s (%s): failed, see query log.</p>' "$query_text" "$query_kind" >> "$query_html_file"
+      idx=$((idx + 1))
+      continue
+    fi
+
+    for candidate in \
+      "$query_result_dir"/query-*.json \
+      "$query_result_dir"/search_batch_result.json; do
+      if [[ -f "$candidate" ]]; then
+        query_result_file="$candidate"
+        break
+      fi
+    done
+
+    if [[ ! -f "$query_result_file" ]]; then
+      if ! ls "$query_result_dir"/query-*.json >/dev/null 2>&1; then
+        printf '%s\n' "- ⚠️ Web search result file missing for: $query_text" >> "$query_summary_file"
+        printf '<p>⚠️ %s (%s): result missing.</p>' "$query_text" "$query_kind" >> "$query_html_file"
+        idx=$((idx + 1))
+        continue
+      fi
+      query_result_file="$query_result_dir/search_batch_result.json"
+    fi
+
+    append_web_search_reports "$query_text" "$query_kind" "$query_result_file" "$query_summary_file" "$query_html_file" "$query_result_dir"
+    idx=$((idx + 1))
+  done
+
+  WEB_SUMMARY_FILE="$query_summary_file"
+  WEB_HTML_FILE="$query_html_file"
+}
+
 build_confidential_summary() {
   local root_path="$1"
   local out_path="$2"
@@ -508,6 +913,96 @@ lines.append("[website] text_snapshot:")
 lines.append(snapshot)
 out.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 PY
+}
+
+build_academic_context_websearch() {
+  local out_path="$1"
+  local queries_json="$2"
+  local max_results="$3"
+  shift 3
+  local -a academic_queries
+  local -i open_limit
+  local academic_output_root="$ARTIFACT_DIR/academic_search"
+
+  academic_queries=("${(@f)$(python3 - "$queries_json" <<'PY'
+import json
+import sys
+
+raw = sys.argv[1]
+try:
+    values = json.loads(raw)
+except Exception:
+    values = []
+
+for item in values:
+    if isinstance(item, str):
+        q = item.strip()
+        if q:
+            print(q)
+PY
+)}")
+
+  if [[ "${#academic_queries[@]}" -eq 0 ]]; then
+    academic_queries=(
+      "site:nature.com AI platform systems"
+      "site:science.org multimodal AI systems"
+      "site:cell.com AI memory"
+      "ICLR"
+      "ICML"
+      "Nature Machine Intelligence"
+      "CVPR"
+      "SIGGRAPH"
+    )
+  fi
+
+  if [[ "$max_results" == [1-9][0-9]* ]]; then
+    open_limit="$max_results"
+  else
+    open_limit=3
+  fi
+  (( open_limit > 3 )) && open_limit=3
+  (( open_limit < 1 )) && open_limit=3
+
+  if ! run_web_search_queries "academic" "$academic_output_root" "$open_limit" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${academic_queries[@]}"; then
+    : > "$out_path"
+    {
+      echo "[academic] mode=web_search_research"
+      echo "[academic] status=web_search_failed"
+      echo "[academic] top_results_per_query=$open_limit"
+      echo "[academic] query_root=$academic_output_root"
+      echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
+      echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+      echo "[academic] query_file_root=$academic_output_root"
+      echo "[academic] query_file_pattern=query-*.json"
+      echo "[academic] query_file_pattern_txt=query-*.txt"
+      echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+    } > "$out_path"
+    return 0
+  fi
+
+  {
+    echo "[academic] mode=web_search_research"
+    echo "[academic] top_results_per_query=$open_limit"
+    echo "[academic] query_count=${#academic_queries[@]}"
+    echo "[academic] context_source=prompt_web_search_immersive"
+    echo "[academic] query_root=$academic_output_root"
+    echo "[academic] summary_file=$WEB_SEARCH_SUMMARY_FILE"
+    echo "[academic] html_file=$WEB_SEARCH_HTML_FILE"
+    echo "[academic] query_file_root=$academic_output_root"
+    echo "[academic] query_file_pattern=query-*.json"
+    echo "[academic] query_file_pattern_txt=query-*.txt"
+    echo "[academic] query_file_pattern_screenshots=screenshots/*.png"
+    echo "[academic] queries:"
+    for q in "${academic_queries[@]}"; do
+      echo "  - $q"
+    done
+    echo
+    if [[ -f "$WEB_SEARCH_SUMMARY_FILE" ]]; then
+      cat "$WEB_SEARCH_SUMMARY_FILE"
+    else
+      echo "[academic] no academic web search summary found"
+    fi
+  } > "$out_path"
 }
 
 build_academic_context() {
@@ -819,6 +1314,9 @@ TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
@@ -834,6 +1332,53 @@ if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
   BASE_STEP=1
   log "Step 0/$TOTAL_STEPS: analyze resources and create reference summary"
 fi
+
+STEP_CURSOR=$BASE_STEP
+READ_NOTE_STEP=$((STEP_CURSOR + 1))
+STEP_CURSOR=$((STEP_CURSOR + 1))
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  WEB_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  WEB_STEP="$BASE_STEP"
+fi
+
+MARKET_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+
+if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  ACADEMIC_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  ACADEMIC_STEP="$BASE_STEP"
+fi
+
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  LEGAL_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  LEGAL_STEP="$BASE_STEP"
+fi
+
+FUNDING_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+MONEY_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+PLAN_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+MENTOR_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+
+if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
+  LIFE_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  LIFE_STEP="$BASE_STEP"
+fi
+
+LOG_STEP=$STEP_CURSOR
+STEP_CURSOR=$((STEP_CURSOR + 1))
+EMAIL_STEP=$STEP_CURSOR
 
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
@@ -864,72 +1409,19 @@ LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
 LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
 LIFE_HTML="$ARTIFACT_DIR/life.html"
 LIFE_MD="$ARTIFACT_DIR/life.md"
+WEB_SUMMARY_FILE="$ARTIFACT_DIR/web_search.summary.txt"
+WEB_HTML_FILE="$ARTIFACT_DIR/web_search_digest.html"
+PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
 
-if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
-  ACADEMIC_STEP=$((BASE_STEP + 3))
-  if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
-    LEGAL_STEP=$((BASE_STEP + 4))
-    FUNDING_STEP=$((BASE_STEP + 5))
-    MONEY_STEP=$((BASE_STEP + 6))
-    PLAN_STEP=$((BASE_STEP + 7))
-    MENTOR_STEP=$((BASE_STEP + 8))
-    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-      LIFE_STEP=$((BASE_STEP + 9))
-      LOG_STEP=$((BASE_STEP + 10))
-      EMAIL_STEP=$((BASE_STEP + 11))
-    else
-      LOG_STEP=$((BASE_STEP + 9))
-      EMAIL_STEP=$((BASE_STEP + 10))
-    fi
-  else
-    FUNDING_STEP=$((BASE_STEP + 4))
-    MONEY_STEP=$((BASE_STEP + 5))
-    PLAN_STEP=$((BASE_STEP + 6))
-    MENTOR_STEP=$((BASE_STEP + 7))
-    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-      LIFE_STEP=$((BASE_STEP + 8))
-      LOG_STEP=$((BASE_STEP + 9))
-      EMAIL_STEP=$((BASE_STEP + 10))
-    else
-      LOG_STEP=$((BASE_STEP + 8))
-      EMAIL_STEP=$((BASE_STEP + 9))
-    fi
-  fi
-else
-  if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
-    LEGAL_STEP=$((BASE_STEP + 3))
-    FUNDING_STEP=$((BASE_STEP + 4))
-    MONEY_STEP=$((BASE_STEP + 5))
-    PLAN_STEP=$((BASE_STEP + 6))
-    MENTOR_STEP=$((BASE_STEP + 7))
-    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-      LIFE_STEP=$((BASE_STEP + 8))
-      LOG_STEP=$((BASE_STEP + 9))
-      EMAIL_STEP=$((BASE_STEP + 10))
-    else
-      LOG_STEP=$((BASE_STEP + 8))
-      EMAIL_STEP=$((BASE_STEP + 9))
-    fi
-  else
-    FUNDING_STEP=$((BASE_STEP + 3))
-    MONEY_STEP=$((BASE_STEP + 4))
-    PLAN_STEP=$((BASE_STEP + 5))
-    MENTOR_STEP=$((BASE_STEP + 6))
-    if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
-      LIFE_STEP=$((BASE_STEP + 7))
-      LOG_STEP=$((BASE_STEP + 8))
-      EMAIL_STEP=$((BASE_STEP + 9))
-    else
-      LOG_STEP=$((BASE_STEP + 7))
-      EMAIL_STEP=$((BASE_STEP + 8))
-    fi
-  fi
+if [[ ! -s "$WEB_SUMMARY_FILE" ]]; then
+  printf '%s\n' "Web search disabled for this run." > "$WEB_SUMMARY_FILE"
+  printf '<p>Web search disabled for this run.</p>' > "$WEB_HTML_FILE"
 fi
 
-log "Step $((BASE_STEP))/$TOTAL_STEPS: read current milestone note from AutoLife"
+log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoLife"
 "$PROMPT_DIR/prompt_la_note_reader.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
@@ -937,7 +1429,39 @@ log "Step $((BASE_STEP))/$TOTAL_STEPS: read current milestone note from AutoLife
   --note "💡 Lightmind Milestones / 里程碑 / マイルストーン" \
   --out "$CURRENT_MILESTONE_HTML" || true
 
-log "Step $((BASE_STEP + 2))/$TOTAL_STEPS: market research"
+if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
+  log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
+  : > "$WEB_SUMMARY_FILE"
+  : > "$WEB_HTML_FILE"
+  if ! run_web_search_queries "lightmind" "$WEB_OUTPUT_DIR" "$WEB_SEARCH_TOP_RESULTS" "$MODEL" "$REASONING" "$SAFETY" "$APPROVAL" "$RUN_ID" "${LIGHTMIND_WEB_SEARCH_QUERIES[@]}"; then
+    printf '%s\n' "Web search stage failed; continuing with available context." > "$WEB_SUMMARY_FILE"
+    printf '<p>Web search stage failed; continuing with other sources.</p>' > "$WEB_HTML_FILE"
+  fi
+
+  cp "$WEB_SUMMARY_FILE" "$NOTES_ROOT/last_web_search.summary.txt"
+  cp "$WEB_HTML_FILE" "$NOTES_ROOT/last_web_search.html"
+  {
+    echo "Web search summary:"
+    echo "  output_dir: $WEB_OUTPUT_DIR"
+    echo "  query_file_root: $WEB_OUTPUT_DIR/lightmind"
+    echo "  summary_file: $WEB_SUMMARY_FILE"
+    echo "  html_file: $WEB_HTML_FILE"
+    echo "  top_results_per_query: $WEB_SEARCH_TOP_RESULTS"
+    echo "  query_file_pattern: query-*.json"
+    echo "  query_file_pattern_txt: query-*.txt"
+    echo "  query_file_pattern_screenshots: screenshots/*.png"
+    cat "$WEB_SUMMARY_FILE"
+  } >> "$CONTEXT_FILE"
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/👓 Lightmind.art" \
+    --note "🕸️ Web Search Signals / 网页信号 / ウェブシグナル" \
+    --mode append \
+    --html-file "$WEB_HTML_FILE"
+fi
+
+log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
 "$PROMPT_DIR/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
   --company-focus "Lightmind" \
@@ -974,7 +1498,7 @@ import sys
 print(json.dumps([q for q in sys.argv[1:] if q.strip()], ensure_ascii=False))
 PY
 )"
-  build_academic_context "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
+  build_academic_context_websearch "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
 
   "$PROMPT_DIR/prompt_la_market.sh" \
     --context-file "$ACADEMIC_CONTEXT" \
@@ -1206,22 +1730,23 @@ else
 fi
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$ACADEMIC_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
 from pathlib import Path
 
 market = Path(sys.argv[1]).read_text(encoding="utf-8")
-funding = Path(sys.argv[2]).read_text(encoding="utf-8")
-money = Path(sys.argv[3]).read_text(encoding="utf-8")
-legal = Path(sys.argv[4]).read_text(encoding="utf-8")
-plan = Path(sys.argv[5]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[6]).read_text(encoding="utf-8")
-academic = Path(sys.argv[7]).read_text(encoding="utf-8")
-plan_input = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[10])
+web = Path(sys.argv[2]).read_text(encoding="utf-8")
+academic = Path(sys.argv[3]).read_text(encoding="utf-8")
+funding = Path(sys.argv[4]).read_text(encoding="utf-8")
+money = Path(sys.argv[5]).read_text(encoding="utf-8")
+legal = Path(sys.argv[6]).read_text(encoding="utf-8")
+plan = Path(sys.argv[7]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[8]).read_text(encoding="utf-8")
+plan_input = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[10]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[11])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 digest = (
@@ -1229,6 +1754,8 @@ digest = (
     f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
     "<hr/>"
     f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}"
+    "<hr/>"
+    f"<h2>🕸️ Web Search Signals / 网页信号 / ウェブシグナル</h2>{web}"
     "<hr/>"
     f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}"
     "<hr/>"
@@ -1251,26 +1778,28 @@ PY
 
 log "Step $LOG_STEP/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$LEGAL_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$ACADEMIC_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$WEB_SUMMARY_FILE" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$LEGAL_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
 
 run_id = sys.argv[1]
 market = Path(sys.argv[2]).read_text(encoding="utf-8").strip()
-funding = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
-money = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
-legal = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-academic = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[10])
+web = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
+academic = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
+funding = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
+money = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
+legal = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[10]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[11])
 
 content = (
     f"<h3>📌 Lightmind Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
     "<ul>"
     f"<li><strong>🧠 Market</strong>: {html.escape(market)}</li>"
+    f"<li><strong>🕸️ Web Search Signals</strong>: {html.escape(web)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
     f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
     f"<li><strong>⚖️ Legal / Compliance</strong>: {html.escape(legal)}</li>"

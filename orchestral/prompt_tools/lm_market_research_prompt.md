@@ -15,6 +15,14 @@ High-priority context to use every run:
   (already summarized in payload context)
 - Broader market signals: AI creator tools, AI product ops, B2B automation SaaS, GTM positioning.
 
+Evidence input (if attached from search stage):
+
+- Prefer web-search artifacts from `prompt_web_search_immersive.sh` when available:
+  - `query-*.txt` for compact result digest
+  - `query-*.json` + `search_page_screenshots` for evidence paths
+  - `opened_items` for result-specific detail
+- Mention opened result links per query up to the configured open budget (`--open-top-results` / `opened_count`) in the final note with short takeaways.
+
 You must be conservative:
 
 - Prefer concrete signals over hype.

@@ -84,10 +84,17 @@ MESSAGE_TEMPLATE="$(cat <<EOF
 Run the local Lazying.art pipeline exactly once.
 1) Execute:
 ./orchestral/run_la_pipeline.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
-2) If execution fails, report stderr and stop.
-3) Run a full pipeline cycle (including resource analysis and online refresh) unless the model
-   itself decides to short-circuit.
-4) Do not run other commands.
+2) Run a full pipeline cycle (including resource analysis and web-search refresh).
+3) web-search outputs are expected under:
+   /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs/<run_id>/ 
+   with web_search.summary.txt and web_search_digest.html.
+   query artifacts include:
+     - query-*.json
+     - query-*.txt
+     - screenshots/*.png
+   summary includes top result entries + search page screenshot paths from prompt_web_search_immersive outputs.
+4) If execution fails, report stderr and stop.
+5) Do not run other commands.
 EOF
 )"
 

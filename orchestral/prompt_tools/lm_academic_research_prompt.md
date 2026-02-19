@@ -11,6 +11,11 @@ Input:
 
 - `context_file`: includes raw market + confidential snapshots and a compact list from high-impact sources.
 - This content is already scoped; do not fetch external web content.
+- Optional: if `context_file` includes `prompt_web_search_immersive` evidence, treat those links/summaries as high-priority signals.
+  Parse JSON artifacts (`query-*.json`) when present and use:
+  - `search_page_screenshots` as evidence anchor
+  - `opened_items` (up to per-query open limit, each with title + url + summary + opened screenshots)
+  - `query-*.txt` for compact text snippets.
 
 Objective:
 
@@ -23,6 +28,7 @@ Rules:
 
 - Only include items that are clearly in the provided context.
 - Prefer venue quality and recency.
+- If `opened_items` are present in context, include entries up to the per-query open budget (typically `opened_count`) with explicit links and short evidence summaries.
 - Prefer concrete, actionable relevance to enterprise AI, scientific AI workflows, product discovery, and commercialization.
 - If no useful signal, return an empty `notes` array and short `summary`.
 - Do not hallucinate; if uncertainty exists, call out confidence clearly.

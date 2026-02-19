@@ -13,6 +13,12 @@ Input:
 - `context_file`: compact summaries collected for market context and curated high-impact papers.
 - `company_focus`: expected `Lazying.art`.
 - `priority_sources`: provided source labels/URLs.
+- Optional: web-search evidence package from `prompt_web_search_immersive.sh` may be embedded in `context_file`.
+  Parse JSON artifacts (`query-*.json`) when present and pull:
+  - `search_page_screenshots`
+- `opened_items` (up to the query-configured open budget, each with title, url, summary, opened screenshots when present)
+- `query-*.txt` for compact evidence.
+- If `opened_items` is empty, fallback to `search_page_overviews` + `search_page_screenshots` for signal extraction.
 
 Objective:
 
@@ -22,6 +28,8 @@ Return practical signals that can inform product, roadmap, or technical position
 Rules:
 
 - Evidence-first: use only signals present in the provided context.
+- If web-search evidence is present, rank by signal strength and include concrete links/summaries for top findings.
+- Include as many high-confidence evidence entries as the web-search run returned (up to `opened_count`), and cite result-page screenshots for traceability.
 - Exclude speculative or weak links.
 - Prefer freshness and venue quality (Nature / Science / Cell / Nature Machine Intelligence / related top-tier work).
 - Keep output concise and structured for notes + execution planning.

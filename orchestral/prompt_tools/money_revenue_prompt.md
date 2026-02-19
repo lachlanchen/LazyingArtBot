@@ -13,6 +13,15 @@ Inputs:
 - `academic_summary`: optional high-impact research context (if available)
 - `reference_sources`: URLs or context source labels used by the orchestrator
 
+Search integration guidance:
+
+- `run_context` and upstream summary files may include web-search artifacts from the pipeline:
+  - query roots/patterns (`query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`)
+  - `top_results_per_query`
+  - query outputs (`query-*.json`, `query-*.txt`) with `search_page_overviews`, `search_page_screenshots`, `opened_items`, `opened_count`.
+- Treat first-page scan snippets as the first evidence layer, then add deep-opened links when confidence is high.
+- Do not force exactly three research/market/funding bullets; cite the number of grounded links available from the search evidence.
+
 Source scope policy:
 
 - Strictly bound to the provided context and files for this run.

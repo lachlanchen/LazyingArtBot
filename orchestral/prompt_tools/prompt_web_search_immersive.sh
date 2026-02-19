@@ -36,6 +36,7 @@ Options:
   --headless                  Force headless mode (not default)
   --open-result              Click selected result index (same as search wrapper behavior)
   --result-index <n>         If --open-result, index of clicked result (default: 1)
+  --open-top-results <n>     Open and summarize top N results (default: 0)
   --click-at <x,y>           Click absolute browser coordinate before extraction
   --summarize-open-url        Capture page summary after open/click
   --start-page <n>           Search page start index (default: 1)
@@ -118,6 +119,11 @@ while [[ "$#" -gt 0 ]]; do
       shift
       [[ "$#" -gt 0 ]] || { echo "--open-url requires a value" >&2; exit 1; }
       ARGS+=("--open-url" "$1")
+      ;;
+    --open-top-results)
+      shift
+      [[ "$#" -gt 0 ]] || { echo "--open-top-results requires a value" >&2; exit 1; }
+      ARGS+=("--open-top-results" "$1")
       ;;
     --click-at)
       shift
