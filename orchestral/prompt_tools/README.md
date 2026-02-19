@@ -35,6 +35,78 @@ Supporting prompt assets:
 - `log_entry_schema.json`
 - `commit_summary_prompt.md`
 - `commit_summary_schema.json`
+- `account_calendar_search_prompt.md`
+- `account_calendar_search_schema.json`
+- `account_calendar_move_prompt.md`
+- `account_calendar_move_schema.json`
+- `la_market_research_prompt.md`
+- `la_plan_draft_prompt.md`
+- `entrepreneurship_mentor_prompt.md`
+- `la_ops_schema.json`
+- `life_reverse_engineering_prompt.md`
+- `life_reverse_engineering_schema.json`
+- `life_reverse_reminder_apply.py`
+- `lm_market_research_prompt.md`
+- `lm_plan_draft_prompt.md`
+- `lm_entrepreneurship_mentor_prompt.md`
+- `resource_analysis_prompt.md`
+- `resource_analysis_schema.json`
+
+## LazyingArt migration prompt tools
+
+| Script                                  | Prompt template                         | Purpose                                                                                   |
+| --------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `prompt_lazyingart_migration_search.sh` | `lazyingart_migration_search_prompt.md` | Codex audit of current source/target migration status using script-produced summary data. |
+| `prompt_lazyingart_migration_move.sh`   | `lazyingart_migration_move_prompt.md`   | Codex dry-run review + apply/post-check command planning for LazyingArt migration.        |
+
+## Account-calendar migration prompt tools
+
+| Script                              | Prompt template                     | Purpose                                                                                      |
+| ----------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `prompt_account_calendar_search.sh` | `account_calendar_search_prompt.md` | Codex audit for one source account/calendar vs LazyingArt target using resolved calendar id. |
+| `prompt_account_calendar_move.sh`   | `account_calendar_move_prompt.md`   | Codex planning wrapper for account-calendar move dry-run/apply/post-check flow.              |
+
+These tools explicitly reference the executable migration scripts so Codex reasons from actual automation behavior:
+
+- `orchestral/scripts/search_account_calendar_reminder_summary.sh`
+- `orchestral/scripts/move_account_calendar_reminders_to_lazyingart.sh`
+- `orchestral/scripts/check_calendar_events.sh`
+- `orchestral/scripts/search_account_calendar_events.sh`
+- `orchestral/scripts/move_events_from_account_calendar_to_lazyingart.sh`
+
+## Lazying.art daily chain tools (AutoLife output)
+
+| Script                                    | Prompt template                      | Purpose                                                                |
+| ----------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| `prompt_la_market.sh`                     | `la_market_research_prompt.md`       | Market+repo analysis focused on `https://lazying.art` and GitHub repos |
+| `prompt_la_plan.sh`                       | `la_plan_draft_prompt.md`            | Milestone rewrite with mixed EN/中文/日本語 sections + tables          |
+| `prompt_entrepreneurship_mentor.sh`       | `entrepreneurship_mentor_prompt.md`  | Founder guidance and risk/bet framework updates                        |
+| `prompt_life_reverse_engineering_tool.sh` | `life_reverse_engineering_prompt.md` | Fixed-slot life reminder planning (8 horizons) with dedupe-aware apply |
+| `prompt_la_note_reader.sh`                | (utility)                            | Reads HTML body from AutoLife Notes                                    |
+| `prompt_la_note_save.sh`                  | (utility)                            | Appends/replaces AutoLife Notes safely                                 |
+
+## Resource analysis tool (company-wide)
+
+| Script                          | Prompt template               | Purpose                                                                                     |
+| ------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| `prompt_resource_analysis.sh`   | `resource_analysis_prompt.md` | Collects local resource manifests, extracts bounded snippets, and generates structured JSON |
+| `resource_analysis_schema.json` | —                             | Contracts output with `summary`, `resource_overview`, and `markdown_documents`              |
+
+Outputs are written both as:
+
+- codex artifact JSON in `--output-dir`
+- generated markdown notes in `--markdown-output` (one summary + recommendations + source-theme notes)
+
+The tool is company-agnostic: pass any `--company` and `--resource-root` paths, then wire
+the generated markdowns into any downstream prompt chain for richer context.
+
+Coordinator scripts:
+
+- `orchestral/run_la_pipeline.sh`
+- `orchestral/setup_la_pipeline_cron.sh`
+- `orchestral/prompt_tools/life_reverse_reminder_apply.py`
+- `orchestral/run_lightmind_pipeline.sh`
+- `orchestral/setup_lightmind_pipeline_cron.sh`
 
 ## Standard paradigm
 

@@ -1,0 +1,23 @@
+# Orchestral References
+
+- `orchestral/references/calendar-check-method.md`
+  - How to audit events when calendar names are ambiguous.
+- `orchestral/scripts/check_calendar_events.sh`
+  - Script implementation for named calendars + ambiguous candidates + keyword scan.
+- `orchestral/references/lazyingart-migration-playbook.md`
+  - End-to-end runbook to migrate reminders/events into `LazyingArt`.
+- `orchestral/references/lazyingart-autolife-pipeline.md`
+  - 08:00/20:00 AutoLife pipeline runbook (market -> plan -> mentor -> life reminders -> notes -> email).
+- `orchestral/references/lightmind-autolife-pipeline.md`
+  - 08:00/20:00 AutoLife pipeline runbook for Lightmind (market -> plan -> mentor -> notes -> email).
+- `orchestral/references/email-html-rendering.md`
+  - HTML email rendering fix for Apple Mail (`HTML -> RTF -> rich content`) and test recipient safety guard.
+- `orchestral/references/resource-analysis-tool.md`
+  - Company-agnostic resource profiling + markdown output generation for prompt-to-prompt context reuse.
+  - Uses `orchestral/scripts/run_resource_analysis.sh` for a reusable one-command entrypoint.
+- `orchestral/references/hku-calendar-move-playbook.md`
+  - Account-specific runbook for migrating `lachen@connect.hku.hk / Calendar` into `LazyingArt`.
+- `orchestral/scripts/search_account_calendar_reminder_summary.sh`
+  - Audits source/target counts for reminders + calendars (including ambiguous `Calendar` candidates).
+- `orchestral/scripts/move_account_calendar_reminders_to_lazyingart.sh`
+  - Applies the move into `LazyingArt` with dry-run support and duplicate-guarded calendar copy.
