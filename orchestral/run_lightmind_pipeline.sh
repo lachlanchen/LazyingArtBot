@@ -747,6 +747,7 @@ fi
   echo "Reference input folder: $LIGHTMIND_INPUT_ROOT"
   echo "Reference output folder: $LIGHTMIND_OUTPUT_ROOT"
   echo "Pipeline uses both input and output references for long-term company context."
+  echo "Reference input examples: $LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md, etc."
   echo
   if [[ -n "$RESOURCE_ANALYSIS_RESULT" && -f "$RESOURCE_ANALYSIS_RESULT" ]]; then
     cat "$RESOURCE_APPEND_PATH"
