@@ -1,0 +1,24 @@
+# capture-daily-calendar
+
+- Purpose: rebuild `assistant_hub/02_work/calendar.md` from structured entries.
+- Schedule: daily `07:00` (Asia/Shanghai).
+- Inputs:
+  - `assistant_hub/05_meta/reasoning_queue.jsonl`
+  - card files under `assistant_hub/`
+- Output:
+  - sorted `assistant_hub/02_work/calendar.md`
+  - `assistant_hub/05_meta/calendar_push_preview.md`
+  - `assistant_hub/05_meta/calendar_push_results.md`
+  - `assistant_hub/05_meta/calendar_push_payload.md` (when push enabled)
+- Runner:
+  - `pnpm moltbot:capture:daily-calendar`
+  - fallback: `npx -y -p tsx tsx scripts/capture/daily-calendar.ts`
+- Push env:
+  - `CAPTURE_DAILY_PUSH_ENABLED=1` enable push behavior.
+  - `CAPTURE_DAILY_PUSH_DRY_RUN=1` keeps push in dry-run mode (default).
+  - `CAPTURE_DAILY_PUSH_DRY_RUN_CLI=1` forces CLI dry-run (`openclaw message send --dry-run`) instead of local simulation.
+  - `CAPTURE_DAILY_PUSH_CLI_BIN` sets CLI binary/path for push (`openclaw` by default; falls back to repo `openclaw.mjs` when missing).
+  - `CAPTURE_DAILY_PUSH_CHANNEL` chooses channel (`telegram`, `feishu`, etc.).
+  - `CAPTURE_DAILY_PUSH_TO` target id for the selected channel.
+  - `CAPTURE_DAILY_PUSH_ACCOUNT_ID` optional account id.
+- Status: executable runner available (manual run; not wired to daemon/systemd in this step).

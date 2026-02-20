@@ -1,0 +1,22 @@
+# capture-watch-checker
+
+- Purpose: scan watch checkpoints and generate reminders.
+- Schedule: daily batch.
+- Inputs:
+  - `assistant_hub/02_work/waiting.md`
+  - `assistant_hub/05_meta/reasoning_queue.jsonl`
+- Output:
+  - `assistant_hub/05_meta/watch_reminders.md`
+  - `assistant_hub/05_meta/watch_push_results.md`
+  - `assistant_hub/05_meta/watch_push_payload.md` (when push candidates exist)
+  - optional feedback signals (`watch_checkpoint`)
+- Runner:
+  - `pnpm moltbot:capture:watch-checker`
+  - fallback: `npx -y -p tsx tsx scripts/capture/watch-checker.ts`
+- Push env:
+  - `CAPTURE_WATCH_PUSH_ENABLED=1` enable push behavior.
+  - `CAPTURE_WATCH_PUSH_DRY_RUN=1` keeps push in dry-run mode (default).
+  - `CAPTURE_WATCH_PUSH_DRY_RUN_CLI=1` forces CLI dry-run (`openclaw message send --dry-run`) instead of local simulation.
+  - `CAPTURE_WATCH_PUSH_CLI_BIN` sets CLI binary/path for push (`openclaw` by default; falls back to repo `openclaw.mjs` when missing).
+  - `CAPTURE_WATCH_PUSH_CHANNEL` (default `telegram`) and `CAPTURE_WATCH_PUSH_TO` (required when push enabled).
+- Status: executable runner available (manual run; not wired to daemon/systemd in this step).
