@@ -85,22 +85,11 @@ Run the local Lazying.art pipeline exactly once.
 1) Execute:
 $REPO_DIR/orchestral/run_la_pipeline.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
 2) Run a full pipeline cycle (including resource analysis and web-search refresh).
-3) web-search outputs are expected under:
-   /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs/<run_id>/ 
-   with web_search.summary.txt and web_search_digest.html.
-   query artifacts include:
-     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/query-*.json
-     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/query-*.txt
-     - /Users/lachlan/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lazyingart/<run_id>-lazyingart-*/screenshots/*.png
-     - include query_file_root and query_file_pattern metadata from the run context
-   summary includes top result entries + search page screenshot paths from prompt_web_search_immersive outputs.
-   include run-search metadata:
-     - query_file_pattern
-     - query_file_pattern_txt
-     - query_file_pattern_screenshots
-     - top_results_per_query
-4) If execution fails, report stderr and stop.
-5) Do not run other commands.
+3) Write results into the pipeline run directory (pipeline summary + web_search.summary.txt + web_search_digest.html).
+4) For notes/email, rely on this run’s own web-search context files and top result items.
+   Include opened links, short excerpts, and screenshot evidence from the current run only.
+5) If execution fails, report stderr and stop.
+6) Do not run other commands.
 EOF
 )"
 

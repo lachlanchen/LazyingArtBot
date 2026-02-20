@@ -548,14 +548,11 @@ if not search_overview:
 
 with summary_path.open("a", encoding="utf-8") as summary:
     summary.write(f"- ✅ {query_label} ({query_kind}): {len(items)} result(s)\n")
-    summary.write(f"  - result_json: {result_json}\n")
     if result_txt is not None:
-        summary.write(f"  - result_txt: {result_txt}\n")
-    summary.write(f"  - result_dir: {result_dir}\n")
+        summary.write("  - result snapshot text available\n")
+    summary.write(f"  - opened candidates: {len(opened_items)}\n")
     if search_screenshots:
-        summary.write("  - results_page_screenshots:\n")
-        for shot in search_screenshots[:6]:
-            summary.write(f"    - {shot}\n")
+        summary.write(f"  - results_page_screenshot_count: {len(search_screenshots)}\n")
     if search_overview:
         summary.write("  - search result page scan:\n")
         for row in search_overview:
@@ -586,9 +583,7 @@ with html_path.open("a", encoding="utf-8") as html_out:
     html_out.write(
         f"<h3>✅ {html.escape(query_label)} ({html.escape(query_kind)})</h3>"
         f"<p><strong>source:</strong> {html.escape(payload.get('query', ''))}</p>"
-        f"<p><strong>result_json:</strong> {html.escape(str(result_json))}</p>"
-        f"<p><strong>result_dir:</strong> {html.escape(str(result_dir))}</p>"
-        f"<p><strong>result_txt:</strong> {html.escape(str(result_txt)) if result_txt else 'n/a'}</p>"
+        f"<p><strong>result_count:</strong> {len(items)}</p>"
     )
     for item in items:
         title = str(item.get("title", "")).strip() or "(untitled)"
@@ -629,7 +624,7 @@ with html_path.open("a", encoding="utf-8") as html_out:
                 f"{html.escape(str(elem_w))}x{html.escape(str(elem_h))}</p>"
             )
         if screenshot:
-            html_out.write(f"<p><strong>Screenshot:</strong> {html.escape(screenshot)}</p>")
+            html_out.write("<p><strong>Screenshot:</strong> captured</p>")
         if codex_summary:
             html_out.write(f"<p><strong>Codex summary:</strong> {html.escape(codex_summary)}</p>")
         html_out.write("</div>")
@@ -644,8 +639,7 @@ with html_path.open("a", encoding="utf-8") as html_out:
             if row_summary:
                 html_out.write(f"<p>- page {html.escape(str(page))}: {html.escape(row_summary[:400])}</p>")
         if search_screenshots:
-            for item in search_screenshots[:6]:
-                html_out.write(f"<p><strong>Search screenshot:</strong> {html.escape(str(item))}</p>")
+            html_out.write(f"<p><strong>Search screenshot count:</strong> {len(search_screenshots)}</p>")
         html_out.write("</div>")
 
     opened_render = opened_items if opened_items else ([clicked] if clicked else [])
@@ -674,7 +668,7 @@ with html_path.open("a", encoding="utf-8") as html_out:
                 html_out.write(f"<p>{item_summary}</p>")
             screenshots = as_list(item.get("opened_screenshots"))
             for shot in screenshots:
-                html_out.write(f"<p><strong>Opened screenshot:</strong> {html.escape(str(shot))}</p>")
+                html_out.write("<p><strong>Opened screenshot:</strong> captured</p>")
         html_out.write("</div>")
 PY
 }
@@ -846,18 +840,33 @@ PY
 if [[ ! -f "$planner_result" ]]; then
   rm -f "$planner_input"
   if [[ -n "$context_path" && -f "$context_path" ]]; then
-    python3 - "$context_path" <<'PY'
+    python3 - "$context_path" "$brand" "$website" "$profile_url" <<'PY'
 import re
 import pathlib
 import sys
 
 path = pathlib.Path(sys.argv[1])
+brand = sys.argv[2] if len(sys.argv) > 2 else ""
+website = sys.argv[3] if len(sys.argv) > 3 else ""
+profile = sys.argv[4] if len(sys.argv) > 4 else ""
+
+def collect_block_terms(raw: str):
+  if not raw:
+    return set()
+  cleaned = re.sub(r"[^a-z0-9]+", " ", raw.lower())
+  return {w for w in cleaned.split() if len(w) >= 4}
+
+blocked_terms = set()
+for source in (brand, website, profile):
+  blocked_terms.update(collect_block_terms(source))
+
 try:
     text = path.read_text(encoding="utf-8", errors="ignore")
 except Exception:
     text = ""
 words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9+\\-&]{2,}", text.lower()) if len(w) > 2]
 stop = {"the", "and", "for", "with", "from", "that", "this", "company", "market", "product", "business"}
+stop.update(blocked_terms)
 terms = [w for w in words if w not in stop]
 if terms:
     print(" ".join(dict.fromkeys(terms[:6])))
@@ -1030,24 +1039,41 @@ PY
     true
   fi
 
-  if [[ ! -f "$planner_result" ]]; then
-    rm -f "$planner_input"
-    if [[ -n "$context_path" && -f "$context_path" ]]; then
-      python3 - "$context_path" <<'PY'
+if [[ ! -f "$planner_result" ]]; then
+  rm -f "$planner_input"
+  if [[ -n "$context_path" && -f "$context_path" ]]; then
+    python3 - "$context_path" "$brand" "$query_budget" "${sources[@]}" <<'PY'
 import re
 import pathlib
 import sys
 
 path = pathlib.Path(sys.argv[1])
+brand = (sys.argv[2] or "").strip()
+query_budget = sys.argv[3] if len(sys.argv) > 3 else "5"
+
+def collect_block_terms(raw: str):
+  if not raw:
+    return set()
+  cleaned = re.sub(r"[^a-z0-9]+", " ", raw.lower())
+  return {w for w in cleaned.split() if len(w) >= 4}
+
+blocked_terms = collect_block_terms(brand)
+
 try:
     text = path.read_text(encoding="utf-8", errors="ignore")
 except Exception:
     text = ""
 words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9+\\-&]{2,}", text.lower()) if len(w) > 2]
 stop = {"the", "and", "for", "with", "from", "that", "this", "company", "scientific", "research", "paper"}
+stop.update(blocked_terms)
 terms = [w for w in words if w not in stop]
 if terms:
-    print(f"scholar:{' '.join(dict.fromkeys(terms[:5]))}")
+    budget = int(query_budget or 0)
+    if budget < 3:
+      budget = 3
+    if budget > 5:
+      budget = 5
+    print(f"scholar:{' '.join(dict.fromkeys(terms[:budget]))}")
 else:
     print("scholar:technical research signals")
 PY
@@ -1179,10 +1205,6 @@ PY
       echo "[academic] status=web_search_failed"
       echo "[academic] summary_file=$academic_summary_file"
       echo "[academic] html_file=$academic_html_file"
-      echo "[academic] query_file_root=$academic_output_root"
-      echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
-      echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
-      echo "[academic] query_file_pattern_screenshots=$academic_output_root/*/screenshots/*.png"
       echo "[academic] top_results_per_query=$open_limit"
     } > "$out_path"
     return 0
@@ -1193,12 +1215,8 @@ PY
     echo "[academic] top_results_per_query=$open_limit"
     echo "[academic] query_count=${#academic_queries[@]}"
     echo "[academic] context_source=prompt_web_search_immersive"
-    echo "[academic] query_file_root=$academic_output_root"
     echo "[academic] summary_file=$academic_summary_file"
     echo "[academic] html_file=$academic_html_file"
-    echo "[academic] query_file_pattern=$academic_output_root/*/query-*.json"
-    echo "[academic] query_file_pattern_txt=$academic_output_root/*/query-*.txt"
-    echo "[academic] query_file_pattern_screenshots=$academic_output_root/*/screenshots/*.png"
     echo "[academic] queries:"
     for q in "${academic_queries[@]}"; do
       echo "  - $q"
@@ -1490,12 +1508,6 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   {
     echo "Web search summary:"
     echo "  output_dir: $WEB_OUTPUT_DIR"
-    echo "  query_file_root: $WEB_OUTPUT_DIR/lazyingart"
-    echo "  query_file_pattern: $WEB_OUTPUT_DIR/lazyingart/*/query-*.json"
-    echo "  query_file_pattern_txt: $WEB_OUTPUT_DIR/lazyingart/*/query-*.txt"
-    echo "  query_file_pattern_screenshots: $WEB_OUTPUT_DIR/lazyingart/*/screenshots/*.png"
-    echo "  summary_file: $WEB_SUMMARY_FILE"
-    echo "  html_file: $WEB_HTML_FILE"
     echo "  top_results_per_query: $WEB_SEARCH_TOP_RESULTS"
     cat "$WEB_SUMMARY_FILE"
   } >> "$CONTEXT_FILE"
@@ -1835,8 +1847,7 @@ Requirements:
 - Include bilingual labels (EN/中文/日本語) in headings where natural.
 - Subject must include: [AutoLife] Lazying.art 08:00/20:00 Update
 - Do not invent facts outside the provided digest.
-- Keep the Web Search Signals section explicit, including link-backed rows and evidence paths from this run.
-- Preserve clickable URLs and result artifact references from the web-search digest section.
+- Keep the Web Search Signals section explicit and link-backed.
 
 Digest HTML:
 $(cat "$EMAIL_HTML")

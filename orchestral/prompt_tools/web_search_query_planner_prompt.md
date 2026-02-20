@@ -35,6 +35,9 @@ How to build queries:
 - Avoid queries that are just the company name.
 - Avoid repetitive template patterns.
 - Keep each query focused and directly inferable from context.
+- Prefer practical source families over fixed domain-only scans:
+  - Web stage: high-signal outlets and ecosystems (for example: news, product launch pages, funding notices, market reports).
+  - Academic stage: examples like Nature, Science, Cell, Nature Machine Intelligence, arXiv, NeurIPS, ICML, CVPR, ICCV, TPAMI when context suggests technical relevance.
 - Exclude queries that are only the company name or a raw company domain.
 - If the context is thin, propose conservative, business-context-first alternatives such as market-ecosystem signals, adjacent workflows, or buyer pain points before returning.
 - Do not return strings with `google:`, `google-scholar:`, or `site:` prefixes in `query`.

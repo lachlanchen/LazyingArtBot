@@ -19,22 +19,19 @@ Output root:
 - default: `~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs`
 - per run: `<output-dir>/<run-id>/`
 - per pipeline query: `<output-dir>/<context>/<run-id>-<context>-<idx>-<slug>/`
-- Lightmind pipeline writes:<br/>`~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs/lightmind/<run-id>-lightmind-.../`<br/>then saves rollup files to `.../pipeline_runs/<run_id>/web_search.summary.txt` and `.../web_search_digest.html`
-- LA pipeline writes similarly under `/.../web_search/lazyingart/`
+- Each pipeline run merges this batch evidence into its own run digest (`web_search.summary.txt` and `web_search_digest.html`) via `pipeline_runs/<run_id>/`.
 
 Artifacts:
 
 - `search_batch_result.json` (full machine payload):
   - `items` list
   - `search_page_overviews` (page scan summary entries)
-  - `search_page_screenshots` (search results page screenshot files)
+- `search_page_screenshots` (search results page screenshots)
   - `opened_items` (top opened result details)
 - `search_batch_summary.md` (compact markdown)
 - `items/result-XX.md` (per result report)
 - `screenshots/*.png` (result + page screenshots)
-- For downstream codex stages, also capture:
-  - `query_file_root`
-  - `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`
+- For downstream stages, capture:
   - `opened_count` and `search_page_overviews`
 
 Default arguments:

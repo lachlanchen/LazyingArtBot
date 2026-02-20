@@ -20,9 +20,7 @@ OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="money-revenue"
 PROMPT_FILE="orchestral/prompt_tools/money_revenue_prompt.md"
 SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
-REFERENCE_SOURCES=(
-  "https://github.com/lachlanchen?tab=repositories"
-)
+REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
 
 usage() {

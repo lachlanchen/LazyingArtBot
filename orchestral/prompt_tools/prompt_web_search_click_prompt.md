@@ -40,7 +40,6 @@ Artifacts and fields:
   - `search_page_screenshots` for search page screenshots
   - `search_page_overviews` and `search_page_screenshots` for evidence when validating result links
   - `opened_count` for how many opened entries are available in `opened_items`
-  - `query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots` for downstream codex traceability
 
 Operational expectations:
 

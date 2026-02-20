@@ -14,11 +14,7 @@ LABEL="la-market"
 PROMPT_FILE="orchestral/prompt_tools/la_market_research_prompt.md"
 SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
 COMPANY_FOCUS="Lazying.art"
-REFERENCE_SOURCES=(
-  "https://lazying.art"
-  "https://github.com/lachlanchen?tab=repositories"
-  "https://github.com/lachlanchen"
-)
+REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
 
 usage() {

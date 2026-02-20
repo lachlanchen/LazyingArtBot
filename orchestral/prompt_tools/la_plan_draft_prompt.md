@@ -47,7 +47,6 @@ Web-search evidence section:
   - `query`
   - `title`
   - `url`
-  - `evidence_path`
   - `confidence`
   - `milestone_owner`
 - Only include rows for links explicitly present in the provided `web_search_summary`.

@@ -8,6 +8,7 @@ COMPANY_FOCUS="Lightmind"
 CONTEXT_FILE=""
 MARKET_SUMMARY_FILE=""
 RESOURCE_SUMMARY_FILE=""
+WEB_SUMMARY_FILE=""
 MODEL="gpt-5.3-codex-spark"
 REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
@@ -20,7 +21,6 @@ REFERENCE_SOURCES=(
   "https://www.gov.hk/"
   "https://www.gov.cn/"
   "https://www.beijing.gov.cn/"
-  "https://lightmind.art"
 )
 CUSTOM_REFERENCE_SOURCES=0
 DEFAULT_LEGAL_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/Legal"
@@ -36,6 +36,7 @@ Options:
   --context-file <path>          Context text file path
   --market-summary-file <path>    Market summary text file
   --resource-summary-file <path>  Resource analysis summary file
+  --web-summary-file <path>      Web-search context summary file
   --model <name>                 Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>            Reasoning level (default: high)
   --safety <mode>                Safety mode (default: danger-full-access)
@@ -70,6 +71,10 @@ while [[ $# -gt 0 ]]; do
     --resource-summary-file)
       shift
       RESOURCE_SUMMARY_FILE="${1:-}"
+      ;;
+    --web-summary-file)
+      shift
+      WEB_SUMMARY_FILE="${1:-}"
       ;;
     --model)
       shift
@@ -193,7 +198,7 @@ done
 REFERENCE_SOURCES=("${dedupe_reference_sources[@]}")
 
 PAYLOAD_PATH="$OUTPUT_DIR/latest-payload.json"
-python3 - "$OUTPUT_DIR" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$COMPANY_FOCUS" \
+python3 - "$OUTPUT_DIR" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$COMPANY_FOCUS" \
   "__ROOTS__" "${LEGAL_ROOTS[@]}" "__REFS__" "${REFERENCE_SOURCES[@]}" <<'PY'
 import json
 import re
@@ -201,7 +206,7 @@ from datetime import datetime
 from pathlib import Path
 import sys
 
-output_dir, context_path, market_path, resource_path, company_focus = sys.argv[1:6]
+output_dir, context_path, market_path, resource_path, web_path, company_focus = sys.argv[1:7]
 
 try:
     roots_idx = sys.argv.index("__ROOTS__", 4)
@@ -228,6 +233,7 @@ def _read_text(path):
 context_text = _read_text(context_path)
 market_summary = _read_text(market_path)
 resource_summary = _read_text(resource_path)
+web_search_summary = _read_text(web_path)
 
 allowed_exts = {".md", ".txt", ".rst", ".yaml", ".yml", ".json", ".html", ".htm", ".pdf", ".doc", ".docx"}
 max_chars = 60000
@@ -273,6 +279,7 @@ payload = {
     "run_context": context_text[:20000],
     "market_summary": market_summary[:8000],
     "resource_summary": resource_summary[:8000],
+    "web_search_summary": web_search_summary[:8000],
     "legal_materials": "\\n".join(snippets),
     "legal_roots": legal_roots,
     "reference_sources": reference_sources,

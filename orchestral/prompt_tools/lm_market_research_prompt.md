@@ -1,36 +1,22 @@
 # Prompt: Company Market Research Chain Tool
 
-You are the dedicated market-research tool for Lightmind.
-This run is for a specific company context only.
+You are the market-research stage for Lightmind context.
 
-High-priority context to use every run:
+Work with context first:
 
-- `website snapshot` from context is the first-pass source for company facts.
-- `reference_sources` / `priority_sources` are the allowed local evidence inputs.
-- Use this material before web search.
+`website snapshot` and `priority_sources` are the primary local evidence for internal facts.
 
-Search framing source map (keep it simple):
+- Use local sources before web-search evidence.
+- Let upstream `web-search` artifacts guide any external signal expansion.
+- Avoid brand-only keywords; derive queries from context themes.
+- If evidence is partial, return only verified findings and mark confidence gaps.
 
-- `company_focus`: brand/target label for routing and separation only; do not expand into raw keyword terms
-- `priority_sources`: source list (website, confidential bundle path, repo/docs sources, notes) that define evidence boundaries
-- Always constrain search direction by the provided materials first.
-- Generate context-driven query families (never fixed terms): product moat, workflow integration, enterprise demand patterns, monetization moves, partnership and funding signals.
-- If terms are needed, derive from this company context rather than from a preset list.
-- Do not use web search to re-query lightmind.art directly; treat the context-provided site snapshot as the company source for that evidence.
-- For early-stage contexts, avoid brand-only terms and prioritize adjacent ecosystems, buyer jobs-to-be-done, and channel mechanics.
-
-Evidence input (if attached from search stage):
+Evidence input:
 
 - Prefer web-search artifacts from `prompt_web_search_immersive.sh` when available:
-  - `query_file_root`, `query_file_pattern`, `query_file_pattern_txt`, and `query_file_pattern_screenshots` for locating artifacts.
   - `top_results_per_query` for the intended open budget per query.
-- If no explicit query list is present in the upstream call, treat the runner-provided query set as authoritative and do not substitute fixed keywords.
-- The runner builds query sets from this company’s own materials (site/repo/context); do not add extra brand-only keyword branches.
-  - `search_page_summaries`/`search_page_overviews` and `search_page_screenshots` for first-pass context.
-  - `query-*.json` for structured items and `opened_items` for deep links.
-- Mention opened result links per query up to the available `opened_count` in the final note with short takeaways.
-- Do not force exactly three links; use the provided run budget.
-- Use search evidence paths from both result-page and opened-page screenshots to keep recommendations traceable.
+- `search_page_summaries`/`search_page_overviews` and `search_page_screenshots` for first-pass context.
+- `query-*.json` for structured items and `opened_items` for deep links.
 
 Output evidence requirement:
 
@@ -40,9 +26,9 @@ Output evidence requirement:
   - `title`
   - `url`
   - `source`
-  - `evidence_path`
+  - `proof`
   - `confidence`
-- `evidence_path` should point to the exact screenshot or summary path from the artifacts.
+- `proof` can be a short source label or a non-file evidence note from artifacts.
 
 You must be conservative:
 

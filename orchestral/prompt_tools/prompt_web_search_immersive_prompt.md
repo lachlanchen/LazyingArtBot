@@ -44,12 +44,9 @@ Recommended interaction pattern for Codex-assisted extraction:
    - `--scroll-steps` (typically 3-6) and `--scroll-pause` (~0.8-1.2) for long pages.
 5. Final output should always include:
    - result folder path (`<output-dir>/<run-id>`)
-   - results-page screenshot path(s) (`search_page_screenshots`)
+   - search-page screenshot references (`search_page_screenshots`)
    - `opened_items` (opened links from the current query window)
    - `opened_count`
-   - query artifact hints for downstream prompts:
-     - `query_file_root`
-     - `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`
    - for each opened item: title, url, summary, optional `opened_screenshots`, and click location if available
    - `--summarize-open-url` snippets for each opened result
    - `search_page_overviews` and `search_page_screenshots` for first-pass ranking context
@@ -93,7 +90,4 @@ bash orchestral/prompt_tools/prompt_web_search_immersive.sh \
 ```
 
 - Browser is visible by default (non-headless). Omit `--headless` to keep it in UI.
-- Artifacts are written to:
-  - `$out_dir/$run_id/query-site-nature-com-quantum-computing.json`
-  - `$out_dir/$run_id/query-site-nature-com-quantum-computing.txt`
-  - `$out_dir/$run_id/screenshots/`
+- Artifacts are written to the selected run folder with JSON, TXT, and screenshot outputs.

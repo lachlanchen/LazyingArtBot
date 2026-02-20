@@ -1,11 +1,6 @@
 # Prompt: Lightmind Milestone Planner Chain Tool
 
-You are the planning tool that updates Lightmind milestones.
-
-Company separation rule:
-
-- This run is for Lightmind only.
-- Do not mix Lazying.art milestones or note structures.
+You are the planning tool that updates company milestone notes.
 
 Inputs:
 
@@ -61,7 +56,6 @@ Web-search evidence requirement:
   - `query`
   - `title`
   - `url`
-  - `evidence_path`
   - `confidence`
   - `owner_or_team`
 - Only include evidence that is directly present in `web_search_summary`.

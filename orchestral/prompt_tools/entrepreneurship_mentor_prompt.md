@@ -43,7 +43,6 @@ Web-search evidence requirement:
 - Include up to 3 highest-confidence rows from `web_search_summary` in a compact table:
   - `title`
   - `url`
-  - `evidence_path`
   - `confidence`
   - `owner`
 - Convert only link-backed signals into execution actions.

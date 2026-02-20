@@ -52,13 +52,11 @@ Output location:
 Output contract expectations:
 
 - `query-*.json` may include:
-  - `search_page_overviews`
-  - `search_page_screenshots`
-  - `clicked`
-  - `opened_items`
-  - `opened_count`
-  - optional `query_file_root`
-  - optional `query_file_pattern`, `query_file_pattern_txt`, `query_file_pattern_screenshots`
+- `search_page_overviews`
+- `search_page_screenshots`
+- `clicked`
+- `opened_items`
+- `opened_count`
 - `query-*.txt` for compact snippets and timestamps.
 - `web_search_results.txt` for the combined text summary.
 
@@ -81,8 +79,6 @@ Execution pattern from pipelines:
 Prompting guidance:
 
 - Keep evidence metadata for downstream steps:
-  - `query_file_root` when multiple folders are produced.
-  - `query_file_pattern` / `query_file_pattern_txt` / `query_file_pattern_screenshots`.
   - `top_results_per_query` and `opened_count`.
 - Do not hardcode fixed top-3 behavior in later stages.
 - If a link is a PDF, prefer short local parse/summarization in the existing browser flow; keep screenshot evidence regardless.
