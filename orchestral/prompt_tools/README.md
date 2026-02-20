@@ -21,7 +21,9 @@ This directory is the dedicated home for LAB Codex prompt-driven tooling.
 | `prompt_web_search_google_scholar.sh` | (wrapper)                                      | Google Scholar search + click-mode helper.                                        |
 | `prompt_web_search_google_news.sh`    | (wrapper)                                      | Google News search + click-mode helper.                                           |
 | `prompt_notes.sh`                     | `notes_prompt.md`                              | Turn raw context into HTML-ready AutoLife note updates.                           |
+| `prompt_quick_notes.sh`               | `prompt_quick_notes_prompt.md`                 | Fast context-to-note JSON draft without app-side execution.                       |
 | `prompt_calendar_and_reminder.sh`     | `calendar_prompt.md`                           | Decide whether tasks become calendar blocks or reminders.                         |
+| `prompt_quick_calendar.sh`            | `prompt_quick_calendar_prompt.md`              | Fast context-to-calendar/reminder planning JSON output.                           |
 | `prompt_market_research.sh`           | `market_research_prompt.md`                    | Generate market intel summaries + suggested actions.                              |
 | `prompt_company_management.sh`        | `company_management_prompt.md`                 | Refine Lazying.art / Lightmind.art operating plans.                               |
 | `prompt_passive_income.sh`            | `passive_income_prompt.md`                     | Produce concrete passive-income opportunity stacks.                               |
