@@ -89,7 +89,7 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file orchestral/prompt_tools/prompt_quick_calendar_prompt.md \
-  --schema orchestral/prompt_tools/auto_ops_schema.json \
+  --schema orchestral/prompt_tools/quick_reminder_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label quick-calendar \
