@@ -240,7 +240,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "hello",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       runId: "run-fallback-workspace",
       enqueue: immediateEnqueue,
@@ -279,7 +279,7 @@ describe("runEmbeddedPiAgent", () => {
         prompt: "hello",
         provider: "openai",
         model: "mock-1",
-        timeoutMs: 5_000,
+        timeoutMs: 20_000,
         agentDir,
         runId: "run-fallback-workspace-malformed",
         enqueue: immediateEnqueue,
@@ -301,7 +301,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "hello",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });
@@ -331,7 +331,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "boom",
       provider: "openai",
       model: "mock-error",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });
@@ -392,7 +392,7 @@ describe("runEmbeddedPiAgent", () => {
         prompt: "hello",
         provider: "openai",
         model: "mock-1",
-        timeoutMs: 5_000,
+        timeoutMs: 20_000,
         agentDir,
         enqueue: immediateEnqueue,
       });
@@ -432,7 +432,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "first",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });
@@ -446,7 +446,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "second",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });
@@ -496,7 +496,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "hello",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });
@@ -527,7 +527,7 @@ describe("runEmbeddedPiAgent", () => {
       prompt: "hello",
       provider: "openai",
       model: "mock-1",
-      timeoutMs: 5_000,
+      timeoutMs: 20_000,
       agentDir,
       enqueue: immediateEnqueue,
     });

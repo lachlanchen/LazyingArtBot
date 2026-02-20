@@ -454,3 +454,9 @@ export function createOpenClawCodingTools(options?: {
   // on the wire and maps them back for tool dispatch.
   return withAbort;
 }
+
+/**
+ * Backward-compatible alias retained for older tests/callers that still use
+ * the pre-rename "Moltbot" naming.
+ */
+export const createMoltbotCodingTools = createOpenClawCodingTools;

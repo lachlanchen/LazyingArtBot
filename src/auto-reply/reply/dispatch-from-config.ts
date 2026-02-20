@@ -16,6 +16,7 @@ import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "
 import { getReplyFromConfig } from "../reply.js";
 import { formatAbortReplyText, tryFastAbortFromMessage } from "./abort.js";
 import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
+import { maybeRunCapture } from "./maybe-run-capture.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
 
 const AUDIO_PLACEHOLDER_RE = /^<media:audio>(\s*\([^)]*\))?$/i;
@@ -282,6 +283,43 @@ export async function dispatchReplyFromConfig(params: {
       const counts = dispatcher.getQueuedCounts();
       counts.final += routedFinalCount;
       recordProcessed("completed", { reason: "fast_abort" });
+      markIdle("message_completed");
+      return { queuedFinal, counts };
+    }
+
+    const captureResult = await maybeRunCapture({ ctx, cfg });
+    if (captureResult.error) {
+      logVerbose(`dispatch-from-config: capture handler skipped after error: ${captureResult.error}`);
+    }
+    if (captureResult.handled && captureResult.payload) {
+      let queuedFinal = false;
+      let routedFinalCount = 0;
+      if (shouldRouteToOriginating && originatingChannel && originatingTo) {
+        const result = await routeReply({
+          payload: captureResult.payload,
+          channel: originatingChannel,
+          to: originatingTo,
+          sessionKey: ctx.SessionKey,
+          accountId: ctx.AccountId,
+          threadId: ctx.MessageThreadId,
+          cfg,
+        });
+        queuedFinal = result.ok;
+        if (result.ok) {
+          routedFinalCount += 1;
+        } else {
+          logVerbose(
+            `dispatch-from-config: route-reply (capture) failed: ${result.error ?? "unknown error"}`,
+          );
+        }
+      } else {
+        queuedFinal = dispatcher.sendFinalReply(captureResult.payload);
+      }
+
+      await dispatcher.waitForIdle();
+      const counts = dispatcher.getQueuedCounts();
+      counts.final += routedFinalCount;
+      recordProcessed("completed", { reason: "capture_handled" });
       markIdle("message_completed");
       return { queuedFinal, counts };
     }
