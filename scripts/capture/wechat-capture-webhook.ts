@@ -4,7 +4,7 @@ import {
   normalizeWechatWebhookPayload,
   processWechatCaptureWebhook,
   sendWechatbotAck,
-} from "../src/adapters/wechat-capture-webhook.js";
+} from "../../src/adapters/wechat-capture-webhook.js";
 
 type JsonRecord = Record<string, unknown>;
 
