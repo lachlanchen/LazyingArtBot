@@ -6,7 +6,7 @@ Run the WeChat sidecar webhook capture path without wiring long-running service 
 
 ## Entry script
 
-- `scripts/wechat-capture-webhook.ts`
+- `scripts/capture/wechat-capture-webhook.ts`
 
 ## Default endpoints
 
@@ -44,13 +44,19 @@ Optional ack relay to wechatbot:
 When dependencies are installed:
 
 ```bash
+pnpm moltbot:capture:wechat-webhook
+```
+
+Backward-compatible alias:
+
+```bash
 pnpm moltbot:wechat-capture-webhook
 ```
 
 Fallback without workspace install:
 
 ```bash
-npx -y -p tsx tsx scripts/wechat-capture-webhook.ts
+npx -y -p tsx tsx scripts/capture/wechat-capture-webhook.ts
 ```
 
 ## Quick smoke

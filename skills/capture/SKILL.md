@@ -50,7 +50,7 @@ When enabled, inbound messages from supported providers are intercepted before n
 
 Use script:
 
-- `scripts/wechat-capture-webhook.ts`
+- `scripts/capture/wechat-capture-webhook.ts`
 
 Default HTTP endpoints:
 
@@ -74,8 +74,9 @@ Key env vars:
 
 Run examples:
 
-- `npx -y -p tsx tsx scripts/wechat-capture-webhook.ts`
-- `pnpm moltbot:wechat-capture-webhook` (when workspace deps are installed)
+- `npx -y -p tsx tsx scripts/capture/wechat-capture-webhook.ts`
+- `pnpm moltbot:capture:wechat-webhook` (canonical)
+- `pnpm moltbot:wechat-capture-webhook` (compat alias)
 
 ## Workflow runners (manual)
 
