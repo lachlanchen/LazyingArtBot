@@ -144,7 +144,8 @@ export class GatewayBrowserClient {
     const role = "operator";
     let deviceIdentity: Awaited<ReturnType<typeof loadOrCreateDeviceIdentity>> | null = null;
     let canFallbackToShared = false;
-    let authToken = this.opts.token;
+    const sharedToken = this.opts.token;
+    let authToken = sharedToken;
 
     if (isSecureContext) {
       deviceIdentity = await loadOrCreateDeviceIdentity();
@@ -152,8 +153,13 @@ export class GatewayBrowserClient {
         deviceId: deviceIdentity.deviceId,
         role,
       })?.token;
-      authToken = storedToken ?? this.opts.token;
-      canFallbackToShared = Boolean(storedToken && this.opts.token);
+      if (storedToken && sharedToken && storedToken !== sharedToken) {
+        clearDeviceAuthToken({ deviceId: deviceIdentity.deviceId, role });
+      }
+      if (!authToken) {
+        authToken = storedToken;
+      }
+      canFallbackToShared = Boolean(storedToken && sharedToken);
     }
     const auth =
       authToken || this.opts.password

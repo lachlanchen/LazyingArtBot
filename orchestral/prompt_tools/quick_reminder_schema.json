@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "notes", "calendar_events", "reminders", "log_entries", "actions"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_note", "folder", "html_body", "tags"],
+        "properties": {
+          "target_note": { "type": "string" },
+          "folder": { "type": "string" },
+          "html_body": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "calendar_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "start_iso", "end_iso", "calendar", "notes"],
+        "properties": {
+          "title": { "type": "string" },
+          "start_iso": { "type": "string" },
+          "end_iso": { "type": "string" },
+          "calendar": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reminders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "due_iso", "notes", "list"],
+        "properties": {
+          "title": { "type": "string" },
+          "due_iso": { "type": "string" },
+          "notes": { "type": "string" },
+          "list": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "log_entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["channel", "content_html"],
+        "properties": {
+          "channel": { "type": "string" },
+          "content_html": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "description", "owner"],
+        "properties": {
+          "type": { "type": "string" },
+          "description": { "type": "string" },
+          "owner": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -59,6 +59,9 @@ For each reminder:
 - Prefer deterministic `duplication_key` values so reminder identity is stable across runs and slight wording changes.
 - Set `duplication_key` to distinguish a new intent vs unchanged intent; changed intent should produce a new key so old slot reminders are replaced intentionally.
 - Avoid creating reminder plans that would result in duplicate titles/dates in the same slot without intent change.
+- During refine runs, treat existing reminder state as potentially dirty and self-cleaning:
+  - keep exactly one active reminder per slot,
+  - replace stale or duplicate legacy reminders for the same slot/intent so only one canonical copy remains.
 
 ## Output contract
 

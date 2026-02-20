@@ -14,6 +14,8 @@ Inputs:
 - `context`: raw text/instructions.
 - `default_calendar`: default calendar name.
 - `default_list`: default reminder list.
+- `default_calendar` fallback: AutoLife.
+- `default_list` fallback: AutoLife.
 
 Rules:
 
@@ -21,7 +23,19 @@ Rules:
 - Prefer reminders for flexible tasks and calendar events for time commitments.
 - Include a short `summary` and keep outputs minimal.
 - Keep titles concise and actionable.
-- Do not execute anything, only plan output JSON.
+- The caller executes the returned calendar/reminder plan directly.
+- Calendar save: use `~/.openclaw/workspace/automation/create_calendar_event.applescript` with arguments:
+  1. title
+  2. start_iso
+  3. end_iso
+  4. notes
+  5. calendar
+- Reminder save: use `~/.openclaw/workspace/automation/create_reminder.applescript` with arguments:
+  1. title
+  2. due_iso
+  3. notes
+  4. list
+- Write only one concrete time-bound plan per item; prefer direct dedupe by title + time key when repeating is likely.
 - Avoid speculative entries.
 - Return only valid JSON.
 

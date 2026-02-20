@@ -13,14 +13,23 @@ Context inputs:
 - `context`: raw text/instructions to summarize.
 - `target_note`: suggested note title.
 - `folder`: suggested folder.
+- `target_note` fallback: Quick Notes.
+- `folder` fallback: 🌱 Life.
 
 Rules:
 
 - Use `target_note` as the primary note title unless context explicitly asks another one.
 - Use `folder` as the default folder unless context clearly says otherwise.
+- The implementation side will write this into Apple Notes directly (no separate tool needed).
+- Use folder-aware saves: by default `🌱 Life`, then any slash-separated subfolder path in `folder`.
+- Save using the local AppleScript helper `~/.openclaw/workspace/automation/create_note.applescript` with arguments:
+  1. title
+  2. html_body
+  3. folder
+  4. write mode (`replace`)
 - Write one HTML-ready update with clear sections and direct action content.
 - Use concise bullet lists where it improves readability.
-- Do not execute anything outside planning.
+- The caller will execute the returned note actions directly in Apple Notes.
 - Prefer bilingual labels (English and Chinese/Japanese mix) when it improves clarity.
 - Return only valid JSON, no prose.
 

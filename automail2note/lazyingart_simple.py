@@ -25,6 +25,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 WORKDIR = Path(__file__).resolve().parent.parent
 AUTOMATION_DIR = WORKDIR / "automation"
+AUTOMATION_WORKDIR = Path.home() / ".openclaw" / "workspace" / "automation"
 STATE_DIR = WORKDIR / "state" / "lazyingart_simple"
 INBOUND_DIR = STATE_DIR / "inbound"
 CODEX_DIR = STATE_DIR / "codex"
@@ -45,6 +46,11 @@ DEFAULT_REMINDER_LIST = "LazyingArt"
 LEGACY_CALENDAR_PLACEHOLDERS = {"lachlan", "calendar"}
 HARD_BLOCKED_ACCOUNTS = {"qq"}
 HARD_BLOCKED_SENDER_EMAILS = {"lachchen@qq.com"}
+IGNORE_LIST_PATTERNS = (
+    "hku_non_important_senders_*.txt",
+    "lmc_non_important_senders_*.txt",
+)
+_IGNORE_LIST_CACHE: dict[str, list[str]] | None = None
 
 ACTION_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -216,6 +222,55 @@ def read_json(path: Path) -> Dict[str, Any]:
 
 def write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def load_ignore_list_from_files() -> list[str]:
+    global _IGNORE_LIST_CACHE
+    if _IGNORE_LIST_CACHE is not None:
+        return list(_IGNORE_LIST_CACHE.keys())
+
+    candidates: dict[str, set[str]] = {}
+    if not AUTOMATION_WORKDIR.exists():
+        return []
+
+    for pattern in IGNORE_LIST_PATTERNS:
+        matches = sorted(AUTOMATION_WORKDIR.glob(pattern))
+        if not matches:
+            continue
+        latest = matches[-1]
+        try:
+            raw = latest.read_text(encoding="utf-8")
+        except Exception:
+            logging.warning("ignore_list_read_failed path=%s", latest)
+            continue
+
+        entries: set[str] = set()
+        for line in raw.splitlines():
+            text = line.strip().lower()
+            if not text or text.startswith("#"):
+                continue
+            entries.add(text)
+
+        if entries:
+            candidates[latest.name] = sorted(entries)
+
+    merged: set[str] = set()
+    for entry_set in candidates.values():
+        merged.update(entry_set)
+    merged = {entry for entry in merged if "@" in entry or "." in entry}
+    _IGNORE_LIST_CACHE = dict.fromkeys(sorted(merged))
+    return list(_IGNORE_LIST_CACHE.keys())
+
+
+def describe_ignore_list_sources() -> str:
+    if not AUTOMATION_WORKDIR.exists():
+        return "(no ignore list directory found)"
+    parts: list[str] = []
+    for pattern in IGNORE_LIST_PATTERNS:
+        matches = sorted(AUTOMATION_WORKDIR.glob(pattern))
+        if matches:
+            parts.append(matches[-1].name)
+    return ", ".join(parts) if parts else "(ignore list files not found)"
 
 
 def load_processed_ids() -> Dict[str, Dict[str, str]]:
@@ -1672,11 +1727,21 @@ def build_prompt(
     trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
+    ignore_hints = ", ".join(sorted(load_ignore_list_from_files()))
+    if not ignore_hints:
+        ignore_hints = "(not configured)"
     return f"""
 You are an email triage assistant for Lazyingart.
 
 You must output EXACTLY one JSON object that matches this schema and contains no extra keys:
 {json.dumps(SCHEMA, indent=2)}
+
+Source handling:
+- Prefer-skip list (from `~/.openclaw/workspace/automation/{describe_ignore_list_sources()}`):
+  {ignore_hints}
+- Prefer skip these senders/accounts unless the email has clear personal value:
+  concrete action, explicit deadline, booking, payment/receipt, contract, invitation, or personal request.
+- Promotions/notification digests are usually skip; only save when clearly important.
 
 Core requirement:
 - Extract ALL actionable items from this email exhaustively.
@@ -1778,6 +1843,9 @@ def build_smart_save_prompt(
     trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
+    ignore_hints = ", ".join(sorted(load_ignore_list_from_files()))
+    if not ignore_hints:
+        ignore_hints = "(not configured)"
     candidate_json = json.dumps({"actions": candidate_actions}, ensure_ascii=False, indent=2)
     return f"""
 You are the Smart Save planner for Lazyingart email automation.
@@ -1792,6 +1860,8 @@ Your job:
 
 Rules:
 - Keep only actions that provide value.
+- Re-apply the same prefer-skip rule for noisy senders:
+  {ignore_hints}
 - Remove duplicates against existing saved items and against repeated forwarded email content.
 - Preserve all distinct actionable items.
 - If nothing should be saved, return exactly one action with decision="skip".
@@ -1857,6 +1927,9 @@ def build_strong_save_prompt(
     trigger_context: str = "",
 ) -> str:
     prompt_default_calendar = default_calendar.strip() or DEFAULT_CALENDAR
+    ignore_hints = ", ".join(sorted(load_ignore_list_from_files()))
+    if not ignore_hints:
+        ignore_hints = "(not configured)"
     today = now_local.date().isoformat()
     actions_json = json.dumps({"actions": actions}, ensure_ascii=False, indent=2)
     return f"""
@@ -1866,22 +1939,24 @@ You MUST execute saves yourself using shell commands (not just planning), then r
 {json.dumps(STRONG_SAVE_SCHEMA, indent=2)}
 
 Execution requirements:
-1) Input actions to execute:
+1) Apply the prefer-skip rule from the source ignore list below:
+   {ignore_hints}
+2) Input actions to execute:
 {actions_json}
-2) Deduplicate:
+3) Deduplicate:
    - against existing saved items below
    - within this run
    - calendar duplicate key: title + start + end + calendar
    - reminder duplicate key: title + due + list
    - note duplicate key: title + folder + core content
-3) Save commands:
+4) Save commands:
    - calendar:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_calendar_event.applescript"))} "<title>" "<start>" "<end>" "<notes>" "<calendar>" "<reminderMinutes>"
    - reminder:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_reminder.applescript"))} "<title>" "<due>" "<notes>" "<list>" "<reminderMinutes>"
    - note:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "<title>" "<notes>" "<folder>" "prepend"
-4) For note actions, dynamically merge into existing knowledge:
+5) For note actions, dynamically merge into existing knowledge:
    - folder must be meaningful and start with Lazyingart/
    - prefer this top-level taxonomy when possible:
      Work / Research / Travel / MEMO / To-Do-List / Finance / School / Personal / Inbox
@@ -1894,7 +1969,7 @@ Execution requirements:
    - avoid Lazyingart/Inbox when a better category is obvious
    - reuse same title/folder when semantically same topic
    - merge and rewrite consolidated note content when needed (not raw duplicate append), newest first
-5) Note content formatting requirements:
+6) Note content formatting requirements:
    - output rich, readable Apple Notes content with clear structure
    - use section headers + blank lines
    - prefer HTML-friendly formatting for notes content:

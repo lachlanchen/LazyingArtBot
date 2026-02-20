@@ -95,5 +95,101 @@ python3 scripts/prompt_tools/codex-json-runner.py \
   --label quick-notes \
   --skip-git-check
 
+RESULT_JSON="$OUTPUT_DIR/latest-result.json"
+CREATE_NOTE_SCRIPT="$HOME/.openclaw/workspace/automation/create_note.applescript"
+
+if [[ ! -f "$RESULT_JSON" ]]; then
+  echo "No result file from Codex prompt" >&2
+  exit 1
+fi
+
+python3 "$RESULT_JSON" "$CREATE_NOTE_SCRIPT" "$TARGET_NOTE" "$FOLDER" <<'PY'
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+PLAN_JSON = Path(sys.argv[1]).expanduser()
+CREATE_NOTE_SCRIPT = Path(sys.argv[2]).expanduser()
+DEFAULT_NOTE = os.fspath(sys.argv[3])
+DEFAULT_FOLDER = os.fspath(sys.argv[4])
+
+
+def run_osascript(script_path: str, *args: str) -> str:
+    proc = subprocess.run(
+        ["osascript", str(script_path), *args],
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stderr or proc.stdout or "osascript failed").strip())
+    return proc.stdout.strip()
+
+
+def to_str(value: object, default: str = "") -> str:
+    return str(value).strip() if isinstance(value, str) else default
+
+
+plan = json.loads(PLAN_JSON.read_text(encoding="utf-8"))
+summary = to_str(plan.get("summary"), "Quick note capture")
+notes = plan.get("notes", [])
+if not isinstance(notes, list):
+    notes = []
+
+results = []
+created = 0
+failed = 0
+
+for item in notes:
+    if not isinstance(item, dict):
+        continue
+
+    target_note = to_str(item.get("target_note"), DEFAULT_NOTE)
+    if not target_note:
+        target_note = DEFAULT_NOTE
+
+    folder = to_str(item.get("folder"), DEFAULT_FOLDER)
+    if not folder:
+        folder = DEFAULT_FOLDER
+
+    html_body = item.get("html_body") if isinstance(item.get("html_body"), str) else ""
+
+    try:
+        note_id = run_osascript(
+            str(CREATE_NOTE_SCRIPT),
+            target_note,
+            html_body,
+            folder,
+            "replace",
+        )
+        created += 1
+        results.append({
+            "status": "created",
+            "action": "note",
+            "note": target_note,
+            "folder": folder,
+            "note_id": note_id,
+        })
+    except Exception as exc:  # noqa: BLE001
+        failed += 1
+        results.append({
+            "status": "failed",
+            "action": "note",
+            "note": target_note,
+            "folder": folder,
+            "error": str(exc),
+        })
+
+report = {
+    "summary": summary,
+    "created": created,
+    "failed": failed,
+    "results": results,
+}
+
+print(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+PY
+
 rm -f "$TMP"
-cat "$OUTPUT_DIR/latest-result.json"

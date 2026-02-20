@@ -7,6 +7,7 @@ cd "$REPO_DIR"
 TZ_NAME="Asia/Hong_Kong"
 JOB_NAME_AM="LazyingArt Pipeline 08:00 HK"
 JOB_NAME_PM="LazyingArt Pipeline 20:00 HK"
+JOB_NAME_PM_ALT="LazyingArt Pipeline 21:00 HK"
 TO_ADDR="lachchen@qq.com"
 FROM_ADDR="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
@@ -16,7 +17,7 @@ usage() {
   cat <<'USAGE'
 Usage: setup_la_pipeline_cron.sh [options]
 
-Creates/refreshes OpenClaw cron jobs (08:00 + 20:00 Asia/Hong_Kong) that trigger
+Creates/refreshes OpenClaw cron jobs (08:00 Asia/Hong_Kong) that trigger
 the Lazying.art pipeline script through agent exec.
 
 Options:
@@ -61,12 +62,12 @@ done
 
 list_json="$(pnpm openclaw cron list --json | sed -n '/^{/,$p')"
 existing_ids="$(
-  python3 - "$list_json" "$JOB_NAME_AM" "$JOB_NAME_PM" <<'PY'
+  python3 - "$list_json" "$JOB_NAME_AM" "$JOB_NAME_PM" "$JOB_NAME_PM_ALT" <<'PY'
 import json
 import sys
 
 data = json.loads(sys.argv[1])
-names = {sys.argv[2], sys.argv[3]}
+names = {sys.argv[2], sys.argv[3], sys.argv[4]}
 for job in data.get("jobs", []):
     if job.get("name") in names and job.get("id"):
         print(job["id"])
@@ -96,15 +97,6 @@ EOF
 pnpm openclaw cron add \
   --name "$JOB_NAME_AM" \
   --cron "0 8 * * *" \
-  --tz "$TZ_NAME" \
-  --session isolated \
-  --message "$MESSAGE_TEMPLATE" \
-  --no-deliver \
-  >/dev/null
-
-pnpm openclaw cron add \
-  --name "$JOB_NAME_PM" \
-  --cron "0 20 * * *" \
   --tz "$TZ_NAME" \
   --session isolated \
   --message "$MESSAGE_TEMPLATE" \

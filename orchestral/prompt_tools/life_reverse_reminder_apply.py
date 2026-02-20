@@ -271,6 +271,44 @@ def parse_slot(name: str) -> tuple[str, str]:
     return "", raw
 
 
+def dedupe_open_slot_items(
+    open_items: list[dict[str, str]],
+    tz: ZoneInfo,
+    now: datetime,
+) -> tuple[list[dict[str, str]], list[str]]:
+    if not open_items:
+        return [], []
+
+    buckets: dict[tuple[str, str], list[dict[str, str]]] = {}
+    for item in open_items:
+        title_key = item.get("bare_title", "").strip().lower()
+        dup_key = item.get("duplication_key", "").strip()
+        if dup_key:
+            sig = (title_key, dup_key)
+        else:
+            sig = (title_key, "")
+        buckets.setdefault(sig, []).append(item)
+
+    kept: list[dict[str, str]] = []
+    duplicate_ids: list[str] = []
+    for candidates in buckets.values():
+        if len(candidates) == 1:
+            kept.append(candidates[0])
+            continue
+
+        candidates.sort(
+            key=lambda it: parse_iso(str(it.get("due_iso", "")), tz) or now,
+            reverse=True,
+        )
+        keep = candidates[0]
+        kept.append(keep)
+        for duplicate in candidates[1:]:
+            duplicate_id = str(duplicate.get("id", "")).strip()
+            if duplicate_id:
+                duplicate_ids.append(duplicate_id)
+    return kept, duplicate_ids
+
+
 def extract_duplication_key(body: str) -> str:
     raw = (body or "").strip()
     if not raw:
@@ -430,7 +468,6 @@ def main() -> int:
 
     existing = fetch_life_reminders(args.list_name)
     open_by_slot: dict[str, list[dict[str, str]]] = {slot: [] for slot in SLOT_ORDER}
-    done_by_slot: dict[str, list[dict[str, str]]] = {slot: [] for slot in SLOT_ORDER}
 
     for item in existing:
         slot, bare = parse_slot(item.get("name", ""))
@@ -438,14 +475,20 @@ def main() -> int:
             continue
         item["bare_title"] = bare
         item["duplication_key"] = extract_duplication_key(item.get("body", ""))
-        if item.get("completed") == "1":
-            done_by_slot[slot].append(item)
-        else:
+        if item.get("completed") != "1":
             open_by_slot[slot].append(item)
+
+    completed_old_count = 0
+    for slot in SLOT_ORDER:
+        deduped, duplicate_ids = dedupe_open_slot_items(open_by_slot[slot], tz, now)
+        open_by_slot[slot] = deduped
+        for dup_id in duplicate_ids:
+            outcome = complete_reminder(args.list_name, dup_id)
+            if outcome in {"completed", "ok"}:
+                completed_old_count += 1
 
     created_count = 0
     kept_count = 0
-    completed_old_count = 0
     failed_count = 0
     results: list[dict[str, Any]] = []
     slot_state: dict[str, Any] = {}
