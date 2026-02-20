@@ -82,6 +82,8 @@ Run examples:
 
 The following STEP-6 workflows now have executable runners:
 
+- Canonical runner/command map: `scripts/capture/README.md`
+
 - daily calendar rebuild:
   - `pnpm moltbot:capture:daily-calendar`
 - watch checkpoint scan:
