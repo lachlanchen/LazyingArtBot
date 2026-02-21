@@ -79,6 +79,74 @@ Automation workspace (local):
 
 ---
 
+## Orchestral philosophy
+
+LAB orchestration follows one design rule:
+break difficult goals into deterministic execution + focused prompt-tool chains.
+
+- Deterministic scripts handle reliable plumbing:
+  scheduling, file routing, run directories, retries, and output handoff.
+- Prompt tools handle adaptive intelligence:
+  planning, triage, context synthesis, and decision-making under uncertainty.
+- Every stage emits reusable artifacts so downstream tools can compose stronger final notes/email without starting from zero.
+
+Core orchestral chains:
+
+- Company entrepreneurship chain:
+  company context ingestion → market/funding/academic/legal intelligence → concrete growth actions.
+- Auto mail chain:
+  inbound mail triage → conservative skip policy for low-value mail → structured Notes/Reminders/Calendar actions.
+- Web search chain:
+  results-page capture → targeted deep reads with screenshot/content extraction → evidence-backed synthesis.
+
+---
+
+## Prompt tools in LAB
+
+Prompt tools are modular, composable, and orchestration-first.
+They can run independently or as linked stages in a larger workflow.
+
+- Read/save operations:
+  create and update Notes, Reminders, and Calendar outputs for AutoLife operations.
+- Screenshot/read operations:
+  capture search pages and linked pages, then extract structured text for downstream analysis.
+- Tool-connection operations:
+  call deterministic scripts, exchange artifacts across stages, and maintain context continuity.
+
+Primary location:
+
+- `scripts/prompt_tools/`
+
+---
+
+## LAB ecosystem integrations
+
+LAB integrates my broader AI product and research repos into one operating layer for creation, growth, and automation.
+
+Profile:
+
+- https://github.com/lachlanchen?tab=repositories
+
+Integrated repos:
+
+- `VoidAbyss` (隙遊之淵)
+- `AutoNovelWriter` (automatic novel writing)
+- `AutoAppDev` (automatic app development)
+- `OrganoidAgent` (organoid research platform with foundation vision models + LLMs)
+- `LazyEdit` (AI-assisted video editing: captions/transcription/highlights/metadata/subtitles)
+- `AutoPublish` (automatic publication pipeline)
+
+Practical LAB integration goals:
+
+- Auto write novels
+- Auto develop apps
+- Auto edit videos
+- Auto publish outputs
+- Auto analyze organoids
+- Auto handle email operations
+
+---
+
 ## Security baseline
 
 Before enabling broad automation:
