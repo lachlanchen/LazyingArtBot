@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YouTubePlaylistReorderResult",
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "partial", "blocked", "failed"]
+    },
+    "source_playlist_url": {
+      "type": "string"
+    },
+    "source_playlist_title": {
+      "type": "string"
+    },
+    "target_playlist_name": {
+      "type": "string"
+    },
+    "results_summary": {
+      "type": "object",
+      "properties": {
+        "total_source_visible_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "processed_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "added_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "already_present_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_items": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "total_source_visible_items",
+        "processed_items",
+        "added_items",
+        "already_present_items",
+        "failed_items"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "position_from_bottom": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "video_url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "added",
+              "already_present",
+              "playlist_missing",
+              "menu_not_found",
+              "save_failed"
+            ]
+          },
+          "evidence_screenshot": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "position_from_bottom",
+          "title",
+          "video_url",
+          "status",
+          "evidence_screenshot",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommendation": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "summary",
+    "status",
+    "source_playlist_url",
+    "source_playlist_title",
+    "target_playlist_name",
+    "results_summary",
+    "actions",
+    "screenshots",
+    "issues",
+    "recommendation"
+  ],
+  "additionalProperties": false
+}

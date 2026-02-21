@@ -16,6 +16,10 @@ START_PAGE=1
 END_PAGE=1
 SCROLL_STEPS=3
 SCROLL_PAUSE=0.9
+AUTO_ATTACH=1
+ATTACH_SESSION=0
+DEBUG_PORT="9222"
+HAS_DEBUG_PORT=0
 
 usage() {
   cat <<'USAGE'
@@ -32,7 +36,9 @@ Options:
   --env <conda-env>          Conda env for Selenium tool (default: clawbot)
   --profile-dir <path>       Chrome profile directory
   --debug-port <port>        Debug port for attach mode (default: 9222)
-  --attach                   Attach to running Chrome session
+  --attach                   Attach to running Chrome session (port must be active)
+  --no-attach                Force a fresh Chrome session
+  --no-auto-attach           Disable auto-attach when a reusable debug session exists
   --headless                  Force headless mode (not default)
   --open-result              Click selected result index (same as search wrapper behavior)
   --result-index <n>         If --open-result, index of clicked result (default: 1)
@@ -103,6 +109,7 @@ while [[ "$#" -gt 0 ]]; do
     --debug-port)
       shift
       [[ "$#" -gt 0 ]] || { echo "--debug-port requires a value" >&2; exit 1; }
+      DEBUG_PORT="$1"
       ARGS+=("--debug-port" "$1")
       ;;
     --result-index)
@@ -150,7 +157,17 @@ while [[ "$#" -gt 0 ]]; do
       [[ "$#" -gt 0 ]] || { echo "--scroll-pause requires a value" >&2; exit 1; }
       SCROLL_PAUSE="$1"
       ;;
-    --attach|--headless|--open-result|--summarize-open-url|--keep-open)
+    --attach)
+      ATTACH_SESSION=1
+      ;;
+    --no-attach)
+      ATTACH_SESSION=0
+      AUTO_ATTACH=0
+      ;;
+    --no-auto-attach)
+      AUTO_ATTACH=0
+      ;;
+    --headless|--open-result|--summarize-open-url|--keep-open)
       ARGS+=("$1")
       if [[ "$1" == --headless ]]; then
         HEADLESS=1
@@ -179,6 +196,40 @@ if [[ ! -x "$IMMERSIVE_SCRIPT" ]]; then
   exit 1
 fi
 
+HAS_DEBUG_PORT=0
+for arg in "${ARGS[@]}"; do
+  if [[ "$arg" == "--debug-port" ]]; then
+    HAS_DEBUG_PORT=1
+    break
+  fi
+done
+if [[ "$HAS_DEBUG_PORT" -eq 0 ]]; then
+  ARGS+=(--debug-port "$DEBUG_PORT")
+fi
+
+check_debugger_port() {
+  local port="$1"
+  local out
+  out="$(python3 - "$port" <<'PY'
+import socket
+import sys
+
+port = int(sys.argv[1])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+  sock.settimeout(0.5)
+  print("1" if sock.connect_ex(("127.0.0.1", port)) == 0 else "0")
+finally:
+  sock.close()
+PY
+)"
+  [[ "$out" == "1" ]]
+}
+
+if [[ "$AUTO_ATTACH" -eq 1 ]] && [[ "$ATTACH_SESSION" -eq 0 ]] && check_debugger_port "$DEBUG_PORT"; then
+  ATTACH_SESSION=1
+fi
+
 ARGS+=(--query "$QUERY")
 ARGS+=(--engine "$ENGINE")
 ARGS+=(--results "$RESULTS")
@@ -195,6 +246,9 @@ ARGS+=(--scroll-steps "$SCROLL_STEPS")
 ARGS+=(--scroll-pause "$SCROLL_PAUSE")
 if [[ "${HOLD_SECONDS}" != "0" ]]; then
   ARGS+=(--hold-seconds "$HOLD_SECONDS")
+fi
+if [[ "$ATTACH_SESSION" -eq 1 ]]; then
+  ARGS+=(--attach)
 fi
 if [[ "${HEADLESS}" == "1" ]]; then
   ARGS+=(--headless)

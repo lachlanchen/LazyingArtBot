@@ -36,6 +36,8 @@ Recommended interaction pattern for Codex-assisted extraction:
 1. Run first pass with a results-page capture, e.g.
    - `prompt_web_search_immersive.sh --engine google --query "<query from context materials>" --results <top_n> --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 0.9`
    - Ensure `<query from context materials>` is business-theme-based from provided evidence, not a bare brand/domain term.
+   - If you already have a logged-in Chrome debug session open (same local profile and port), append:
+     `--attach --profile-dir ~/.local/share/web-search-selenium/browser-profile --debug-port 9222`.
 2. Read returned JSON/TXT and pick top results from the search-result page and opened details.
 3. Re-run only if needed with:
    - `--open-result --result-index N` for deep capture, where N follows the opened result set from `opened_items`, and
