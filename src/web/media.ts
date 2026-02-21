@@ -181,25 +181,44 @@ async function loadWebMediaInternal(
     meta?: { contentType?: string; fileName?: string },
   ) => {
     const originalSize = buffer.length;
-    const optimized = await optimizeImageWithFallback({ buffer, cap, meta });
-    logOptimizedImage({ originalSize, optimized });
+    try {
+      const optimized = await optimizeImageWithFallback({ buffer, cap, meta });
+      logOptimizedImage({ originalSize, optimized });
 
-    if (optimized.buffer.length > cap) {
-      throw new Error(formatCapReduce("Media", cap, optimized.buffer.length));
+      if (optimized.buffer.length > cap) {
+        throw new Error(formatCapReduce("Media", cap, optimized.buffer.length));
+      }
+
+      const contentType = optimized.format === "png" ? "image/png" : "image/jpeg";
+      const fileName =
+        optimized.format === "jpeg" && meta && isHeicSource(meta)
+          ? toJpegFileName(meta.fileName)
+          : meta?.fileName;
+
+      return {
+        buffer: optimized.buffer,
+        contentType,
+        kind: "image" as const,
+        fileName,
+      };
+    } catch (err) {
+      // If optimization codecs are unavailable, still allow already-small images through.
+      if (isHeicSource(meta ?? {})) {
+        throw err;
+      }
+      if (originalSize > cap) {
+        throw new Error(formatCapReduce("Media", cap, originalSize), { cause: err });
+      }
+      if (shouldLogVerbose()) {
+        logVerbose(`Image optimization unavailable, using original media (${String(err)})`);
+      }
+      return {
+        buffer,
+        contentType: meta?.contentType,
+        kind: "image" as const,
+        fileName: meta?.fileName,
+      };
     }
-
-    const contentType = optimized.format === "png" ? "image/png" : "image/jpeg";
-    const fileName =
-      optimized.format === "jpeg" && meta && isHeicSource(meta)
-        ? toJpegFileName(meta.fileName)
-        : meta?.fileName;
-
-    return {
-      buffer: optimized.buffer,
-      contentType,
-      kind: "image" as const,
-      fileName,
-    };
   };
 
   const clampAndFinalize = async (params: {

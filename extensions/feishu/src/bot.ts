@@ -900,6 +900,7 @@ export async function handleFeishuMessage(params: {
       Provider: "feishu" as const,
       Surface: "feishu" as const,
       MessageSid: ctx.messageId,
+      ReplyToId: ctx.parentId,
       ReplyToBody: quotedContent ?? undefined,
       Timestamp: Date.now(),
       WasMentioned: ctx.mentionedBot,

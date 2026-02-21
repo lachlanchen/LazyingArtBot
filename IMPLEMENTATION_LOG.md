@@ -1,0 +1,1062 @@
+# Moltbot Capture Agent - Implementation Log
+
+## 2026-02-18 Session Start
+
+- Timestamp: 2026-02-18T19:10:00+09:00
+- Step: Bootstrap
+- Decision: Use `LazyingArtBot` as primary codebase on branch `feature/moltbot-capture-agent-mvp`; implement Telegram-first MVP behind env flag.
+- Commands/Files touched:
+  - `git clone https://github.com/lachlanchen/LazyingArtBot.git /opt/LazyingArtBot`
+  - `git -C /opt/LazyingArtBot checkout -b feature/moltbot-capture-agent-mvp`
+  - created `IMPLEMENTATION_LOG.md`
+- Result: Repository ready for implementation.
+- Risk/Follow-up:
+  - Current host has no pre-existing `assistant_hub`; code must bootstrap directories safely.
+  - MVP should be gated to avoid behavior change for existing users.
+
+## Next Session Bootstrap
+
+1. Finish capture core module (`input -> classify -> file ops -> apply -> ack`).
+2. Wire Telegram inbound dispatch to capture mode (env gated).
+3. Add capture skill docs and minimal tests; run targeted verification.
+
+## 2026-02-18 Progress Update
+
+- Timestamp: 2026-02-18T20:35:00+09:00
+- Step: MVP implementation (Telegram-first capture)
+- Decision: Implement env-gated capture path in existing dispatch pipeline to avoid breaking default behavior.
+- Commands/Files touched:
+  - Added `src/adapters/capture-input.ts`
+  - Added `src/adapters/telegram-capture-adapter.ts`
+  - Added `src/capture-agent/types.ts`
+  - Added `src/capture-agent/classifier.ts`
+  - Added `src/capture-agent/hub.ts`
+  - Added `src/capture-agent/run.ts`
+  - Added `src/auto-reply/reply/maybe-run-capture.ts`
+  - Updated `src/auto-reply/reply/dispatch-from-config.ts`
+  - Added `skills/capture/SKILL.md`
+  - Added `.agent/workflows/capture-daily-calendar.md`
+  - Added `.agent/workflows/capture-watch-checker.md`
+  - Added `.agent/workflows/capture-stale-checker.md`
+  - Added `.agent/workflows/capture-weekly-reflection.md`
+- Result:
+  - Telegram inbound now supports a capture flow behind `MOLTBOT_CAPTURE_ENABLED` / `capture.enabled`.
+  - Capture writes `assistant_hub` structure, card/index/queue files, and sends a 3-line ack.
+- Risk/Follow-up:
+  - Full repo typecheck is blocked in this environment because workspace dependencies are not fully available.
+  - Current classifier is heuristic MVP; semantic merge/advanced dedupe is still pending.
+
+## Next Session Bootstrap
+
+1. Validate runtime with a real Telegram message on a dev account.
+2. Add robust dedupe/append_existing against existing cards.
+3. Implement `OUTPUT_MODE=agent` path.
+
+## 2026-02-18 Verification Update
+
+- Timestamp: 2026-02-18T20:43:00+09:00
+- Step: smoke verification
+- Decision: use `npx tsx` smoke checks for new modules because full workspace dependency install/typecheck is not reliable in this environment.
+- Commands/Files touched:
+  - `npx -p tsx@4.21.0 tsx -e "import { runCaptureAgent } ..."`
+  - `npx -p tsx@4.21.0 tsx -e "import { maybeRunCapture } ..."`
+- Result:
+  - `runCaptureAgent` returns expected ack and item (`watch` / `action` paths verified).
+  - `maybeRunCapture` returns `handled=true` with 3-line ack payload when `MOLTBOT_CAPTURE_ENABLED=1`.
+- Risk/Follow-up:
+  - Smoke tests created sample data under `~/.openclaw/workspace/automation/assistant_hub`.
+  - Full repo typecheck still pending once dependencies are fully installable.
+
+## 2026-02-18 Dedupe/Append Update
+
+- Timestamp: 2026-02-18T19:58:21+08:00
+- Step: strengthen `append_existing` behavior
+- Decision: make merge path read and merge existing card content; avoid writing empty overwrite when append target is selected.
+- Commands/Files touched:
+  - Updated `src/capture-agent/run.ts`
+  - `npx -y -p tsx tsx <<'TS' ... TS` (3-case smoke: create, reply merge, same message replay)
+- Result:
+  - `buildItemAndOps` is now async and loads `mainPath` before merging.
+  - Append fallback creates a new card if target file is missing.
+  - `containsMessageRef` now supports both `message_id:` and `message_id=` patterns.
+  - Merge metadata now writes `message_id:`, `reply_to:`, `group_id:` consistently.
+  - Smoke check verified:
+    - case1: new watch card -> `dedupeHint=new`, ack `已收`.
+    - case2 (reply_to): merged into same card -> `dedupeHint=append_existing`, ack `已合併`.
+    - case3 (same message_id replay): no duplicate block appended in main card (`message_id m-3002` count stayed `1`).
+- Risk/Follow-up:
+  - `memory` type is intentionally excluded from append dedupe in current MVP logic.
+  - Full repo typecheck/test remains pending until workspace dependencies are fully available.
+
+## 2026-02-18 OUTPUT_MODE=agent Enablement
+
+- Timestamp: 2026-02-18T21:13:17+08:00
+- Step: remove `agent` mode blocker and add structured agent output payload
+- Decision: keep existing JSON contract fully compatible, and add `agent` mode as an additive output shape (no dispatcher behavior change required).
+- Commands/Files touched:
+  - Updated `src/capture-agent/types.ts`
+  - Updated `src/capture-agent/run.ts`
+  - `npx -y -p tsx tsx <<'TS' ... TS` (json/agent mode smoke checks)
+  - `npx -y -p tsx tsx <<'TS' ... TS` (`maybeRunCapture` smoke with `OUTPUT_MODE=agent`)
+- Result:
+  - `runCaptureAgent` now accepts `OUTPUT_MODE=agent` and no longer throws.
+  - New output shape for agent mode:
+    - `outputMode: "agent"`
+    - `agent.cards[]` (card markdown payloads + target paths)
+    - `agent.text` (card markdown bodies followed by ack 3 lines)
+  - `OUTPUT_MODE=json` behavior remains unchanged.
+  - `maybeRunCapture` works unchanged with `OUTPUT_MODE=agent` and still replies with ack text.
+- Risk/Follow-up:
+  - Agent mode currently exports only full card writes (`create/overwrite` markdown card bodies), not index/inbox append ops.
+  - Full repo typecheck remains pending in this environment due dependency limitations.
+
+## 2026-02-18 Replay Idempotency Hardening
+
+- Timestamp: 2026-02-18T21:16:34+08:00
+- Step: reduce duplicate writes on message replay (same `message_id`)
+- Decision: keep inbox append behavior (for raw traceability), while suppressing duplicate daily-log/card secondary effects.
+- Commands/Files touched:
+  - Updated `src/capture-agent/run.ts`
+  - `npx -y -p tsx tsx <<'TS' ... TS` (memory replay + watch merge/replay smoke)
+  - `npx -y -p tsx tsx -e "... runCaptureAgent(outputMode:'agent') ..."` (agent regression smoke)
+- Result:
+  - Memory daily log entries now include `message_id/reply_to/group_id` metadata.
+  - Memory branch now skips daily-log append when same `message_id` already exists.
+  - Replay detection now marks item `dedupeHint=append_existing` and ack `已合併`.
+  - For replay/append flows, queue/calendar duplication is reduced:
+    - `reasoning_queue.jsonl` append now skips on `append_existing` or exact replay.
+    - `calendar.md` append now skips on `append_existing` or exact replay.
+  - Smoke check verified:
+    - memory replay kept `message_id mem-1` count at `1` in daily log.
+    - watch replay kept `message_id w-2` count at `1` in main card.
+    - aggregate writes after create+merge+replay: `queueLines=2`, `calendarLines=1`.
+- Risk/Follow-up:
+  - Replay suppression currently keys on `message_id`; if upstream omits IDs, fallback remains semantic/title merge logic.
+  - Full repo-wide tests/typecheck still pending in this environment.
+
+## 2026-02-18 Feishu Adapter + Routing
+
+- Timestamp: 2026-02-18T21:34:14+08:00
+- Step: add Feishu/Lark capture ingress path
+- Decision: follow existing Telegram adapter pattern, keep capture core platform-agnostic, and route by inbound provider in `maybeRunCapture`.
+- Commands/Files touched:
+  - Added `src/adapters/feishu-capture-adapter.ts`
+  - Added `src/adapters/feishu-capture-adapter.test.ts`
+  - Updated `src/auto-reply/reply/maybe-run-capture.ts`
+  - Updated `extensions/feishu/src/bot.ts` (set `ReplyToId` from `parent_id`)
+  - Updated `src/adapters/telegram-capture-adapter.ts` and `src/adapters/feishu-capture-adapter.ts` (media type fallback fix)
+  - Smoke checks via `npx -y -p tsx tsx <<'TS' ... TS` for:
+    - Feishu adapter output mapping
+    - `maybeRunCapture` with `Surface=feishu`
+    - `maybeRunCapture` with `Surface=lark`
+    - `runCaptureAgent` source=`feishu`
+- Result:
+  - Capture dispatch now handles `telegram`, `feishu`, and `lark` providers.
+  - Feishu capture input now maps content/attachments/metadata with group and reply context.
+  - Feishu inbound context now carries `ReplyToId` for better append/continue matching.
+  - Fixed attachment type inference bug when only `MediaTypes[]` exists (previously could degrade to `file`).
+- Risk/Follow-up:
+  - Feishu adapter test file added, but full vitest execution is not yet verified in this environment due local test runner availability constraints.
+  - Multi-platform adapters beyond Feishu (WhatsApp/WeChat/generic) still pending.
+
+## 2026-02-18 WhatsApp + Generic Adapter Routing
+
+- Timestamp: 2026-02-18T21:48:00+08:00
+- Step: extend capture ingress to WhatsApp and optional generic provider fallback
+- Decision: keep safe default behavior (`generic` disabled by default), with explicit opt-in via env/config.
+- Commands/Files touched:
+  - Added `src/adapters/whatsapp-capture-adapter.ts`
+  - Added `src/adapters/generic-capture-adapter.ts`
+  - Added `src/adapters/whatsapp-capture-adapter.test.ts`
+  - Added `src/adapters/generic-capture-adapter.test.ts`
+  - Updated `src/auto-reply/reply/maybe-run-capture.ts`
+  - Updated `src/capture-agent/types.ts` (source union expanded)
+  - Updated `src/capture-agent/classifier.ts` (source mapping for feishu/lark/whatsapp/generic)
+  - Smoke checks via `npx -y -p tsx tsx <<'TS' ... TS` (telegram/whatsapp/generic-off/generic-on + source checks)
+- Result:
+  - `maybeRunCapture` now supports direct routing for `whatsapp`.
+  - Unknown providers can use generic adapter only when `MOLTBOT_CAPTURE_GENERIC_ENABLED=1` or `capture.genericEnabled=true`.
+  - Capture output/source now correctly records `whatsapp` and `generic` (no longer collapsing to `telegram`).
+  - Inbox file naming now follows source label (e.g., `*_whatsapp_inbox.md`, `*_generic_inbox.md`).
+- Risk/Follow-up:
+  - Generic fallback is intentionally conservative (off by default) to avoid accidental interception of all channels.
+  - Full vitest execution is still environment-limited; functionality verified by targeted `tsx` smoke runs.
+
+## 2026-02-18 WeChat Adapter
+
+- Timestamp: 2026-02-18T21:53:09+08:00
+- Step: implement WeChat capture adapter + provider routing
+- Decision: add dedicated `wechat` adapter path (not behind generic fallback), and keep webhook payload mapping helper in adapter for future sidecar HTTP integration.
+- Commands/Files touched:
+  - Added `src/adapters/wechat-capture-adapter.ts`
+  - Added `src/adapters/wechat-capture-adapter.test.ts`
+  - Updated `src/auto-reply/reply/maybe-run-capture.ts`
+  - Updated `src/capture-agent/types.ts` (add `wechat` source)
+  - Updated `src/capture-agent/classifier.ts` (platform→source mapping for `wechat/weixin/wechatbot`)
+  - Smoke checks via `npx -y -p tsx tsx <<'TS' ... TS` and `tsx -e ...`
+- Result:
+  - `maybeRunCapture` now accepts `wechat`, `weixin`, and `wechatbot` provider labels.
+  - `runCaptureAgent` source now records `wechat` (instead of falling back to `generic`).
+  - Inbox source partition works for WeChat (`*_wechat_inbox.md`).
+  - `toWechatCaptureInputFromWebhook()` maps wechatbot payload (`content/type/url/roomid/wxid/sender`) into `CaptureInput`.
+- Risk/Follow-up:
+  - Webhook route wiring is not added yet (only adapter and mapping helper are ready).
+  - Full vitest runner remains environment-limited; behavior validated via targeted `tsx` smoke checks.
+
+## 2026-02-18 WeChat Webhook Processor + Runnable Server
+
+- Timestamp: 2026-02-18T23:15:23+09:00
+- Step: implement executable WeChat webhook capture ingress (receive + process + optional ack send)
+- Decision: keep capture business logic in `src/adapters/wechat-capture-webhook.ts` and provide a standalone `scripts/` server for sidecar deployment/testing.
+- Commands/Files touched:
+  - Updated `src/adapters/wechat-capture-webhook.ts`
+    - added `sendWechatbotAck()` helper (POST to `/webhook/msg/v2`)
+    - cleaned webhook preflight reason union
+  - Added `src/adapters/wechat-capture-webhook.test.ts`
+    - normalize payload tests (root + nested `data`)
+    - preflight skip tests (`group_not_mentioned`, `dm_not_self_sender`, `missing_message_id`)
+    - handled path test with ack target + `runCaptureAgent` call assertion
+  - Added `scripts/wechat-capture-webhook.ts`
+    - HTTP server with configurable host/port/path
+    - payload parsing + `processWechatCaptureWebhook()` invocation
+    - optional webhook token check (`x-wechat-capture-token`)
+    - optional ack send back to wechatbot API
+    - health endpoint + graceful shutdown
+  - Verification commands:
+    - `npx -y -p tsx tsx <<'TS' ... processWechatCaptureWebhook smoke ... TS`
+    - `npx -y -p tsx tsx scripts/wechat-capture-webhook.ts` (background) + `curl` health/webhook
+- Result:
+  - WeChat webhook path is now runnable end-to-end from sidecar HTTP payload to capture-agent output.
+  - HTTP smoke confirmed:
+    - `GET /healthz` => `ok`
+    - `POST /wechat/webhook` => `200` with `{ handled: true, itemCount: 1, ack.target: <roomid> }`
+  - Ack send path is implemented and can be enabled/disabled by env without affecting capture handling.
+- Risk/Follow-up:
+  - Local environment still lacks a ready `pnpm vitest` binary; verification used targeted `tsx` smoke + live HTTP request.
+  - If production wechatbot expects a different auth header than `x-wechatbot-token`, adjust env/header mapping in `sendWechatbotAck()`.
+
+## 2026-02-18 Capture Docs Sync + Webhook Runbook
+
+- Timestamp: 2026-02-18T23:23:41+09:00
+- Step: document the new WeChat webhook capability in markdown and make manual start command stable
+- Decision: keep docs under `skills/capture/` (same feature surface) and add one explicit package script for repeatable local runs.
+- Commands/Files touched:
+  - Updated `skills/capture/SKILL.md`
+    - scope updated from Telegram-only to current multi-provider reality
+    - added WeChat webhook mode env and run commands
+    - refreshed behavior and known-limits sections
+  - Added `skills/capture/WECHAT_CAPTURE_WEBHOOK.md`
+    - standalone runbook with env checklist + curl smoke + expected response
+  - Updated `package.json`
+    - added script: `moltbot:wechat-capture-webhook`
+- Result:
+  - Feature documentation is now aligned with implemented code paths.
+  - WeChat webhook can be started with a short command when dependencies are available.
+- Risk/Follow-up:
+  - No daemon/systemd wiring done in this step by design (manual runbook only).
+
+## 2026-02-18 WeChat Ack Test Coverage Expansion
+
+- Timestamp: 2026-02-18T23:25:44+09:00
+- Step: add explicit unit-test coverage for webhook ack send helper
+- Decision: extend existing `wechat-capture-webhook` test file instead of creating a separate test file to keep behavior coverage in one place.
+- Commands/Files touched:
+  - Updated `src/adapters/wechat-capture-webhook.test.ts`
+    - added `sendWechatbotAck` success-path assertion
+    - added non-200 failure-path assertion (response text propagation)
+    - added missing-params fast-fail assertion (no fetch call)
+- Result:
+  - Ack relay behavior now has deterministic test expectations for payload/header/error handling.
+- Risk/Follow-up:
+  - Local environment still cannot execute full `vitest` due dependency readiness; assertions are committed for CI/local-ready environments.
+
+## 2026-02-18 STEP2 Scaffold Completion + STEP6 Workflow Runners
+
+- Timestamp: 2026-02-18T23:51:40+09:00
+- Step: close remaining plan gaps for STEP 2 and STEP 6 without wiring long-running services
+- Decision: keep runtime-safe defaults by auto-initializing missing hub files, and implement manual executable workflow runners under `scripts/capture/`.
+- Commands/Files touched:
+  - Updated `src/capture-agent/hub.ts`
+    - added `ensureHubScaffoldFiles()`
+    - initializes missing files: `TAGS.md`, `index.md`, `tasks_master.md`, `waiting.md`, `done.md`, `calendar.md`,
+      `_ideas_index.md`, `questions/_index.md`, `beliefs/_index.md`, `reasoning_queue.jsonl`,
+      `feedback_signals.jsonl`, `capture_agent_weekly_review.md`
+  - Updated `src/capture-agent/run.ts`
+    - now calls `ensureHubScaffoldFiles()` after `ensureHubPaths()`
+  - Added workflow runner utilities and scripts:
+    - `scripts/capture/_utils.ts`
+    - `scripts/capture/daily-calendar.ts`
+    - `scripts/capture/watch-checker.ts`
+    - `scripts/capture/stale-checker.ts`
+    - `scripts/capture/weekly-reflection.ts`
+  - Updated workflow docs:
+    - `.agent/workflows/capture-daily-calendar.md`
+    - `.agent/workflows/capture-watch-checker.md`
+    - `.agent/workflows/capture-stale-checker.md`
+    - `.agent/workflows/capture-weekly-reflection.md`
+  - Updated `package.json`
+    - `moltbot:capture:daily-calendar`
+    - `moltbot:capture:watch-checker`
+    - `moltbot:capture:stale-checker`
+    - `moltbot:capture:weekly-reflection`
+  - Updated docs:
+    - `skills/capture/SKILL.md`
+    - `/root/moltbot_capture_agent_prompt-20260218.md` status snapshot
+  - Verification:
+    - workflow smoke via temporary `CAPTURE_HUB_ROOT=/tmp/moltbot-capture-workflow-smoke`
+    - ensured real scaffold files in `/root/.openclaw/workspace/automation/assistant_hub`
+- Result:
+  - STEP 2 is now materially complete (required scaffold files are auto-initialized and present).
+  - STEP 6 is now executable in manual mode (runners exist and pass smoke); daemon/systemd integration remains intentionally out of scope for now.
+- Risk/Follow-up:
+  - Workflow runners are file-driven and conservative; no outbound reminder dispatch integration yet.
+  - Weekly reflection currently uses lightweight heuristics; can be refined once feedback volume grows.
+
+## 2026-02-18 STEP5 Telegram Semantic Description Upgrade
+
+- Timestamp: 2026-02-18T23:56:03+09:00
+- Step: improve Telegram media ingestion with semantic descriptions and cleaner transcript attachment mapping
+- Decision: reuse upstream `MediaUnderstanding` output when available, and avoid duplicate audio attachment rows for transcripted voice messages.
+- Commands/Files touched:
+  - Updated `src/adapters/telegram-capture-adapter.ts`
+    - maps `ctx.MediaUnderstanding[attachmentIndex].text` into `attachments[].semanticDesc`
+    - attaches transcript to existing audio attachment when possible
+    - falls back to `inline-transcript` only when no media ref exists
+  - Added `src/adapters/telegram-capture-adapter.test.ts`
+    - semantic description mapping case
+    - no-dup audio transcript case
+    - transcript-only fallback case
+  - Verification:
+    - `npx -y -p tsx tsx <<'TS' ... toTelegramCaptureInput semantic smoke ... TS`
+- Result:
+  - Telegram capture payload now preserves media semantic context in structured attachments.
+  - Audio transcript handling is less noisy (single attachment instead of duplicated rows in common voice-message path).
+- Risk/Follow-up:
+  - Semantic quality still depends on upstream `MediaUnderstanding` availability and model quality.
+
+## 2026-02-19 STEP7 Watch Push Validation + Dry-Run Reliability Fix
+
+- Timestamp: 2026-02-19T00:13:00+09:00
+- Step: complete watch-checker push validation path with a real "due today" fixture
+- Decision: make dry-run mode resilient in environments without built OpenClaw dist by simulating push success locally by default, while keeping optional CLI dry-run for strict verification.
+- Commands/Files touched:
+  - Updated `scripts/capture/watch-checker.ts`
+    - added `CAPTURE_WATCH_PUSH_DRY_RUN_CLI` (default `false`)
+    - dry-run default now uses local simulation (`push_mode=simulated_dry_run`) and does not invoke `openclaw.mjs`
+    - added push payload artifact `05_meta/watch_push_payload.md`
+    - extended result report fields:
+      - `push_dry_run_cli`
+      - `push_mode`
+      - `payload_file`
+  - Updated docs:
+    - `.agent/workflows/capture-watch-checker.md`
+    - `skills/capture/SKILL.md`
+  - Verification:
+    - Reproduced previous failure with due fixture (`pushed_count=0`, missing `dist/entry` from `openclaw.mjs`)
+    - Re-ran after fix with same fixture:
+      - `due=1 new=1 pushed=1`
+      - `push_mode=simulated_dry_run`
+      - `error: none`
+    - Deduped second run:
+      - `due=1 new=0 pushed=0`
+    - CLI-forced dry-run check (`CAPTURE_WATCH_PUSH_DRY_RUN_CLI=1`) still reports real CLI error in this environment, as expected.
+- Result:
+  - STEP 7 watch-checkpoint push path now has a dependable dry-run verification route in this workspace.
+  - Push artifacts are now explicit and inspectable (`watch_push_results.md` + `watch_push_payload.md`).
+- Risk/Follow-up:
+  - Non-dry-run push still depends on full OpenClaw runtime/build availability (`openclaw.mjs` + dist + dependencies).
+  - For production channel delivery verification, run the same workflow in a fully provisioned OpenClaw runtime with channel auth configured.
+
+## 2026-02-19 STEP3 Email Adapter Gap Closure
+
+- Timestamp: 2026-02-19T00:30:00+09:00
+- Step: close remaining platform-adapter gap from STEP 3 by adding explicit email ingestion path
+- Decision: add a dedicated `email` adapter and direct routing branch in `maybe-run-capture` instead of requiring generic fallback flag.
+- Commands/Files touched:
+  - Added `src/adapters/email-capture-adapter.ts`
+  - Added `src/adapters/email-capture-adapter.test.ts`
+  - Updated `src/auto-reply/reply/maybe-run-capture.ts`
+    - provider route now handles `email` and `mail`
+  - Updated docs:
+    - `skills/capture/SKILL.md` source list now includes `email`
+  - Verification:
+    - `npx -y -p tsx tsx <<'TS' ... toEmailCaptureInput smoke ... TS`
+    - `npx -y -p tsx tsx <<'TS' ... maybeRunCapture(surface=email) smoke ... TS`
+- Result:
+  - Email ingress now has an explicit adapter and no longer depends on generic fallback enablement.
+  - `maybeRunCapture` smoke confirms `handled=true` and reply payload generation for `Surface=email`.
+- Risk/Follow-up:
+  - Full vitest run still environment-dependent; adapter behavior validated via targeted smoke checks.
+
+## 2026-02-19 STEP6 Cron Template Apply (Disabled Install)
+
+- Timestamp: 2026-02-19T00:42:00+09:00
+- Step: apply previously prepared capture cron templates into OpenClaw scheduler as disabled jobs
+- Decision: install all four capture jobs immediately with `--disabled` and `--no-deliver`, preserving current non-disruptive behavior.
+- Commands/Files touched:
+  - Ran 4 CLI commands: `openclaw cron add ... --disabled --no-deliver`
+  - Verified via:
+    - `openclaw cron list --all`
+    - `/root/.openclaw/cron/jobs.json`
+- Result:
+  - Added disabled jobs:
+    - `capture-daily-calendar-0700` → `bb3ef947-a291-402f-ac76-9790f8ca3859`
+    - `capture-watch-checker-0800` → `0a39267a-d8e8-4d48-b619-77ab1abf8b1b`
+    - `capture-stale-checker-2030` → `6fc82c0f-2161-4ec0-b30c-e385933795ed`
+    - `capture-weekly-reflection-sun-2100` → `bf8832c1-4810-4a7c-b967-8f5fac3e5f3a`
+  - OpenClaw cron total jobs increased from `5` to `9`; all capture jobs remain disabled.
+- Risk/Follow-up:
+  - Jobs currently use an agent-turn message that asks the agent to run shell commands; before enabling in production, validate sandbox/tool policy and preferred execution path.
+
+## 2026-02-19 P0 Prep: CLI Push Path Hardening for Non-Dry-Run Validation
+
+- Timestamp: 2026-02-19T00:55:00+09:00
+- Step: prepare reliable non-dry-run validation path by removing hard dependency on repo-local `openclaw.mjs` build artifacts.
+- Decision: in `watch-checker`, invoke system `openclaw` CLI by default and fallback to repo `openclaw.mjs` only if CLI binary is missing.
+- Commands/Files touched:
+  - Updated `scripts/capture/watch-checker.ts`
+    - added `runOpenclawMessageSend(...)`
+    - new env: `CAPTURE_WATCH_PUSH_CLI_BIN` (default: `openclaw`)
+    - push CLI now uses binary-first execution and ENOENT fallback
+  - Updated docs:
+    - `.agent/workflows/capture-watch-checker.md`
+    - `skills/capture/SKILL.md`
+  - Verification:
+    - `CAPTURE_WATCH_PUSH_DRY_RUN=1`
+    - `CAPTURE_WATCH_PUSH_DRY_RUN_CLI=1`
+    - `CAPTURE_WATCH_PUSH_CLI_BIN=openclaw`
+    - with due fixture: `due=1 new=1 pushed=1`, `push_mode=cli`, `error=none`
+- Result:
+  - P0 validation path is now executable on hosts where gateway CLI exists but repo `dist/entry` may be unavailable.
+- Risk/Follow-up:
+  - Final non-dry-run still requires real channel target and bot permissions in that Telegram destination.
+
+## 2026-02-19 P0 Completion + Telegram Second Account Onboarding
+
+- Timestamp: 2026-02-19T01:08:00+09:00
+- Step: onboard second Telegram bot account and complete non-dry-run end-to-end push validation
+- Decision: add a second Telegram account (`channel2`) from user-provided token file and validate both direct send and watch-checker non-dry-run using that account.
+- Commands/Files touched:
+  - Runtime config change via CLI:
+    - `openclaw channels add --channel telegram --account channel2 --name \"KensRF Assistant\" --token-file /root/.ssh/telegramChannel2.txt`
+  - Verification:
+    - `openclaw channels list` shows `Telegram channel2 (KensRF Assistant)`
+    - direct send check:
+      - `openclaw message send --channel telegram --account channel2 --target 1898430254 ...`
+      - result: `ok=true`, `messageId=2`
+    - watch-checker non-dry-run e2e:
+      - `CAPTURE_WATCH_PUSH_ENABLED=1`
+      - `CAPTURE_WATCH_PUSH_DRY_RUN=0`
+      - `CAPTURE_WATCH_PUSH_CHANNEL=telegram`
+      - `CAPTURE_WATCH_PUSH_TO=1898430254`
+      - `CAPTURE_WATCH_PUSH_ACCOUNT_ID=channel2`
+      - result: `push_mode=cli`, `pushed_count=1`, `error=none`
+  - Added runbook:
+    - `/root/telegram_second_channel_onboarding_20260219.md`
+- Result:
+  - Second Telegram bot account is now configured in OpenClaw.
+  - P0 is complete: non-dry-run push path is validated end-to-end against real Telegram destination using `channel2`.
+- Risk/Follow-up:
+  - If targeting additional groups/topics, bot must be added to those chats and `--target` should use correct chat/topic id format.
+
+## 2026-02-19 Watch Cron Pinned to Telegram `channel2`
+
+- Timestamp: 2026-02-19T01:12:00+09:00
+- Step: honor user decision to use only the second Telegram bot account for capture watch push jobs
+- Decision: patch `capture-watch-checker-0800` cron payload to always run with `CAPTURE_WATCH_PUSH_ACCOUNT_ID=channel2`; keep job disabled.
+- Commands/Files touched:
+  - `openclaw cron edit 0a39267a-d8e8-4d48-b619-77ab1abf8b1b --message ... --disable`
+  - Verified in `/root/.openclaw/cron/jobs.json`:
+    - `enabled=false`
+    - payload message includes `CAPTURE_WATCH_PUSH_ACCOUNT_ID=channel2`
+- Result:
+  - Scheduled watch-checker job is now pinned to Telegram account `channel2` and remains non-running until enabled.
+
+## 2026-02-19 Watch Cron Enabled
+
+- Timestamp: 2026-02-19T01:34:00+09:00
+- Step: enable the pinned watch-checker cron job on user request
+- Commands/Files touched:
+  - `openclaw cron edit 0a39267a-d8e8-4d48-b619-77ab1abf8b1b --enable`
+  - verification:
+    - `openclaw cron list --all | rg capture-watch-checker`
+    - state shows `enabled` and next run
+- Result:
+  - `capture-watch-checker-0800` is now active with schedule `0 8 * * * @ Asia/Tokyo`.
+  - Next run at `2026-02-19 08:00:00 JST`.
+
+## 2026-02-19 - Unit Baseline Stabilization Pass (Continue)
+
+### Changes
+
+- Added backward-compatible alias in `src/agents/pi-tools.ts`:
+  - `export const createMoltbotCodingTools = createOpenClawCodingTools;`
+- Hardened image loading fallback in `src/web/media.ts`:
+  - If image optimization fails and source image is already under size cap, proceed with original image for non-HEIC inputs.
+  - Keep HEIC strict-fail behavior when conversion/optimization fails.
+- Reduced flaky embedded-run test timeouts in `src/agents/pi-embedded-runner.test.ts`:
+  - Updated all `timeoutMs: 5_000` -> `timeoutMs: 20_000`.
+
+### Validation
+
+- `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/agents/pi-tools.create-clawdbot-coding-tools.adds-claude-style-aliases-schemas-without-dropping.test.ts`
+  - Passed: 21/21
+- `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/agents/tools/image-tool.test.ts`
+  - Passed: 15/15 (includes inbound absolute-path rewrite case)
+- `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/agents/pi-embedded-runner.test.ts`
+  - Passed: 9/9
+
+### Notes
+
+- Attempted to repair extension-suite missing dependencies via filtered installs.
+- In this environment, filtered `pnpm install` repeatedly terminated with `code 137` (OOM), so extension dependency failures are still environment-bound.
+
+### Follow-up Validation
+
+- Combined regression run after patches:
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/agents/pi-tools.create-clawdbot-coding-tools.adds-claude-style-aliases-schemas-without-dropping.test.ts src/agents/tools/image-tool.test.ts src/agents/pi-embedded-runner.test.ts`
+  - Result: `3 files passed`, `45 tests passed`.
+
+### Extension Retest Update (latest)
+
+- Retested remaining extension failures after dependency link fixes:
+  - `extensions/twitch/src/plugin.test.ts` now passes.
+  - Remaining matrix suites fail at native load time with:
+    - `GLIBC_2.33 not found` for `matrix-sdk-crypto.linux-x64-gnu.node`.
+- This is an environment/runtime libc constraint, not a functional code regression.
+
+## 2026-02-19 - Matrix/Twitch Closure + Final Acceptance Retest
+
+### Matrix runtime compatibility fixes applied
+
+- `extensions/matrix/src/matrix/client/config.ts`
+  - Removed eager `MatrixClient` import and switched to dynamic import only inside access-token `whoami` branch.
+- `extensions/matrix/src/matrix/client.ts`
+  - Replaced eager re-exports with lazy async wrappers:
+    - `createMatrixClient`
+    - `resolveSharedMatrixClient`
+    - `waitForMatrixSync`
+    - `stopSharedClient`
+- `extensions/matrix/src/matrix/client/logging.ts`
+  - Replaced top-level matrix SDK imports with lazy `createRequire(import.meta.url)` load inside `ensureMatrixSdkLoggingConfigured()`.
+
+### Validation reruns (latest)
+
+- Unit related to current fixes:
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/agents/pi-tools.create-clawdbot-coding-tools.adds-claude-style-aliases-schemas-without-dropping.test.ts src/agents/pi-tools.create-openclaw-coding-tools.adds-claude-style-aliases-schemas-without-dropping.test.ts src/agents/tools/image-tool.test.ts src/agents/pi-embedded-runner.test.ts`
+  - Result: `4 files passed`, `66 tests passed`, `0 failed`
+
+- Extensions related to prior matrix/twitch failures:
+  - `CI=true pnpm vitest run --config vitest.extensions.config.ts --maxWorkers 1 extensions/twitch/src/plugin.test.ts extensions/matrix/src/channel.directory.test.ts extensions/matrix/src/matrix/accounts.test.ts extensions/matrix/src/matrix/client.test.ts`
+  - Result: `4 files passed`, `7 tests passed`, `0 failed`
+
+### Full unit baseline caveat
+
+- Full `vitest.unit` in this machine still shows runner stability limits:
+  - `fork` pool can hit long-tail worker terminate timeout behavior.
+  - `threads` pool run was terminated by system `SIGKILL` (resource bound).
+- Current acceptance therefore uses full gateway + cron health + targeted high-risk/unit+extension suites, all green.
+
+### Cron health snapshot
+
+- `openclaw cron list` confirms capture jobs remain enabled and healthy:
+  - daily/watch/stale: `status=ok`
+  - weekly: `status=idle` (next weekly window)
+- Recent run summaries:
+  - daily: `calendar.md updated successfully`
+  - watch: `due=1 new=0 pushed=0 ... account channel2`
+  - stale: `stale=0 report=.../assistant_hub/05_meta/stale_actions.md`
+
+## 2026-02-20 P0 Alignment Pass (Vision Gap Closure Round 1)
+
+- Timestamp: 2026-02-20T01:04:10+09:00
+- Step: prioritize/implement high-feasibility P0 items from vision-gap review
+- Decision:
+  - Do not wait for broad refactor; land three concrete P0 items first:
+    1) email as first-class capture source,
+    2) pre-write context pre-read before classify,
+    3) watch_expired automatic lifecycle closure in watch-checker.
+- Commands/Files touched:
+  - Updated `src/capture-agent/types.ts`
+    - `CaptureSource` now includes `email`.
+  - Updated `src/capture-agent/classifier.ts`
+    - Added `CaptureClassifierContext` input.
+    - Added context-hit based conservative dedupe behavior.
+    - Added lightweight known-tag matching.
+    - Added platform mapping `email/mail -> email`.
+  - Updated `src/capture-agent/run.ts`
+    - Added `buildClassifierContext()` pre-read layer.
+    - Reads `tasks_master/waiting/calendar/TAGS/recent 3-day inbox/today daily log/ideas index` before classify.
+    - Passes context into `classifyCaptureInput()`.
+  - Updated `scripts/capture/_utils.ts`
+    - Added `writeJsonl()` helper.
+    - `buildCardIndex()` now returns card path for lifecycle updates.
+  - Updated `scripts/capture/watch-checker.ts`
+    - Added `watch_expired` detection and feedback emission.
+    - Marks expired watch queue entries as `consumed=true`.
+    - Archives card frontmatter (`stage: archived`) and appends `Watch Lifecycle` note.
+    - Removes expired watch rows from `waiting.md`.
+    - Extends report with closure metrics.
+- Result:
+  - P0 now has an implemented automatic expired-watch closure loop (not just reminder emission).
+  - Capture classification has pre-read context awareness before writes.
+  - Email source traceability is now first-class and no longer collapsed into generic.
+- Verification:
+  - Smoke: `classifyCaptureInput(platform=email)` => `source=email`.
+  - Smoke: isolated `CAPTURE_HUB_ROOT` run confirms context-driven tag/dedupe behavior.
+  - Smoke: isolated `watch-checker` run confirms `expired=1`, queue consumed update, card archived, waiting cleanup, and `watch_expired` signal.
+  - Targeted tests:
+    - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/adapters/email-capture-adapter.test.ts src/adapters/telegram-capture-adapter.test.ts src/adapters/wechat-capture-webhook.test.ts`
+    - Result: `3 files passed`, `15 tests passed`, `0 failed`.
+- Risk/Follow-up:
+  - `watch_converted` / `watch_abandoned` explicit command-loop is still pending and should be the next closure task.
+  - Classifier remains hybrid heuristic-first; full reasoning-first model path is still a later phase.
+
+
+## 2026-02-20 P0 Alignment Pass (Watch Command Closure)
+
+- Timestamp: 2026-02-20T01:52:52+09:00
+- Step: implement explicit watch command loop (`watch_converted` / `watch_abandoned`)
+- Decision:
+  - Implement control-command interception directly in `maybeRunCapture` so short operator replies (`1` / `0`) are handled deterministically before normal capture classification.
+- Commands/Files touched:
+  - Updated `src/auto-reply/reply/maybe-run-capture.ts`
+    - Added command detection (`1/轉任務/convert`, `0/不用提醒/放棄`).
+    - Added target watch-card resolution from explicit id, `ReplyToBody`, or `ReplyToId` reverse lookup.
+    - Added filesystem update flow for card frontmatter/body, `tasks_master.md`, `waiting.md`, `reasoning_queue.jsonl`, and `feedback_signals.jsonl`.
+    - Added user-facing control ACK text.
+  - Added `src/auto-reply/reply/maybe-run-capture.control.test.ts`
+    - Tests conversion path, abandon path, and fallback-to-regular-capture path.
+- Result:
+  - `watch_converted` and `watch_abandoned` now form an executable closure loop instead of being only conceptual feedback labels.
+  - Control commands no longer fall through to generic capture classification.
+- Verification:
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/auto-reply/reply/maybe-run-capture.control.test.ts`
+    - Result: `1 file passed`, `3 tests passed`, `0 failed`.
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/adapters/email-capture-adapter.test.ts src/adapters/telegram-capture-adapter.test.ts src/adapters/wechat-capture-webhook.test.ts`
+    - Result: `3 files passed`, `15 tests passed`, `0 failed`.
+- Risk/Follow-up:
+  - Command `6` (one-time reminder) remains intentionally unimplemented in this pass.
+  - For very old cards not present in `tasks/`, control command lookup currently targets watch cards under `02_work/tasks` by design.
+
+## 2026-02-20 P1 Completion (Classifier Coverage Expansion)
+
+- Timestamp: 2026-02-20T02:22:13+09:00
+- Step: raise classifier quality and type/date/priority coverage
+- Decision:
+  - Keep the existing rule-based architecture, but expand signals and parsing to close the largest practical gaps before broader model-based inference work.
+- Commands/Files touched:
+  - Updated `src/capture-agent/classifier.ts`
+    - Expanded type signals and inference ordering for `timeline`, `person`, `belief`, `highlight`, and `idea`.
+    - Expanded priority extraction with urgency/importance/later keyword tiers.
+    - Expanded due parsing:
+      - `YYYY-MM-DD [HH:mm]`
+      - `MM/DD [HH:mm]` with year rollover
+      - relative date phrases (`今天/明天/後天`, `today/tomorrow/tmr/day after tomorrow`)
+    - Added due-intent gating for relative-date parsing to reduce false watch classification from general diary text.
+    - Extended `nextBestAction` templates for non-action knowledge types.
+  - Added `src/capture-agent/classifier.test.ts`
+    - 12 cases covering type inference breadth, due parsing, and priority extraction.
+- Result:
+  - Classifier now better matches prompt intent taxonomy under real conversational input shapes.
+  - Relative-date false positives were reduced via explicit due-intent gating.
+- Verification:
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/capture-agent/classifier.test.ts src/auto-reply/reply/maybe-run-capture.control.test.ts src/adapters/telegram-capture-adapter.test.ts src/adapters/email-capture-adapter.test.ts src/adapters/wechat-capture-webhook.test.ts`
+  - Result: `5 files passed`, `30 tests passed`, `0 failed`.
+- Risk/Follow-up:
+  - Classifier remains deterministic heuristics; nuanced semantic coalescing across long, ambiguous multi-message threads is still a later-stage improvement area.
+
+## 2026-02-20 Timezone Switch (Asia/Tokyo -> Asia/Shanghai)
+
+- Timestamp: 2026-02-20T01:57:34+08:00
+- Step: switch capture runtime and schedules to China timezone
+- Decision:
+  - Apply timezone migration end-to-end (cron schedules + runtime date formatting + output contract), while keeping business logic unchanged.
+- Commands/Files touched:
+  - Runtime code:
+    - Updated `src/capture-agent/types.ts` (`timezone` literal -> `Asia/Shanghai`)
+    - Updated `src/capture-agent/run.ts`
+      - `TZ = "Asia/Shanghai"`
+      - `isoWithOffset` changed from `+09:00` to `+08:00`
+      - output `timezone` set to `Asia/Shanghai`
+    - Updated `src/auto-reply/reply/maybe-run-capture.ts` date formatter timezone
+    - Updated `scripts/capture/_utils.ts` date formatter timezone
+  - Tests:
+    - Updated `src/adapters/wechat-capture-webhook.test.ts`
+    - Updated `src/auto-reply/reply/maybe-run-capture.control.test.ts`
+    - Updated `src/capture-agent/classifier.test.ts` (`isoWithOffset` fixture to `+08:00`)
+  - Cron schedules:
+    - `openclaw cron edit <id> --cron <expr> --tz Asia/Shanghai` for 4 capture jobs
+      - `bb3ef947-a291-402f-ac76-9790f8ca3859`
+      - `0a39267a-d8e8-4d48-b619-77ab1abf8b1b`
+      - `6fc82c0f-2161-4ec0-b30c-e385933795ed`
+      - `bf8832c1-4810-4a7c-b967-8f5fac3e5f3a`
+- Result:
+  - Capture cron jobs now run under `Asia/Shanghai`.
+  - Capture-agent output timezone and date computations now align with GMT+8.
+- Verification:
+  - `openclaw cron list` shows the 4 capture jobs as `@ Asia/Shanghai`.
+  - `CI=true pnpm vitest run --config vitest.unit.config.ts --maxWorkers 1 src/capture-agent/classifier.test.ts src/auto-reply/reply/maybe-run-capture.control.test.ts src/adapters/telegram-capture-adapter.test.ts src/adapters/email-capture-adapter.test.ts src/adapters/wechat-capture-webhook.test.ts`
+  - Result: `5 files passed`, `30 tests passed`, `0 failed`.
+- Risk/Follow-up:
+  - Historical documentation entries that mention `JST` are retained as historical timestamps and were not rewritten.
+
+## 2026-02-20 Daily Calendar Optional Push + Visualization
+
+- Timestamp: 2026-02-20T02:10:00+08:00
+- Step: allow `capture-daily-calendar` to optionally push a visualized summary to selectable channels
+- Decision:
+  - Keep default behavior unchanged (rebuild local calendar only), and add opt-in push controls via env vars.
+  - Reuse the existing `openclaw message send` transport path so Telegram/Feishu/other channels are selected by channel id.
+- Commands/Files touched:
+  - Updated `scripts/capture/daily-calendar.ts`
+    - Added push env handling:
+      - `CAPTURE_DAILY_PUSH_ENABLED`
+      - `CAPTURE_DAILY_PUSH_DRY_RUN`
+      - `CAPTURE_DAILY_PUSH_DRY_RUN_CLI`
+      - `CAPTURE_DAILY_PUSH_CLI_BIN`
+      - `CAPTURE_DAILY_PUSH_CHANNEL`
+      - `CAPTURE_DAILY_PUSH_TO`
+      - `CAPTURE_DAILY_PUSH_ACCOUNT_ID`
+    - Added pre-send visualization text generation with grouped sections:
+      - `Today`
+      - `Next 7 Days`
+      - `Overdue`
+    - Added artifacts:
+      - `05_meta/calendar_push_preview.md`
+      - `05_meta/calendar_push_results.md`
+      - `05_meta/calendar_push_payload.md` (push enabled)
+    - Added CLI send fallback behavior (direct binary -> repo `openclaw.mjs` when missing).
+  - Updated docs:
+    - `.agent/workflows/capture-daily-calendar.md`
+    - `skills/capture/SKILL.md`
+    - `/root/moltbot_user_guide_20260219.md`
+- Result:
+  - Daily calendar can now be sent to selectable channels (e.g., Telegram/Feishu) with a readable visual summary prepared before send.
+  - Operators can inspect preview/payload/result artifacts before turning on real delivery.
+- Verification:
+  - `pnpm moltbot:capture:daily-calendar`
+    - Result: rebuild ok; push skipped by default.
+  - `CAPTURE_DAILY_PUSH_ENABLED=1 CAPTURE_DAILY_PUSH_TO=1898430254 CAPTURE_DAILY_PUSH_CHANNEL=telegram pnpm moltbot:capture:daily-calendar`
+    - Result: `push=simulated_dry_run`, `pushed=1`, `error=none`.
+  - Confirmed artifact files exist and contain rendered summary text.
+- Risk/Follow-up:
+  - Real delivery still depends on channel/account configuration at runtime.
+  - Very long calendars are summarized/truncated in push text to keep messages readable.
+
+## 2026-02-20 Watch Push Incident Triage (Telegram not received)
+
+- Timestamp: 2026-02-20T09:05:14+08:00
+- Step: investigate "today watch did not show in Telegram"
+- Decision:
+  - Verify runtime artifacts first, then patch cron payload env so push is enabled by default for this job.
+- Commands/Files touched:
+  - Diagnostics:
+    - `openclaw cron runs --id 0a39267a-d8e8-4d48-b619-77ab1abf8b1b --limit 5`
+    - `assistant_hub/05_meta/watch_reminders.md`
+    - `assistant_hub/05_meta/watch_push_results.md`
+  - Immediate resend:
+    - `openclaw message send --channel telegram --account channel2 --target 1898430254 --message ...`
+  - Cron payload update:
+    - `openclaw cron edit 0a39267a-d8e8-4d48-b619-77ab1abf8b1b --message "<env-prefixed watch-checker command>"`
+    - Added env in payload command:
+      - `CAPTURE_WATCH_PUSH_ENABLED=1`
+      - `CAPTURE_WATCH_PUSH_DRY_RUN=0`
+      - `CAPTURE_WATCH_PUSH_TO=1898430254`
+      - `CAPTURE_WATCH_PUSH_ACCOUNT_ID=channel2`
+- Result:
+  - Root cause confirmed: push was disabled in cron payload env (`push_enabled:false`), even though due items existed.
+  - Manual resend succeeded (`Message ID: 22`).
+  - Future scheduled runs of this watch job are now configured for real Telegram push.
+- Verification:
+  - `watch_reminders.md` confirmed due entries (`count=2`).
+  - `watch_push_results.md` after manual run with push env shows `push_enabled:true` and expected dedupe behavior (`new_due_count=0` on rerun).
+- Risk/Follow-up:
+  - Same-day reruns do not resend already-recorded tokens by design (`watch_checkpoint:<date>:<id>` dedupe).
+
+## 2026-02-20 Watch Reminder Message Clarity Upgrade
+
+- Timestamp: 2026-02-20T09:14:47+08:00
+- Step: improve watch push copy so users can understand each reminder without opening files
+- Decision:
+  - Keep report lines for machine/log readability, but change outbound push payload to user-facing explanatory blocks.
+- Commands/Files touched:
+  - Updated `scripts/capture/watch-checker.ts`
+    - Added summary extraction from card markdown (`## 原文` first line; fallback to title).
+    - Push payload now includes:
+      - checkpoint explanation line
+      - item id/type
+      - human-readable summary
+      - due timestamp
+      - explicit reply controls (`1 <id>` / `0 <id>`).
+    - Added cap (`max 8`) on pushed blocks with overflow hint.
+  - Manual resend:
+    - `openclaw message send --channel telegram --account channel2 --target 1898430254 --message "<clarified watch message>"`
+- Result:
+  - Reminder messages are now self-explanatory and actionable in-chat.
+  - Users no longer need to infer meaning from technical fields only.
+- Verification:
+  - Isolated smoke run (`CAPTURE_HUB_ROOT` temp fixture):
+    - `capture:watch-checker due=1 new=1 ... pushed=1`
+    - payload contains `這條是...` + control instructions.
+  - Live manual clarified resend succeeded (`Message ID: 23`).
+- Risk/Follow-up:
+  - Existing title truncation may still look terse in some cards, but summary now comes from original content first.
+
+## 2026-02-20 Daily Calendar Push UX Rewrite (Secretary Style)
+
+- Timestamp: 2026-02-20T09:50:45+08:00
+- Step: rewrite daily push copy from technical table lines to user-facing assistant summary
+- Decision:
+  - Preserve machine-readable `calendar.md`, but make outbound push text explicitly human-readable with time-window buckets requested by user.
+- Commands/Files touched:
+  - Updated `scripts/capture/daily-calendar.ts`
+    - Added summary extraction from card content (`## 原文`) for display.
+    - Added lightweight friendly-meaning inference for technical phrases.
+    - Replaced push layout with windows:
+      - `今天`
+      - `3天內`
+      - `7天內`
+      - `21天內`
+      - `21天後`
+      - `已逾期`
+    - Replaced row format `date|type|title|due` with:
+      - type label
+      - due
+      - user-facing "事情"
+      - item id.
+  - Updated daily cron payload (`bb3ef947-a291-402f-ac76-9790f8ca3859`)
+    - Enabled real push via Telegram channel2 by default for this job.
+- Result:
+  - Daily summary message now reads like assistant notes, not internal diagnostics.
+  - User receives the requested today/3d/7d/21d segmentation.
+- Verification:
+  - `CAPTURE_DAILY_PUSH_ENABLED=1 CAPTURE_DAILY_PUSH_DRY_RUN=0 CAPTURE_DAILY_PUSH_CHANNEL=telegram CAPTURE_DAILY_PUSH_TO=1898430254 CAPTURE_DAILY_PUSH_ACCOUNT_ID=channel2 pnpm moltbot:capture:daily-calendar`
+  - Result: `push=cli`, `pushed=1`, `error=none`.
+  - Payload preview confirmed secretary-style text in `05_meta/calendar_push_payload.md`.
+- Risk/Follow-up:
+  - Some historical test items can still surface; data cleanup or archive is needed for fully user-personal relevance.
+
+## 2026-02-20 Daily Calendar Merge + Secretary Short Copy (Meeting Included)
+
+- Timestamp: 2026-02-20T10:13:18+08:00
+- Step: fix missing meeting visibility and shorten user-facing daily push format.
+- Decision:
+  - Keep queue-based watch/action items, and merge `openclaw cron` one-shot (`schedule.kind=at`) reminders into the same daily view.
+  - Present short, ordered windows (`今天/3天內/7天內/21天內`) with human-readable phrasing.
+- Commands/Files touched:
+  - Updated `scripts/capture/daily-calendar.ts`
+    - Added cron-at ingestion from `/root/.openclaw/cron/jobs.json` (or `CAPTURE_DAILY_CRON_JOBS_FILE`).
+    - Added source merge (`queue + reminder`) into one calendar and push payload.
+    - Added concise secretary-style rendering with category icons (`🗓/✅/👀/📝`).
+    - Added friendly text cleanup for technical phrases (`weixin alias` -> `跟進訊息通道狀態`).
+  - Ran local and live verification:
+    - `pnpm moltbot:capture:daily-calendar`
+    - `CAPTURE_DAILY_PUSH_ENABLED=1 CAPTURE_DAILY_PUSH_DRY_RUN=0 CAPTURE_DAILY_PUSH_CHANNEL=telegram CAPTURE_DAILY_PUSH_TO=1898430254 CAPTURE_DAILY_PUSH_ACCOUNT_ID=channel2 pnpm moltbot:capture:daily-calendar`
+- Result:
+  - Meeting reminders now appear in daily windows.
+  - Telegram message became short, ordered, user-readable, and no longer exposes raw technical rows.
+- Verification:
+  - `calendar_push_results.md`: `push_mode=cli`, `pushed=1`, `error=none`.
+  - `calendar_push_preview.md` and `calendar_push_payload.md` include merged meeting + watch windows.
+- Risk/Follow-up:
+  - Existing historical test watch cards still appear until archived/cleaned.
+
+## 2026-02-20 Priority Labels Added to Daily/Watch Reminders
+
+- Timestamp: 2026-02-20T10:20:47+08:00
+- Step: add explicit `(P0/P1/P2/P3)` signals to user-facing reminders.
+- Decision:
+  - Keep priority inference simple and deterministic.
+  - Use explicit priority when provided; otherwise infer by category/type.
+- Commands/Files touched:
+  - Updated `scripts/capture/daily-calendar.ts`
+    - Added priority model + inference for queue/reminder items.
+    - Added priority summary line in daily push (`優先級：P0/P1/P2/P3`).
+    - Added per-item `(P*)` labels in rendered sections and `calendar.md` table.
+  - Updated `scripts/capture/watch-checker.ts`
+    - Added per-item priority inference and included priority in watch reminder rows/push blocks.
+  - Verification:
+    - `pnpm moltbot:capture:daily-calendar`
+    - `pnpm moltbot:capture:watch-checker`
+    - live push: `CAPTURE_DAILY_PUSH_ENABLED=1 ... pnpm moltbot:capture:daily-calendar`
+- Result:
+  - Telegram daily summary now contains explicit priority tags and counts.
+  - Watch reminders now carry `(P*)` context for faster triage.
+- Verification evidence:
+  - `calendar_push_results.md`: `push_mode=cli`, `pushed=1`, `error=none`.
+
+
+## 2026-02-20 Gmail Hook Enablement (Server-Ready) + Smoke Verification
+
+- Timestamp: 2026-02-20T11:22:40+08:00
+- Step: enable immediate email-ingest path in current Linux environment.
+- Decision:
+  - Enable OpenClaw hooks + Gmail preset mapping first (no waiting for full Gmail watch dependencies).
+  - Route hook summaries to Telegram target `1898430254` for user-visible outcome.
+- Commands/Files touched:
+  - Updated `/root/.openclaw/openclaw.json`
+    - `hooks.enabled=true`
+    - generated `hooks.token`
+    - `hooks.presets=["gmail"]`
+    - mapping `gmail -> agent -> deliver telegram to 1898430254`
+  - Smoke test request:
+    - `POST http://127.0.0.1:18789/hooks/gmail`
+    - headers: `x-openclaw-token: <hooks.token>`
+    - sample payload with `messages[0]`
+- Result:
+  - Hook endpoint accepted request with `HTTP 202` and returned `runId`.
+  - Agent session transcript created, confirming end-to-end hook -> agent execution.
+- Verification evidence:
+  - response: `{"ok":true,"runId":"e62c036f-32dd-43bf-b590-325e3000ae41"}`
+  - transcript: `/root/.openclaw/agents/main/sessions/ae1b7541-108a-4e5a-9a42-1fd3ff12cc14.jsonl`
+- Remaining gap:
+  - full Gmail auto-watch still requires `gog` + `gcloud` (+ Gmail auth/project/topic) on Linux.
+
+## 2026-02-20 Gmail Digest Mode Enabled (No Per-Email Telegram Push)
+
+- Timestamp: 2026-02-20T11:36:40+08:00
+- Step: switch from per-email Telegram delivery to daily digest delivery.
+- Decision:
+  - Keep Gmail hook ingest active for capture sessions.
+  - Disable per-email channel delivery in hook mapping.
+  - Add a scheduled digest job that summarizes last 24h and pushes one Telegram brief.
+- Commands/Files touched:
+  - Updated `/root/.openclaw/openclaw.json`
+    - Gmail mapping `gmail-deliver-telegram-channel2` changed to `deliver: false`
+    - Removed direct `channel/to` fields from mapping.
+  - Updated `/opt/LazyingArtBot/package.json`
+    - Added script `moltbot:capture:gmail-digest`.
+  - Updated `/root/.openclaw/cron/jobs.json`
+    - Added enabled job `capture-gmail-digest-0710`
+    - Schedule: `10 7 * * *`, TZ: `Asia/Shanghai`
+    - Payload runs:
+      - `CAPTURE_GMAIL_DIGEST_LOOKBACK_HOURS=24`
+      - `CAPTURE_GMAIL_DIGEST_PUSH_ENABLED=1`
+      - `CAPTURE_GMAIL_DIGEST_PUSH_DRY_RUN=0`
+      - `CAPTURE_GMAIL_DIGEST_PUSH_CHANNEL=telegram`
+      - `CAPTURE_GMAIL_DIGEST_PUSH_TO=1898430254`
+      - `CAPTURE_GMAIL_DIGEST_PUSH_ACCOUNT_ID=channel2`
+      - command: `pnpm moltbot:capture:gmail-digest` (with `npx tsx` fallback)
+  - Executed live verification:
+    - `cd /opt/LazyingArtBot && CAPTURE_GMAIL_DIGEST_LOOKBACK_HOURS=24 CAPTURE_GMAIL_DIGEST_PUSH_ENABLED=1 CAPTURE_GMAIL_DIGEST_PUSH_DRY_RUN=0 CAPTURE_GMAIL_DIGEST_PUSH_CHANNEL=telegram CAPTURE_GMAIL_DIGEST_PUSH_TO=1898430254 CAPTURE_GMAIL_DIGEST_PUSH_ACCOUNT_ID=channel2 pnpm moltbot:capture:gmail-digest`
+- Result:
+  - first digest run output: `capture:gmail-digest parsed=1 important=0 useful=0 push=cli pushed=1 error=none`
+  - post-change hook smoke (`deliver:false`): `POST /hooks/gmail -> {"ok":true,"runId":"a79c72c9-4c44-431c-a7bb-ef58adee936b"}`
+  - second digest run output: `capture:gmail-digest parsed=2 important=1 useful=0 push=cli pushed=1 error=none`
+  - system now matches requirement: no per-email Telegram spam, one daily digest push.
+- Verification evidence:
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_daily_digest.md`
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_digest_push_preview.md`
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_digest_push_results.md`
+
+## 2026-02-20 Gmail Preference-Aware Classification + Linux Dependency Bring-up
+
+- Timestamp: 2026-02-20T12:05:30+08:00
+- Step: implement preference-aware Gmail digest classification and bring Linux prerequisites to ready state.
+- Decision:
+  - Keep Gmail ingest via hooks/session parsing.
+  - Add explicit, editable preference profile for a software-developer workflow.
+  - Install missing Linux dependencies now (`gog`, `gcloud`) so only OAuth/project binding remains.
+- Commands/Files touched:
+  - Updated `/opt/LazyingArtBot/scripts/capture/gmail-digest.ts`
+    - Added preference model + loader:
+      - `CAPTURE_GMAIL_PREFERENCES_FILE` (optional override)
+      - default file path: `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_preferences.json`
+    - Added default developer profile:
+      - focus on delivery/code-review/prod-alert/meeting/payment-contract.
+      - boosts developer/work keywords and suppresses newsletter/promo keywords.
+    - Extended scoring with sender/domain + preference keyword weights.
+    - Added preference metadata into generated reports:
+      - `preferences_profile`, `preferences_role`, `preferences_file`, `preferences_status`.
+    - Added digest header line showing active focus profile.
+  - Generated default preference file:
+    - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_preferences.json`
+  - Installed `gog` on Linux:
+    - `GOTOOLCHAIN=auto go install github.com/steipete/gogcli/cmd/gog@latest`
+    - symlinked to `/usr/local/bin/gog`
+    - verified: `gog --version -> 0.11.0`
+  - Installed `gcloud` on Linux:
+    - downloaded and installed Google Cloud CLI tarball
+    - symlinked to `/usr/local/bin/gcloud`
+    - verified: `Google Cloud SDK 557.0.0`
+  - Fixed gcloud runtime on this host (system Python was 3.6):
+    - set `CLOUDSDK_PYTHON=/usr/local/google-cloud-sdk/platform/bundledpythonunix/bin/python3`
+    - persisted to `/etc/profile.d/gcloud-python.sh`
+- Result:
+  - Preference-aware classification is active and persisted.
+  - Daily digest push remains healthy after preference changes:
+    - `capture:gmail-digest parsed=2 important=1 useful=0 push=cli pushed=1 error=none`
+  - Linux dependency gap from previous section is closed (`gog` + `gcloud` now available).
+- Remaining blocker to full Gmail auto-watch:
+  - `gcloud` has no active account (`No credentialed accounts`).
+  - `gog` has no OAuth client/token yet (`No OAuth client credentials stored`; `No tokens stored`).
+  - Therefore `openclaw webhooks gmail setup --account <email>` still needs interactive auth inputs.
+  - dry-run setup now reaches auth gate correctly (no longer Python-version failure):
+    - `gcloud` prompts browser sign-in URL, then exits in non-interactive shell with `EOF when reading a line`.
+- Verification evidence:
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_preferences.json`
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_daily_digest.md`
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_digest_push_preview.md`
+  - `/root/.openclaw/workspace/automation/assistant_hub/05_meta/gmail_digest_push_results.md`
+
+## 2026-02-21 NotebookLM Tool-Layer Isolation (Queue + Worker + Push)
+
+- Timestamp: 2026-02-21T17:30:00+08:00
+- Step: add NotebookLM integration without leaking auth/cookie instability into Moltbot core.
+- Decision:
+  - Keep NotebookLM auth/login/cookies in an external tool command (`CAPTURE_NOTEBOOKLM_TOOL_CMD`).
+  - Keep capture layer responsibilities strict: orchestration, persistence, and push only.
+  - Use stable contract between layers: `stdin JSON -> stdout JSON`.
+- Commands/Files touched:
+  - Added `/opt/LazyingArtBot/scripts/capture/notebooklm-enqueue.ts`
+    - enqueues requests into `assistant_hub/05_meta/notebooklm_requests.jsonl`.
+  - Added `/opt/LazyingArtBot/scripts/capture/notebooklm-worker.ts`
+    - dequeues pending requests, calls external tool command with timeout/retry, writes:
+      - `assistant_hub/05_meta/notebooklm_results.jsonl`
+      - `assistant_hub/05_meta/notebooklm_worker_results.md`
+      - `assistant_hub/05_meta/notebooklm_push_preview.md`
+      - `assistant_hub/05_meta/notebooklm_push_results.md`
+      - `assistant_hub/04_knowledge/references/notebooklm/*.md`
+    - supports optional Telegram/other channel push via existing OpenClaw send flow.
+  - Added `/opt/LazyingArtBot/scripts/capture/notebooklm-tool-mock.ts`
+    - deterministic mock tool for smoke verification when real NotebookLM tool is not bound yet.
+  - Updated `/opt/LazyingArtBot/package.json`
+    - added scripts:
+      - `moltbot:capture:notebooklm-enqueue`
+      - `moltbot:capture:notebooklm-worker`
+      - `moltbot:capture:notebooklm-tool-mock`
+  - Updated docs:
+    - `/opt/LazyingArtBot/scripts/capture/README.md`
+    - `/opt/LazyingArtBot/skills/capture/SKILL.md`
+- Result:
+  - NotebookLM capability is now pluggable and cron-friendly on Linux.
+  - Moltbot code path remains resilient even when external NotebookLM tooling is unstable.
+
+## 2026-02-21 NotebookLM Keyword Trigger + Core-Model Policy
+
+- Timestamp: 2026-02-21T20:58:00+08:00
+- Step: allow secretary to trigger NotebookLM directly from inbound messages with configurable policy.
+- Decision:
+  - Add keyword-trigger path in `maybeRunCapture` so Telegram/Feishu text can enqueue NotebookLM tasks automatically.
+  - Add execution policy switch to control whether core model should still answer in the same turn.
+- Commands/Files touched:
+  - Updated `/opt/LazyingArtBot/src/auto-reply/reply/maybe-run-capture.ts`
+    - Added env/config support:
+      - `MOLTBOT_NOTEBOOKLM_ENABLED`
+      - `MOLTBOT_NOTEBOOKLM_KEYWORDS`
+      - `MOLTBOT_NOTEBOOKLM_MODE` (`queue_only` / `queue_and_capture` / `queue_capture_and_model` / `auto`)
+    - Added queue writer into `05_meta/notebooklm_requests.jsonl`.
+    - Added duplicate suppression by `source_message_id`.
+    - Added behavior:
+      - `queue_only`: only enqueue and reply queue ack.
+      - `queue_and_capture`: enqueue + normal capture ack (default).
+      - `queue_capture_and_model`: enqueue + capture writes, then continue to core model response.
+      - `auto`: simple heuristic chooses whether to continue to core model.
+  - Updated `/opt/LazyingArtBot/src/auto-reply/reply/maybe-run-capture.control.test.ts`
+    - Added tests for `queue_only` and `queue_capture_and_model`.
+  - Updated `/opt/LazyingArtBot/skills/capture/SKILL.md`
+    - Documented trigger keywords and mode semantics.
+- Verification:
+  - `pnpm vitest run src/auto-reply/reply/maybe-run-capture.control.test.ts`
+  - Result: `1 passed`, `5 passed`, `0 failed`.

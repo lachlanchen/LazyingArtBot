@@ -1,4 +1,3 @@
-import { MatrixClient } from "@vector-im/matrix-bot-sdk";
 import type { CoreConfig } from "../../types.js";
 import type { MatrixAuth, MatrixResolvedConfig } from "./types.js";
 import { getMatrixRuntime } from "../../runtime.js";
@@ -68,6 +67,7 @@ export async function resolveMatrixAuth(params?: {
     if (!userId) {
       // Fetch userId from access token via whoami
       ensureMatrixSdkLoggingConfigured();
+      const { MatrixClient } = await import("@vector-im/matrix-bot-sdk");
       const tempClient = new MatrixClient(resolved.homeserver, resolved.accessToken);
       const whoami = await tempClient.getUserId();
       userId = whoami;
