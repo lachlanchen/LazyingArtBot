@@ -293,6 +293,20 @@ function parseFlightPreview(summary: string): FlightPreview | null {
   };
 }
 
+function extractFlightReminderHint(summary: string, hm: string | null): string | null {
+  if (!hm) {
+    return null;
+  }
+  const normalized = normalizeSpaces(summary);
+  if (/(值機|值机|check[- ]?in)/i.test(normalized)) {
+    return `值機${hm}`;
+  }
+  if (/(出發|出发|前往機場|前往机场|集合)/i.test(normalized)) {
+    return `出發${hm}`;
+  }
+  return `提醒${hm}`;
+}
+
 function categoryForQueueType(type: string): DisplayCategory {
   const normalized = type.toLowerCase();
   if (normalized === "action") {
@@ -450,7 +464,8 @@ function renderSection(params: {
   let compactedFlightCount = 0;
   let itemsToRender = params.items;
   if (params.todayYmd) {
-    const seenFlightKeys = new Set<string>();
+    const seenFlightKeys = new Map<string, number>();
+    const flightHintsByIndex = new Map<number, Set<string>>();
     const compacted: DisplayItem[] = [];
     for (const item of params.items) {
       const diff = dayDiff(params.todayYmd, parseYmd(item.date));
@@ -467,14 +482,33 @@ function renderSection(params: {
 
       compactedFlightCount += 1;
       const dedupeKey = `${item.date}|${preview.key}`;
-      if (seenFlightKeys.has(dedupeKey)) {
+      const reminderHint = extractFlightReminderHint(item.summary, item.hm);
+      const seenIndex = seenFlightKeys.get(dedupeKey);
+      if (seenIndex !== undefined) {
+        if (reminderHint) {
+          const set = flightHintsByIndex.get(seenIndex) ?? new Set<string>();
+          set.add(reminderHint);
+          flightHintsByIndex.set(seenIndex, set);
+        }
         continue;
       }
-      seenFlightKeys.add(dedupeKey);
       compacted.push({
         ...item,
         summary: preview.text,
+        hm: null,
       });
+      const idx = compacted.length - 1;
+      seenFlightKeys.set(dedupeKey, idx);
+      if (reminderHint) {
+        flightHintsByIndex.set(idx, new Set<string>([reminderHint]));
+      }
+    }
+    for (const [idx, hints] of flightHintsByIndex.entries()) {
+      const row = compacted[idx];
+      if (!row || hints.size === 0) {
+        continue;
+      }
+      row.summary = `${row.summary}（${Array.from(hints).join("；")}）`;
     }
     itemsToRender = compacted;
   }
@@ -565,8 +599,9 @@ function buildPushVisualization(params: {
 
   const lines: string[] = [];
   lines.push(`🌤 早安，今天我幫你排好重點（${today}）`);
+  const todayOverview = todayRows.length === 0 ? "今天已清空 ✅" : `今天 ${todayRows.length}`;
   lines.push(
-    `概覽：今天 ${todayRows.length}｜3天內 ${within3Days.length}｜7天內 ${within7Days.length}｜21天內 ${within21Days.length}${overdue.length > 0 ? `｜逾期 ${overdue.length}` : ""}`,
+    `概覽：${todayOverview}｜3天內 ${within3Days.length}｜7天內 ${within7Days.length}｜21天內 ${within21Days.length}${overdue.length > 0 ? `｜逾期 ${overdue.length}` : ""}`,
   );
   lines.push(`優先級：P0 ${priorityCounts.P0}｜P1 ${priorityCounts.P1}｜P2 ${priorityCounts.P2}｜P3 ${priorityCounts.P3}`);
   lines.push("");
