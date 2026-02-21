@@ -114,6 +114,18 @@ NotebookLM isolation principle:
 - 登入、cookies、瀏覽器不穩定等問題全部留在外部工具命令（`CAPTURE_NOTEBOOKLM_TOOL_CMD`）內部處理。
 - worker 對外部工具契約固定為：`stdin JSON -> stdout JSON`，避免把工具細節污染到 capture 核心。
 
+NotebookLM trigger (Telegram/Feishu inbound):
+
+- Enable:
+  - `MOLTBOT_NOTEBOOKLM_ENABLED=1`
+- Keyword list (comma-separated):
+  - `MOLTBOT_NOTEBOOKLM_KEYWORDS="/nb,/notebooklm,notebooklm,nb:,交給notebooklm"`
+- Mode:
+  - `MOLTBOT_NOTEBOOKLM_MODE=queue_only` (只排隊，不跑 capture)
+  - `MOLTBOT_NOTEBOOKLM_MODE=queue_and_capture` (排隊 + capture ack，預設)
+  - `MOLTBOT_NOTEBOOKLM_MODE=queue_capture_and_model` (排隊 + capture 寫盤，同時讓核心模型回覆)
+  - `MOLTBOT_NOTEBOOKLM_MODE=auto` (根據語句自動決定是否讓核心模型回覆)
+
 NotebookLM worker env:
 
 - `CAPTURE_NOTEBOOKLM_TOOL_CMD` (required)

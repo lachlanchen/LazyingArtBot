@@ -41,6 +41,32 @@ function makeCtx(partial: Partial<FinalizedMsgContext>): FinalizedMsgContext {
   };
 }
 
+async function withTempEnv(
+  vars: Record<string, string | undefined>,
+  fn: () => Promise<void>,
+): Promise<void> {
+  const prev = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(vars)) {
+    prev.set(key, process.env[key]);
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+  try {
+    await fn();
+  } finally {
+    for (const [key, value] of prev.entries()) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
 async function createWatchFixture(root: string, id: string): Promise<void> {
   await fs.mkdir(path.join(root, "02_work", "tasks"), { recursive: true });
   await fs.mkdir(path.join(root, "05_meta"), { recursive: true });
@@ -150,7 +176,10 @@ describe("maybeRunCapture control loop", () => {
     expect(result.payload?.text).toContain(id);
     expect(mocks.runCaptureAgent).not.toHaveBeenCalled();
 
-    const card = await fs.readFile(path.join(rootDir, "02_work", "tasks", `${id}_sample_watch.md`), "utf8");
+    const card = await fs.readFile(
+      path.join(rootDir, "02_work", "tasks", `${id}_sample_watch.md`),
+      "utf8",
+    );
     expect(card).toContain("type: action");
     expect(card).toContain("stage: active");
     expect(card).toContain("watch_converted:");
@@ -162,7 +191,10 @@ describe("maybeRunCapture control loop", () => {
     expect(queue).toContain('"consumed":true');
     expect(queue).toContain('"consumed_reason":"watch_converted"');
 
-    const feedback = await fs.readFile(path.join(rootDir, "05_meta", "feedback_signals.jsonl"), "utf8");
+    const feedback = await fs.readFile(
+      path.join(rootDir, "05_meta", "feedback_signals.jsonl"),
+      "utf8",
+    );
     expect(feedback).toContain('"type":"watch_converted"');
   });
 
@@ -184,7 +216,10 @@ describe("maybeRunCapture control loop", () => {
     expect(result.payload?.text).toContain(id);
     expect(mocks.runCaptureAgent).not.toHaveBeenCalled();
 
-    const card = await fs.readFile(path.join(rootDir, "02_work", "tasks", `${id}_sample_watch.md`), "utf8");
+    const card = await fs.readFile(
+      path.join(rootDir, "02_work", "tasks", `${id}_sample_watch.md`),
+      "utf8",
+    );
     expect(card).toContain("type: watch");
     expect(card).toContain("stage: archived");
     expect(card).toContain("watch_abandoned:");
@@ -197,7 +232,10 @@ describe("maybeRunCapture control loop", () => {
     expect(queue).toContain('"consumed":true');
     expect(queue).toContain('"consumed_reason":"watch_abandoned"');
 
-    const feedback = await fs.readFile(path.join(rootDir, "05_meta", "feedback_signals.jsonl"), "utf8");
+    const feedback = await fs.readFile(
+      path.join(rootDir, "05_meta", "feedback_signals.jsonl"),
+      "utf8",
+    );
     expect(feedback).toContain('"type":"watch_abandoned"');
   });
 
@@ -213,5 +251,62 @@ describe("maybeRunCapture control loop", () => {
     expect(result.handled).toBe(true);
     expect(result.payload?.text).toContain("ack-1");
     expect(mocks.runCaptureAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it("queues NotebookLM and skips capture when mode=queue_only", async () => {
+    await withTempEnv(
+      {
+        MOLTBOT_NOTEBOOKLM_ENABLED: "1",
+        MOLTBOT_NOTEBOOKLM_MODE: "queue_only",
+      },
+      async () => {
+        const result = await maybeRunCapture({
+          ctx: makeCtx({
+            BodyForCommands: "/nb 幫我研究 OpenAI Agents SDK 最近更新",
+            MessageSid: "nb-msg-1",
+          }),
+          cfg: CAPTURE_CFG,
+        });
+
+        expect(result.handled).toBe(true);
+        expect(result.payload?.text).toContain("NotebookLM 任務已排隊");
+        expect(mocks.runCaptureAgent).not.toHaveBeenCalled();
+
+        const queue = await fs.readFile(
+          path.join(rootDir, "05_meta", "notebooklm_requests.jsonl"),
+          "utf8",
+        );
+        expect(queue).toContain('"question":"幫我研究 OpenAI Agents SDK 最近更新"');
+        expect(queue).toContain('"source_message_id":"nb-msg-1"');
+      },
+    );
+  });
+
+  it("queues NotebookLM, writes capture, and allows core model when mode=queue_capture_and_model", async () => {
+    await withTempEnv(
+      {
+        MOLTBOT_NOTEBOOKLM_ENABLED: "1",
+        MOLTBOT_NOTEBOOKLM_MODE: "queue_capture_and_model",
+      },
+      async () => {
+        const result = await maybeRunCapture({
+          ctx: makeCtx({
+            BodyForCommands: "/nb 幫我比較 Gemini 與 GPT 的長文研究能力？",
+            MessageSid: "nb-msg-2",
+          }),
+          cfg: CAPTURE_CFG,
+        });
+
+        expect(result.handled).toBe(true);
+        expect(result.payload).toBeUndefined();
+        expect(mocks.runCaptureAgent).toHaveBeenCalledTimes(1);
+
+        const queue = await fs.readFile(
+          path.join(rootDir, "05_meta", "notebooklm_requests.jsonl"),
+          "utf8",
+        );
+        expect(queue).toContain('"source_message_id":"nb-msg-2"');
+      },
+    );
   });
 });

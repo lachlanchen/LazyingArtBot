@@ -18,6 +18,56 @@ export type MaybeRunCaptureResult = {
   error?: string;
 };
 
+type NotebookLmMode = "queue_only" | "queue_and_capture" | "queue_capture_and_model" | "auto";
+type NotebookLmResolvedMode = Exclude<NotebookLmMode, "auto">;
+
+type NotebookLmTrigger = {
+  keyword: string;
+  query: string;
+};
+
+type NotebookLmQueueResult = {
+  id: string;
+  keyword: string;
+  duplicate: boolean;
+  queueSize: number;
+  mode: NotebookLmResolvedMode;
+};
+
+type NotebookLmQueueRow = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  status: "queued" | "running" | "done" | "failed";
+  source: string;
+  question: string;
+  title?: string;
+  priority?: "P0" | "P1" | "P2" | "P3" | null;
+  tags?: string[];
+  context?: string[];
+  push?: boolean;
+  attempts?: number;
+  result_id?: string;
+  last_error?: string | null;
+  trigger_keyword?: string;
+  source_message_id?: string;
+  source_sender_id?: string;
+  source_chat_type?: string;
+};
+
+const DEFAULT_NOTEBOOKLM_KEYWORDS = [
+  "/nb",
+  "/notebooklm",
+  "notebooklm",
+  "notebook lm",
+  "nb:",
+  "nb：",
+  "用notebooklm",
+  "交給notebooklm",
+  "請notebooklm",
+  "请notebooklm",
+] as const;
+
 function isCaptureEnabled(cfg: OpenClawConfig): boolean {
   const fromEnv = process.env.MOLTBOT_CAPTURE_ENABLED?.trim().toLowerCase();
   if (fromEnv === "1" || fromEnv === "true" || fromEnv === "yes" || fromEnv === "on") {
@@ -44,19 +94,372 @@ function isGenericCaptureEnabled(cfg: OpenClawConfig): boolean {
   return genericEnabled === true;
 }
 
+function parseBoolLike(input: unknown): boolean | null {
+  if (typeof input === "boolean") {
+    return input;
+  }
+  if (typeof input !== "string") {
+    return null;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on") {
+    return true;
+  }
+  if (normalized === "0" || normalized === "false" || normalized === "no" || normalized === "off") {
+    return false;
+  }
+  return null;
+}
+
+function getCaptureConfig(cfg: OpenClawConfig): Record<string, unknown> | null {
+  const captureValue = (cfg as Record<string, unknown>)["capture"];
+  if (!captureValue || typeof captureValue !== "object") {
+    return null;
+  }
+  return captureValue as Record<string, unknown>;
+}
+
+function getNotebookLmConfig(cfg: OpenClawConfig): Record<string, unknown> | null {
+  const captureCfg = getCaptureConfig(cfg);
+  if (!captureCfg) {
+    return null;
+  }
+  const value = captureCfg["notebooklm"];
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function isNotebookLmEnabled(cfg: OpenClawConfig): boolean {
+  const env = parseBoolLike(process.env.MOLTBOT_NOTEBOOKLM_ENABLED);
+  if (env !== null) {
+    return env;
+  }
+  const nb = getNotebookLmConfig(cfg);
+  if (!nb) {
+    return false;
+  }
+  return nb["enabled"] === true;
+}
+
+function normalizeNotebookLmMode(value: unknown): NotebookLmMode | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "queue_only" || normalized === "only" || normalized === "notebook_only") {
+    return "queue_only";
+  }
+  if (
+    normalized === "queue_and_capture" ||
+    normalized === "capture_only" ||
+    normalized === "capture"
+  ) {
+    return "queue_and_capture";
+  }
+  if (
+    normalized === "queue_capture_and_model" ||
+    normalized === "capture_and_model" ||
+    normalized === "both" ||
+    normalized === "model"
+  ) {
+    return "queue_capture_and_model";
+  }
+  if (normalized === "auto") {
+    return "auto";
+  }
+  return null;
+}
+
+function parseKeywordList(value: unknown): string[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+  return value
+    .split(/[,\n|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getNotebookLmKeywords(cfg: OpenClawConfig): string[] {
+  const envList = parseKeywordList(process.env.MOLTBOT_NOTEBOOKLM_KEYWORDS);
+  if (envList.length > 0) {
+    return envList;
+  }
+  const nb = getNotebookLmConfig(cfg);
+  const cfgList = Array.isArray(nb?.keywords)
+    ? nb?.keywords.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
+    : [];
+  if (cfgList.length > 0) {
+    return cfgList;
+  }
+  return [...DEFAULT_NOTEBOOKLM_KEYWORDS];
+}
+
+function extractNotebookLmPrefixQuery(commandText: string): NotebookLmTrigger | null {
+  const raw = commandText.trim();
+  if (!raw) {
+    return null;
+  }
+  const patterns: Array<{ re: RegExp; keyword: string }> = [
+    { re: /^\/(?:nb|notebook|notebooklm)\s*[:：]?\s+([\s\S]+)$/i, keyword: "/nb" },
+    { re: /^(?:nb|notebooklm)\s*[:：]\s*([\s\S]+)$/i, keyword: "nb:" },
+  ];
+  for (const pattern of patterns) {
+    const hit = raw.match(pattern.re);
+    if (!hit?.[1]) {
+      continue;
+    }
+    const query = hit[1].trim();
+    if (!query) {
+      continue;
+    }
+    return {
+      keyword: pattern.keyword,
+      query,
+    };
+  }
+  return null;
+}
+
+function keywordRegexHit(raw: string, keyword: string): boolean {
+  const trimmed = keyword.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (/^[a-z0-9_]+$/i.test(trimmed)) {
+    const re = new RegExp(`\\b${escapeForRegExp(trimmed)}\\b`, "i");
+    return re.test(raw);
+  }
+  return raw.toLowerCase().includes(trimmed.toLowerCase());
+}
+
+function extractNotebookLmTrigger(
+  commandText: string,
+  keywords: string[],
+): NotebookLmTrigger | null {
+  const explicit = extractNotebookLmPrefixQuery(commandText);
+  if (explicit) {
+    return explicit;
+  }
+  const raw = commandText.trim();
+  if (!raw) {
+    return null;
+  }
+  const rawLower = raw.toLowerCase();
+  for (const keyword of keywords) {
+    const trimmed = keyword.trim();
+    if (!trimmed || !keywordRegexHit(raw, trimmed)) {
+      continue;
+    }
+    const loweredKeyword = trimmed.toLowerCase();
+    const idx = rawLower.indexOf(loweredKeyword);
+    let query = raw;
+    if (idx >= 0) {
+      const before = raw.slice(0, idx).trim();
+      const after = raw.slice(idx + loweredKeyword.length).trim();
+      query = `${before} ${after}`.replace(/\s+/g, " ").trim();
+      query = query.replace(/^[:：,，\-]+\s*/u, "").trim();
+    }
+    return {
+      keyword: trimmed,
+      query: query || raw,
+    };
+  }
+  return null;
+}
+
+function chooseNotebookLmAutoMode(commandText: string): NotebookLmResolvedMode {
+  const lower = commandText.toLowerCase();
+  if (
+    lower.includes("只用notebooklm") ||
+    lower.includes("不用即時回覆") ||
+    lower.includes("不用即时回复") ||
+    lower.includes("先排隊") ||
+    lower.includes("先排队")
+  ) {
+    return "queue_and_capture";
+  }
+  if (
+    lower.includes("先給結論") ||
+    lower.includes("先给结论") ||
+    lower.includes("順便回答") ||
+    lower.includes("顺便回答") ||
+    lower.includes("先答我") ||
+    lower.includes("immediate")
+  ) {
+    return "queue_capture_and_model";
+  }
+  if (commandText.includes("?") || commandText.includes("？")) {
+    return "queue_capture_and_model";
+  }
+  return "queue_and_capture";
+}
+
+function resolveNotebookLmMode(cfg: OpenClawConfig, commandText: string): NotebookLmResolvedMode {
+  const envMode = normalizeNotebookLmMode(process.env.MOLTBOT_NOTEBOOKLM_MODE);
+  const cfgMode = normalizeNotebookLmMode(getNotebookLmConfig(cfg)?.mode);
+  const mode = envMode ?? cfgMode ?? "queue_and_capture";
+  if (mode === "auto") {
+    return chooseNotebookLmAutoMode(commandText);
+  }
+  return mode;
+}
+
+function inferPriorityFromText(commandText: string): "P0" | "P1" | "P2" | "P3" | null {
+  const hit = commandText.toUpperCase().match(/\bP([0-3])\b/);
+  if (!hit?.[1]) {
+    return null;
+  }
+  return `P${hit[1]}` as "P0" | "P1" | "P2" | "P3";
+}
+
+function nowTokyoCompact(now = new Date()): { ymd: string; hms: string } {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(now);
+  const byType = new Map(parts.map((part) => [part.type, part.value]));
+  const ymd = `${byType.get("year") ?? "1970"}-${byType.get("month") ?? "01"}-${byType.get("day") ?? "01"}`;
+  const hms = `${byType.get("hour") ?? "00"}${byType.get("minute") ?? "00"}${byType.get("second") ?? "00"}`;
+  return { ymd, hms };
+}
+
+function nextNotebookLmRequestId(now = new Date()): string {
+  const tokyo = nowTokyoCompact(now);
+  const suffix = String(Math.floor(Math.random() * 10_000)).padStart(4, "0");
+  return `nb-${tokyo.ymd.replace(/-/g, "")}-${tokyo.hms}-${suffix}`;
+}
+
+function trimSingleLine(value: string, limit: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, limit - 3)).trim()}...`;
+}
+
+async function enqueueNotebookLmRequest(params: {
+  metaDir: string;
+  provider: string;
+  ctx: FinalizedMsgContext;
+  query: string;
+  keyword: string;
+  mode: NotebookLmResolvedMode;
+}): Promise<NotebookLmQueueResult> {
+  const queuePath = path.join(params.metaDir, "notebooklm_requests.jsonl");
+  const raw = await readText(queuePath);
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const rows: Record<string, unknown>[] = [];
+  for (const line of lines) {
+    try {
+      rows.push(JSON.parse(line) as Record<string, unknown>);
+    } catch {
+      // ignore malformed row
+    }
+  }
+
+  const messageId = (
+    params.ctx.MessageSidFull ??
+    params.ctx.MessageSid ??
+    params.ctx.MessageSidFirst ??
+    params.ctx.MessageSidLast ??
+    ""
+  ).trim();
+  if (messageId) {
+    const duplicate = rows.find((row) => String(row.source_message_id ?? "").trim() === messageId);
+    if (duplicate) {
+      return {
+        id: String(duplicate.id ?? "").trim() || nextNotebookLmRequestId(),
+        keyword: params.keyword,
+        duplicate: true,
+        queueSize: lines.length,
+        mode: params.mode,
+      };
+    }
+  }
+
+  const createdAt = new Date().toISOString();
+  const pushDefault = parseBoolLike(process.env.CAPTURE_NOTEBOOKLM_REQUEST_PUSH_DEFAULT) ?? true;
+  const row: NotebookLmQueueRow = {
+    id: nextNotebookLmRequestId(),
+    created_at: createdAt,
+    updated_at: createdAt,
+    status: "queued",
+    source: params.provider || "unknown",
+    question: params.query,
+    title: trimSingleLine(params.query, 48),
+    priority: inferPriorityFromText(params.query),
+    tags: ["notebooklm", params.provider || "unknown"],
+    context: [],
+    push: pushDefault,
+    attempts: 0,
+    last_error: null,
+    trigger_keyword: params.keyword,
+    source_message_id: messageId || undefined,
+    source_sender_id: (params.ctx.SenderId ?? params.ctx.From ?? "").trim() || undefined,
+    source_chat_type: (params.ctx.ChatType ?? "").trim() || undefined,
+  };
+  const next = `${raw}${raw.endsWith("\n") || raw.length === 0 ? "" : "\n"}${JSON.stringify(row)}\n`;
+  await writeText(queuePath, next);
+  return {
+    id: row.id,
+    keyword: params.keyword,
+    duplicate: false,
+    queueSize: lines.length + 1,
+    mode: params.mode,
+  };
+}
+
+function buildNotebookLmQueueAck(params: NotebookLmQueueResult): string {
+  const statusLine = params.duplicate ? "♻️ NotebookLM 任務已存在" : "📚 NotebookLM 任務已排隊";
+  const modeLabel =
+    params.mode === "queue_only"
+      ? "queue_only"
+      : params.mode === "queue_capture_and_model"
+        ? "queue_capture_and_model"
+        : "queue_and_capture";
+  return [
+    statusLine,
+    `id: ${params.id} | mode: ${modeLabel}`,
+    `keyword: ${params.keyword} | queue: ${params.queueSize}`,
+  ].join("\n");
+}
+
 type CaptureControlAction = "watch_converted" | "watch_abandoned";
 
 function getCommandText(ctx: FinalizedMsgContext): string {
   return (
-    (ctx.BodyForCommands ?? ctx.RawBody ?? ctx.CommandBody ?? ctx.BodyForAgent ?? ctx.Body ?? "").trim() || ""
+    (
+      ctx.BodyForCommands ??
+      ctx.RawBody ??
+      ctx.CommandBody ??
+      ctx.BodyForAgent ??
+      ctx.Body ??
+      ""
+    ).trim() || ""
   );
 }
 
 function normalizeCommandText(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "");
+  return value.trim().toLowerCase().replace(/\s+/g, "");
 }
 
 function detectCaptureControlAction(commandText: string): CaptureControlAction | null {
@@ -104,7 +507,10 @@ function detectCaptureControlAction(commandText: string): CaptureControlAction |
   if ((raw.includes("轉任務") || raw.includes("转任务")) && raw.length <= 16) {
     return "watch_converted";
   }
-  if ((raw.includes("不用提醒") || raw.includes("放棄") || raw.includes("放弃")) && raw.length <= 16) {
+  if (
+    (raw.includes("不用提醒") || raw.includes("放棄") || raw.includes("放弃")) &&
+    raw.length <= 16
+  ) {
     return "watch_abandoned";
   }
   return null;
@@ -128,7 +534,10 @@ function frontmatterField(content: string, key: string): string | null {
   if (!hit?.[1]) {
     return null;
   }
-  return hit[1].trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+  return hit[1]
+    .trim()
+    .replace(/^"(.*)"$/, "$1")
+    .replace(/^'(.*)'$/, "$1");
 }
 
 async function listMarkdownFiles(dirPath: string): Promise<string[]> {
@@ -248,7 +657,11 @@ function withTrailingNewline(input: string): string {
   return input.endsWith("\n") ? input : `${input}\n`;
 }
 
-function upsertFrontmatterLine(lines: string[], key: string, value: string): { lines: string[]; changed: boolean } {
+function upsertFrontmatterLine(
+  lines: string[],
+  key: string,
+  value: string,
+): { lines: string[]; changed: boolean } {
   const prefix = `${key}:`;
   let changed = false;
   let replaced = false;
@@ -329,9 +742,7 @@ async function updateWatchCard(params: {
   }
 
   const lifecycleEntry =
-    action === "watch_converted"
-      ? `- watch_converted: ${today}`
-      : `- watch_abandoned: ${today}`;
+    action === "watch_converted" ? `- watch_converted: ${today}` : `- watch_abandoned: ${today}`;
   const lifecycle = appendLifecycleLine(split.body, lifecycleEntry);
   changed = changed || lifecycle.changed;
   if (!changed) {
@@ -385,10 +796,7 @@ async function updateTasksMaster(params: {
   await writeText(filePath, withTrailingNewline(next.join("\n")));
 }
 
-async function updateWaiting(params: {
-  workDir: string;
-  id: string;
-}): Promise<void> {
+async function updateWaiting(params: { workDir: string; id: string }): Promise<void> {
   const filePath = path.join(params.workDir, "waiting.md");
   const raw = await readText(filePath);
   if (!raw.trim()) {
@@ -502,8 +910,7 @@ async function maybeHandleCaptureControlCommand(params: {
 
   if (!target) {
     return {
-      text:
-        "⚠️ 找不到要操作的 watch 卡。請直接回覆 bot 的 capture 回覆訊息，或在訊息中附上卡片 id（例如 2026-02-19-001）。",
+      text: "⚠️ 找不到要操作的 watch 卡。請直接回覆 bot 的 capture 回覆訊息，或在訊息中附上卡片 id（例如 2026-02-19-001）。",
     };
   }
 
@@ -560,6 +967,11 @@ export async function maybeRunCapture(params: {
 
   const provider = String(ctx.Surface ?? ctx.Provider ?? "").toLowerCase();
   const genericFallback = isGenericCaptureEnabled(cfg);
+  const notebookLmEnabled = isNotebookLmEnabled(cfg);
+  const notebookLmKeywords = notebookLmEnabled ? getNotebookLmKeywords(cfg) : [];
+  const notebookLmTrigger = notebookLmEnabled
+    ? extractNotebookLmTrigger(commandText, notebookLmKeywords)
+    : null;
 
   try {
     if (controlAction) {
@@ -591,15 +1003,44 @@ export async function maybeRunCapture(params: {
       return { handled: false };
     }
 
+    let notebookLmQueued: NotebookLmQueueResult | null = null;
+    if (notebookLmTrigger) {
+      const notebookLmMode = resolveNotebookLmMode(cfg, commandText);
+      notebookLmQueued = await enqueueNotebookLmRequest({
+        metaDir: resolveHubPaths().meta,
+        provider,
+        ctx,
+        query: notebookLmTrigger.query,
+        keyword: notebookLmTrigger.keyword,
+        mode: notebookLmMode,
+      });
+
+      if (notebookLmMode === "queue_only") {
+        return {
+          handled: true,
+          payload: { text: buildNotebookLmQueueAck(notebookLmQueued) },
+        };
+      }
+    }
+
     const out = await runCaptureAgent({
       input: captureInput,
       applyWrites: true,
       outputMode: process.env.OUTPUT_MODE ?? "json",
     });
     const lines = [out.ack.line1, out.ack.line2, out.ack.line3].filter(Boolean);
+
+    if (notebookLmQueued?.mode === "queue_capture_and_model") {
+      return {
+        handled: true,
+      };
+    }
+
+    const notebookAck = notebookLmQueued ? buildNotebookLmQueueAck(notebookLmQueued) : "";
+    const combined = notebookAck ? [...lines, notebookAck].join("\n") : lines.join("\n");
     return {
       handled: true,
-      payload: { text: lines.join("\n") },
+      payload: { text: combined },
     };
   } catch (err) {
     return {
