@@ -73,6 +73,7 @@ docs/.local/
 IDENTITY.md
 USER.md
 .tgz
+.prompt_tool_runs/
 
 # local tooling
 .serena/

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SRC_AUTOMATION="${SRC_AUTOMATION:-$HOME/.openclaw/workspace/automation}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SRC_AUTOMATION="${SRC_AUTOMATION:-$SCRIPT_DIR}"
 SRC_MAIL_APP="${SRC_MAIL_APP:-$HOME/Library/Application Scripts/com.apple.mail}"
 DEST_DIR="${1:-$PWD/automail2note}"
 
-SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
+SCRIPT_PATH="$SCRIPT_DIR/install_automail2note.sh"
 
 FILES=(
   "lazyingart_simple.py"
@@ -69,4 +70,3 @@ if [[ "${#missing[@]}" -gt 0 ]]; then
     echo "  - $item"
   done
 fi
-
