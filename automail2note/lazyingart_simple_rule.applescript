@@ -4,7 +4,7 @@ property automationScript : "/Users/lachlan/.openclaw/workspace/automation/lazyi
 property pythonPath : "/Users/lachlan/.openclaw/workspace/.venv/bin/python"
 property logPath : "/Users/lachlan/.openclaw/workspace/logs/lazyingart_simple_rule.log"
 property lockDir : "/tmp/lazyingart_simple_rule.lock"
-property defaultCalendar : "LazyingArt"
+property defaultCalendar : "AutoMail"
 property blockedAccounts : {"qq"}
 property triggerWaitSeconds : 180
 property triggerPollSeconds : 10

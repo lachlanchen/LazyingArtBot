@@ -5,6 +5,7 @@ REPO_DIR="/Users/lachlan/Local/Clawbot"
 cd "$REPO_DIR"
 
 INPUT_MD="$HOME/Documents/LazyingArtBotIO/LazyingArt/Input/LazyingArtCompanyInput.md"
+COMPANY_FOCUS="Lazying.art"
 MARKET_SUMMARY_FILE=""
 PLAN_SUMMARY_FILE=""
 MENTOR_SUMMARY_FILE=""
@@ -13,6 +14,8 @@ REASONING="high"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-life-reverse"
 REMINDER_LIST="LazyingArt"
+SLOT_PREFIX="LA-LIFE"
+WRITE_REMINDER=1
 STATE_JSON="$HOME/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/life_reminder_state.json"
 STATE_MD="$HOME/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md"
 REPORT_JSON=""
@@ -26,11 +29,14 @@ Usage: prompt_life_reverse_engineering_tool.sh [options]
 
 Options:
   --input-md <path>            Company input markdown (default: ~/Documents/LazyingArtBotIO/LazyingArt/Input/LazyingArtCompanyInput.md)
+  --company-focus <text>       Company focus label used for notes and reminder labels (default: Lazying.art)
   --market-summary-file <p>    Optional market summary text file
   --plan-summary-file <p>      Optional plan summary text file
   --mentor-summary-file <p>    Optional mentor summary text file
   --state-json <path>          Reminder state JSON (default: workspace AutoLife state)
   --state-md <path>            Reminder state markdown mirror (default: ~/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md)
+  --no-write-reminder          Generate plan only; do not write reminders
+  --slot-prefix <text>         Prefix used in reminder titles and duplication markers (default: LA-LIFE)
   --report-json <path>         Output report json path (default: <output-dir>/life-reminder-report.json)
   --report-md <path>           Output report markdown path (default: <output-dir>/life-reminder-report.md)
   --report-html <path>         Output report html path (default: <output-dir>/life-reminder-report.html)
@@ -51,6 +57,10 @@ while [[ $# -gt 0 ]]; do
     --input-md)
       shift
       INPUT_MD="${1:-}"
+      ;;
+    --company-focus)
+      shift
+      COMPANY_FOCUS="${1:-Lazying.art}"
       ;;
     --market-summary-file)
       shift
@@ -87,6 +97,16 @@ while [[ $# -gt 0 ]]; do
     --list-name)
       shift
       REMINDER_LIST="${1:-}"
+      ;;
+    --slot-prefix)
+      shift
+      SLOT_PREFIX="${1:-}"
+      ;;
+    --no-write-reminder)
+      WRITE_REMINDER=0
+      ;;
+    --write-reminder)
+      WRITE_REMINDER=1
       ;;
     --model)
       shift
@@ -189,7 +209,7 @@ if [[ -z "$REPORT_HTML" ]]; then
 fi
 
 TMP_PAYLOAD="$(mktemp)"
-python3 - "$TMP_PAYLOAD" "$INPUT_MD" "$MARKET_SUMMARY_FILE" "$PLAN_SUMMARY_FILE" "$MENTOR_SUMMARY_FILE" "$STATE_JSON" "$STATE_MD" "$REMINDER_LIST" <<'PY'
+python3 - "$TMP_PAYLOAD" "$INPUT_MD" "$MARKET_SUMMARY_FILE" "$PLAN_SUMMARY_FILE" "$MENTOR_SUMMARY_FILE" "$STATE_JSON" "$STATE_MD" "$REMINDER_LIST" "$SLOT_PREFIX" "$COMPANY_FOCUS" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -203,6 +223,8 @@ mentor_path = sys.argv[5]
 state_json_path = Path(sys.argv[6]).expanduser()
 state_md_path = Path(sys.argv[7]).expanduser()
 list_name = sys.argv[8]
+slot_prefix = sys.argv[9]
+company_focus = sys.argv[10] if len(sys.argv) > 10 else "Lazying.art"
 
 
 def read_optional(path_text: str) -> str:
@@ -220,9 +242,10 @@ state_md_text = state_md_path.read_text(encoding="utf-8") if state_md_path.exist
 payload = {
     "run_local_iso": datetime.now().astimezone().isoformat(timespec="seconds"),
     "run_utc_iso": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    "company_focus": "Lazying.art",
+    "company_focus": company_focus,
     "timezone": "Asia/Hong_Kong",
     "reminder_list": list_name,
+    "slot_prefix": slot_prefix,
     "required_slots": [
         "day_plan_8am",
         "tomorrow_plan_8pm",
@@ -243,7 +266,7 @@ payload = {
         "half_year_milestone": "half-year horizon",
         "one_year_milestone": "annual horizon",
     },
-    "company_input_markdown": company_input,
+    "company_input_markdown": company_input or f"# {company_focus} Company Input\\n\\n- Update this file with your company context and current priorities.\\n",
     "market_summary": read_optional(market_path),
     "plan_summary": read_optional(plan_path),
     "mentor_summary": read_optional(mentor_path),
@@ -275,6 +298,9 @@ python3 "$REPO_DIR/orchestral/prompt_tools/life_reverse_reminder_apply.py" \
   --report-html "$REPORT_HTML" \
   --run-id "$RUN_ID" \
   --list-name "$REMINDER_LIST" \
+  --slot-prefix "$SLOT_PREFIX" \
+  --company-name "$COMPANY_FOCUS" \
+  $( [[ "$WRITE_REMINDER" == "0" ]] && printf '%s\n' "--no-write-reminder" ) \
   >/dev/null
 
 cat "$REPORT_JSON"

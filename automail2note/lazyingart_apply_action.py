@@ -21,8 +21,8 @@ CALENDAR_SCRIPT = AUTOMATION_DIR / "create_calendar_event.applescript"
 REMINDER_SCRIPT = AUTOMATION_DIR / "create_reminder.applescript"
 NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
 FALLBACK_CALENDAR = "Lachlan"
-DEFAULT_CALENDAR = "LazyingArt"
-DEFAULT_REMINDER_LIST = "LazyingArt"
+DEFAULT_CALENDAR = "AutoMail"
+DEFAULT_REMINDER_LIST = "AutoMail"
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -107,7 +107,7 @@ def apply_note(action: Dict[str, Any]) -> Dict[str, Any]:
         [
             str(action.get("title", "")),
             str(action.get("notes", "")),
-            str(action.get("folder", "Lazyingart/Inbox") or "Lazyingart/Inbox"),
+            str(action.get("folder", "AutoMail/Inbox") or "AutoMail/Inbox"),
         ],
     )
     return {"status": "created", "target": "note", "id": out["stdout"], "stderr": out["stderr"]}

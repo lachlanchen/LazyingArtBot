@@ -47,6 +47,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-html", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--list-name", default="LazyingArt")
+    parser.add_argument("--slot-prefix", default="LA-LIFE")
+    parser.add_argument("--company-name", default="LazyingArt")
+    parser.add_argument("--no-write-reminder", action="store_true", help="Generate life plan without writing reminders")
     parser.add_argument("--timezone", default="Asia/Hong_Kong")
     parser.add_argument(
         "--create-reminder-script",
@@ -262,12 +265,30 @@ def create_reminder(script_path: Path, title: str, due_iso: str, notes: str, lis
     return (proc.stdout or "").strip()
 
 
-def parse_slot(name: str) -> tuple[str, str]:
+def normalize_slot_prefix(raw: str) -> str:
+    prefix = (raw or "").strip()
+    if not prefix:
+        return "LA-LIFE"
+    return (
+        prefix.replace("[", "").replace("]", "").replace("\r", "").replace("\n", "").strip()
+    ) or "LA-LIFE"
+
+
+def parse_slot(name: str, allowed_prefixes: set[str]) -> tuple[str, str]:
     raw = (name or "").strip()
-    if raw.startswith("[LA-LIFE][") and "]" in raw[10:]:
-        rest = raw[10:]
-        slot, tail = rest.split("]", 1)
-        return slot.strip(), tail.strip()
+    if raw.startswith("[") and raw.count("]") >= 2:
+        first_part = raw[1:]
+        first_close = first_part.find("]")
+        if first_close > 0:
+            prefix = first_part[:first_close]
+            remainder = first_part[first_close + 1:]
+            if remainder.startswith("["):
+                second_close = remainder[1:].find("]")
+                if second_close >= 0:
+                    slot = remainder[1:1 + second_close]
+                    tail = remainder[1 + second_close + 1:]
+                    if not allowed_prefixes or prefix in allowed_prefixes:
+                        return slot.strip(), tail.strip()
     return "", raw
 
 
@@ -372,9 +393,15 @@ def due_close(a: str, b: str, tz: ZoneInfo) -> bool:
     return abs((da - db).total_seconds()) <= 15 * 60
 
 
-def render_markdown(run_id: str, summary: str, strategy_md: str, results: list[dict[str, Any]]) -> str:
+def render_markdown(
+    company_name: str,
+    run_id: str,
+    summary: str,
+    strategy_md: str,
+    results: list[dict[str, Any]],
+) -> str:
     lines = [
-        f"# LazyingArt Life Reverse Plan ({run_id})",
+        f"# {company_name} Life Reverse Plan ({run_id})",
         "",
         f"- Updated: {datetime.now().astimezone().isoformat(timespec='seconds')}",
         f"- Summary: {summary}",
@@ -413,10 +440,10 @@ def render_markdown(run_id: str, summary: str, strategy_md: str, results: list[d
     return "\n".join(lines).strip() + "\n"
 
 
-def markdown_to_html(md_text: str) -> str:
+def markdown_to_html(company_name: str, md_text: str) -> str:
     lines = md_text.splitlines()
     html_lines = [
-        "<h1>🗓️ LazyingArt Life Reverse Plan</h1>",
+        f"<h1>🗓️ {html.escape(company_name)} Life Reverse Plan</h1>",
         "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse;'>",
         "<tr><th>Slot</th><th>Title</th><th>Due</th><th>Action</th><th>Status</th></tr>",
     ]
@@ -441,6 +468,9 @@ def main() -> int:
     args = parse_args()
     tz = ZoneInfo(args.timezone)
     now = datetime.now(tz)
+    slot_prefix = normalize_slot_prefix(args.slot_prefix)
+    company_name = (args.company_name or "LazyingArt").strip() or "LazyingArt"
+    allowed_prefixes = {slot_prefix, "LA-LIFE"}
 
     plan_path = Path(args.plan_json).expanduser().resolve()
     state_json_path = Path(args.state_json).expanduser().resolve()
@@ -465,149 +495,179 @@ def main() -> int:
     summary = str(plan.get("summary", "")).strip()
     strategy_md = str(plan.get("strategy_markdown", "")).strip()
     desired = normalize_plan(plan, now)
-
-    existing = fetch_life_reminders(args.list_name)
-    open_by_slot: dict[str, list[dict[str, str]]] = {slot: [] for slot in SLOT_ORDER}
-
-    for item in existing:
-        slot, bare = parse_slot(item.get("name", ""))
-        if slot not in open_by_slot:
-            continue
-        item["bare_title"] = bare
-        item["duplication_key"] = extract_duplication_key(item.get("body", ""))
-        if item.get("completed") != "1":
-            open_by_slot[slot].append(item)
-
-    completed_old_count = 0
-    for slot in SLOT_ORDER:
-        deduped, duplicate_ids = dedupe_open_slot_items(open_by_slot[slot], tz, now)
-        open_by_slot[slot] = deduped
-        for dup_id in duplicate_ids:
-            outcome = complete_reminder(args.list_name, dup_id)
-            if outcome in {"completed", "ok"}:
-                completed_old_count += 1
-
     created_count = 0
     kept_count = 0
+    completed_old_count = 0
     failed_count = 0
     results: list[dict[str, Any]] = []
     slot_state: dict[str, Any] = {}
 
-    for item in desired:
-        slot = item["slot"]
-        planned_title = item["title"]
-        reminder_title = f"[LA-LIFE][{slot}] {planned_title}"
-        due_iso = item["due_iso"]
-        desired_key = item["duplication_key"]
-        notes = (
-            f"[LA-LIFE slot] {slot}\n"
-            f"[Generated] {now.isoformat(timespec='seconds')}\n"
-            f"[Rationale] {item['rationale']}\n\n"
-            f"[DuplicationKey] {desired_key}\n\n"
-            f"{item['notes_markdown']}"
-        )
-        sig = fingerprint(slot, planned_title, due_iso, item["notes_markdown"], item["reminder_minutes"])
-
-        open_items = open_by_slot.get(slot, [])
-        same_open = None
-        for ex in open_items:
-            if desired_key and ex.get("duplication_key") and ex.get("duplication_key") == desired_key:
-                same_open = ex
-                break
-            if ex.get("bare_title", "").strip() == planned_title.strip() and due_close(ex.get("due_iso", ""), due_iso, tz):
-                same_open = ex
-                break
-
-        result: dict[str, Any] = {
-            "slot": slot,
-            "title": planned_title,
-            "due_iso": due_iso,
-            "rationale": item["rationale"],
-            "fingerprint": sig,
-            "action": "",
-            "status": "",
-            "existing_id": "",
-            "new_id": "",
-            "error": "",
-        }
-
-        # If same reminder already open, keep it.
-        if same_open is not None:
-            kept_count += 1
-            for ex in open_items:
-                if ex.get("id") == same_open.get("id"):
-                    continue
-                outcome = complete_reminder(args.list_name, ex.get("id", ""))
-                if outcome in {"completed", "ok"}:
-                    completed_old_count += 1
-            result["action"] = "keep"
-            result["status"] = "ok"
-            result["existing_id"] = same_open.get("id", "")
+    if args.no_write_reminder:
+        for item in desired:
+            slot = item["slot"]
+            planned_title = item["title"]
+            due_iso = item["due_iso"]
+            sig = fingerprint(slot, planned_title, due_iso, item["notes_markdown"], item["reminder_minutes"])
+            result: dict[str, Any] = {
+                "slot": slot,
+                "title": planned_title,
+                "due_iso": due_iso,
+                "rationale": item["rationale"],
+                "fingerprint": sig,
+                "action": "plan_only",
+                "status": "planned",
+                "existing_id": "",
+                "new_id": "",
+                "error": "",
+            }
             slot_state[slot] = {
-                "status": "kept",
-                "id": same_open.get("id", ""),
+                "status": "planned",
+                "id": "",
                 "title": planned_title,
                 "due_iso": due_iso,
                 "fingerprint": sig,
                 "updated_at": now.isoformat(timespec="seconds"),
             }
             results.append(result)
-            continue
+        status = "ok"
+        summary_out = f"life reminders plan-only: slots={len(desired)}"
+    else:
+        existing = fetch_life_reminders(args.list_name)
+        open_by_slot: dict[str, list[dict[str, str]]] = {slot: [] for slot in SLOT_ORDER}
 
-        try:
-            # Complete old open reminders for this slot to prevent duplication.
-            for ex in open_items:
-                outcome = complete_reminder(args.list_name, ex.get("id", ""))
+        for item in existing:
+            slot, bare = parse_slot(item.get("name", ""), allowed_prefixes)
+            if slot not in open_by_slot:
+                continue
+            item["bare_title"] = bare
+            item["duplication_key"] = extract_duplication_key(item.get("body", ""))
+            if item.get("completed") != "1":
+                open_by_slot[slot].append(item)
+
+        for slot in SLOT_ORDER:
+            deduped, duplicate_ids = dedupe_open_slot_items(open_by_slot[slot], tz, now)
+            open_by_slot[slot] = deduped
+            for dup_id in duplicate_ids:
+                outcome = complete_reminder(args.list_name, dup_id)
                 if outcome in {"completed", "ok"}:
                     completed_old_count += 1
 
-            # Create the new slot reminder.
-            new_id = create_reminder(
-                create_script,
-                reminder_title,
-                due_iso,
-                notes,
-                args.list_name,
-                int(item["reminder_minutes"]),
+        for item in desired:
+            slot = item["slot"]
+            planned_title = item["title"]
+            reminder_title = f"[{slot_prefix}][{slot}] {planned_title}"
+            due_iso = item["due_iso"]
+            desired_key = item["duplication_key"]
+            notes = (
+                f"[{slot_prefix} slot] {slot}\n"
+                f"[Generated] {now.isoformat(timespec='seconds')}\n"
+                f"[Rationale] {item['rationale']}\n\n"
+                f"[DuplicationKey] {desired_key}\n\n"
+                f"{item['notes_markdown']}"
             )
-            created_count += 1
-            result["action"] = "replace_or_create"
-            result["status"] = "ok"
-            result["new_id"] = new_id
-            slot_state[slot] = {
-                "status": "created",
-                "id": new_id,
+            sig = fingerprint(slot, planned_title, due_iso, item["notes_markdown"], item["reminder_minutes"])
+
+            open_items = open_by_slot.get(slot, [])
+            same_open = None
+            for ex in open_items:
+                if desired_key and ex.get("duplication_key") and ex.get("duplication_key") == desired_key:
+                    same_open = ex
+                    break
+                if ex.get("bare_title", "").strip() == planned_title.strip() and due_close(ex.get("due_iso", ""), due_iso, tz):
+                    same_open = ex
+                    break
+
+            result: dict[str, Any] = {
+                "slot": slot,
                 "title": planned_title,
                 "due_iso": due_iso,
+                "rationale": item["rationale"],
                 "fingerprint": sig,
-                "updated_at": now.isoformat(timespec="seconds"),
-            }
-        except Exception as exc:  # noqa: BLE001
-            failed_count += 1
-            result["action"] = "replace_or_create"
-            result["status"] = "failed"
-            result["error"] = str(exc)
-            slot_state[slot] = {
-                "status": "failed",
-                "id": "",
-                "title": planned_title,
-                "due_iso": due_iso,
-                "fingerprint": sig,
-                "updated_at": now.isoformat(timespec="seconds"),
-                "error": str(exc),
+                "action": "",
+                "status": "",
+                "existing_id": "",
+                "new_id": "",
+                "error": "",
             }
 
-        results.append(result)
+            # If same reminder already open, keep it.
+            if same_open is not None:
+                kept_count += 1
+                for ex in open_items:
+                    if ex.get("id") == same_open.get("id"):
+                        continue
+                    outcome = complete_reminder(args.list_name, ex.get("id", ""))
+                    if outcome in {"completed", "ok"}:
+                        completed_old_count += 1
+                result["action"] = "keep"
+                result["status"] = "ok"
+                result["existing_id"] = same_open.get("id", "")
+                slot_state[slot] = {
+                    "status": "kept",
+                    "id": same_open.get("id", ""),
+                    "title": planned_title,
+                    "due_iso": due_iso,
+                    "fingerprint": sig,
+                    "updated_at": now.isoformat(timespec="seconds"),
+                }
+                results.append(result)
+                continue
 
-    status = "ok" if failed_count == 0 else "partial"
-    summary_out = (
-        f"life reminders: created={created_count}, kept={kept_count}, "
-        f"completed_old={completed_old_count}, failed={failed_count}"
-    )
+            try:
+                # Complete old open reminders for this slot to prevent duplication.
+                for ex in open_items:
+                    outcome = complete_reminder(args.list_name, ex.get("id", ""))
+                    if outcome in {"completed", "ok"}:
+                        completed_old_count += 1
+
+                # Create the new slot reminder.
+                new_id = create_reminder(
+                    create_script,
+                    reminder_title,
+                    due_iso,
+                    notes,
+                    args.list_name,
+                    int(item["reminder_minutes"]),
+                )
+                created_count += 1
+                result["action"] = "replace_or_create"
+                result["status"] = "ok"
+                result["new_id"] = new_id
+                slot_state[slot] = {
+                    "status": "created",
+                    "id": new_id,
+                    "title": planned_title,
+                    "due_iso": due_iso,
+                    "fingerprint": sig,
+                    "updated_at": now.isoformat(timespec="seconds"),
+                }
+            except Exception as exc:  # noqa: BLE001
+                failed_count += 1
+                result["action"] = "replace_or_create"
+                result["status"] = "failed"
+                result["error"] = str(exc)
+                slot_state[slot] = {
+                    "status": "failed",
+                    "id": "",
+                    "title": planned_title,
+                    "due_iso": due_iso,
+                    "fingerprint": sig,
+                    "updated_at": now.isoformat(timespec="seconds"),
+                    "error": str(exc),
+                }
+
+            results.append(result)
+
+        status = "ok" if failed_count == 0 else "partial"
+        summary_out = (
+            f"life reminders: created={created_count}, kept={kept_count}, "
+            f"completed_old={completed_old_count}, failed={failed_count}"
+        )
 
     state_payload = {
         "updated_at": now.isoformat(timespec="seconds"),
         "run_id": args.run_id,
+        "company_name": company_name,
         "list_name": args.list_name,
         "summary": summary,
         "strategy_markdown": strategy_md,
@@ -615,8 +675,8 @@ def main() -> int:
     }
     state_json_path.write_text(json.dumps(state_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    report_md = render_markdown(args.run_id, summary, strategy_md, results)
-    report_html = markdown_to_html(report_md)
+    report_md = render_markdown(company_name, args.run_id, summary, strategy_md, results)
+    report_html = markdown_to_html(company_name, report_md)
 
     report_md_path.write_text(report_md, encoding="utf-8")
     report_html_path.write_text(report_html, encoding="utf-8")

@@ -82,15 +82,10 @@ if [[ -n "$existing_ids" ]]; then
 fi
 
 MESSAGE_TEMPLATE="$(cat <<EOF
-Run the local Lazying.art pipeline exactly once.
-1) Execute:
+Run the Lazying.art async launcher once.
+Command:
 $REPO_DIR/orchestral/run_la_pipeline_async.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
-2) Run a full pipeline cycle (including resource analysis and web-search refresh).
-3) Write results into the pipeline run directory (pipeline summary + web_search.summary.txt + web_search_digest.html).
-4) For notes/email, rely on this run’s own web-search context files and top result items.
-   Include opened links, short excerpts, and screenshot evidence from the current run only.
-5) If execution fails, report stderr and stop.
-6) Do not run other commands.
+This command is intentionally fire-and-forget. If it returns pid/stdout/stderr paths, finish the cron turn immediately.
 EOF
 )"
 

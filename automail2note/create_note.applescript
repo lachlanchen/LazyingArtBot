@@ -116,7 +116,7 @@ end parseFolderPath
 
 on ensureNestedFolder(folderPath)
 	set parts to my parseFolderPath(folderPath)
-	if (count of parts) is 0 then set parts to {"Lazyingart", "Inbox"}
+	if (count of parts) is 0 then set parts to {"AutoMail", "Inbox"}
 
 	tell application "Notes"
 		set parentFolder to missing value
@@ -172,7 +172,7 @@ on run argv
 	if (count of argv) ≥ 3 then
 		set folderPath to (item 3 of argv) as text
 	else
-		set folderPath to "Lazyingart/Inbox"
+		set folderPath to "AutoMail/Inbox"
 	end if
 	if (count of argv) ≥ 4 then
 		set insertMode to my trimText(item 4 of argv)
@@ -180,8 +180,8 @@ on run argv
 		set insertMode to "prepend"
 	end if
 
-	if titleValue is "" then set titleValue to "Lazyingart note"
-	if folderPath is "" then set folderPath to "Lazyingart/Inbox"
+	if titleValue is "" then set titleValue to "AutoMail note"
+	if folderPath is "" then set folderPath to "AutoMail/Inbox"
 	if insertMode is "" then set insertMode to "prepend"
 	set notesHTML to my formatNotesHTML(notesValue)
 

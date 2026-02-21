@@ -127,19 +127,13 @@ else
 fi
 
 MESSAGE_TEMPLATE="$(cat <<EOF
-Run the local Lightmind pipeline exactly once via async launcher.
-1) Execute:
+Run the Lightmind async launcher once.
+Command:
 $REPO_DIR/orchestral/run_lightmind_pipeline_async.sh \
   --model \"$MODEL\" --reasoning \"$REASONING\" \\
 $(printf '  %q ' "${LEGAL_ARGS[@]}")
 $(printf '  %q ' "${LIFE_ARGS[@]}")
-2) The launcher returns quickly; pipeline logs are written under /tmp/lightmind_pipeline_runs.
-3) Run a full cycle (resource analysis + context refresh) by default.
-4) Save and summarize outputs in the current Lightmind run directory.
-   Focus on run-local summary files and web-search context:
-   web_search.summary.txt, web_search_digest.html, and open-item evidence from the same run.
-5) If execution fails, report stderr and stop.
-6) Do not run other commands.
+Do not wait for pipeline completion. If it returns pid/stdout/stderr paths, finish immediately.
 EOF
 )"
 

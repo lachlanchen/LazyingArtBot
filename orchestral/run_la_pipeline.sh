@@ -17,6 +17,7 @@ APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
 RUN_WEB_SEARCH=1
 RUN_LIFE_REMINDER=1
+WRITE_REMINDER=1
 TO_ADDR="$DEFAULT_TO"
 FROM_ADDR="$DEFAULT_FROM"
 ACADEMIC_RESEARCH=1
@@ -88,6 +89,7 @@ Options:
   --web-search-query <text>  Add/override a web search query (repeatable)
                       If none is provided, a context-driven query set is auto-generated.
   --life-input-md <path>    Input markdown for life reminder planner
+  --no-write-reminder         Generate life reverse plan only; do not write reminders
   --life-reminder           Run life reminder planner (default)
   --no-life-reminder        Disable life reminder planner
   -h, --help                Show help
@@ -183,6 +185,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-life-reminder)
       RUN_LIFE_REMINDER=0
+      ;;
+    --no-write-reminder)
+      WRITE_REMINDER=0
       ;;
     -h|--help)
       usage
@@ -1722,7 +1727,9 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   log "Step ${LIFE_STEP}/$TOTAL_STEPS: life reverse reminder planning"
   "$PROMPT_DIR/prompt_life_reverse_engineering_tool.sh" \
     --input-md "$LIFE_INPUT_MD" \
+    --company-focus "$LA_PRIMARY_BRAND" \
     --state-md "$LIFE_STATE_MD" \
+    --state-json "$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt/life_reminder_state.json" \
     --market-summary-file "$MARKET_SUMMARY" \
     --plan-summary-file "$PLAN_SUMMARY" \
     --mentor-summary-file "$MENTOR_SUMMARY" \
@@ -1730,23 +1737,30 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --report-json "$LIFE_RESULT" \
     --report-md "$LIFE_MD" \
     --report-html "$LIFE_HTML" \
+    --list-name "LazyingArt" \
+    --slot-prefix "LazyingArt" \
     --run-id "$RUN_ID" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
+    $( [[ "$WRITE_REMINDER" == "0" ]] && printf '%s\n' "--no-write-reminder" ) \
     >/dev/null
 
   extract_summary "$LIFE_RESULT" "$LIFE_SUMMARY"
-  cp "$LIFE_RESULT" "$NOTES_ROOT/last_life_result.json"
-  cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
-  cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
+  if [[ "$WRITE_REMINDER" == "1" ]]; then
+    cp "$LIFE_RESULT" "$NOTES_ROOT/last_life_result.json"
+    cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
+    cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
 
-  "$PROMPT_DIR/prompt_la_note_save.sh" \
-    --account "iCloud" \
-    --root-folder "AutoLife" \
-    --folder-path "🏢 Companies/🐼 Lazying.art" \
-    --note "🗓️ Life Reverse Plan / 反向规划 / 逆算計画" \
-    --mode replace \
-    --html-file "$LIFE_HTML"
+    "$PROMPT_DIR/prompt_la_note_save.sh" \
+      --account "iCloud" \
+      --root-folder "AutoLife" \
+      --folder-path "🏢 Companies/🐼 Lazying.art" \
+      --note "🗓️ Life Reverse Plan / 反向规划 / 逆算計画" \
+      --mode replace \
+      --html-file "$LIFE_HTML"
+  else
+    log "Step ${LIFE_STEP}/$TOTAL_STEPS: life reverse plan generated only; persistence skipped"
+  fi
 else
   log "Step ${LOG_STEP}/$TOTAL_STEPS: life reminder skipped (disabled)"
   printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"

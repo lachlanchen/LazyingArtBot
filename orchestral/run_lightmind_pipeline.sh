@@ -22,6 +22,7 @@ TO_ADDRS=("lachchen@qq.com" "ethan@lightmind.art" "robbie@lightmind.art" "lachla
 CUSTOM_TO=0
 RUN_LEGAL_DEPT=1
 RUN_LIFE_REMINDER=1
+WRITE_REMINDER=1
 RUN_WEB_SEARCH=1
 LIFE_INPUT_MD="$LIGHTMIND_INPUT_ROOT/PitchDemoTraning.md"
 LIFE_STATE_JSON="$NOTES_ROOT/lightmind_life_reminder_state.json"
@@ -79,6 +80,7 @@ Options:
   --reasoning <level>       Reasoning level (default: xhigh)
   --legal-dept              Enable legal/compliance stage (default: on)
   --no-legal-dept           Disable legal/compliance stage
+  --no-write-reminder        Generate life reverse plan only; skip writing reminders and reminder notes
   --market-context <path>   Optional extra context file for market step
   --confidential-root <p>   Lightmind confidential root path override
   --resource-root <path>    Add resource root (repeatable; default: Lightmind resources)
@@ -121,6 +123,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-life-reminder)
       RUN_LIFE_REMINDER=0
+      ;;
+    --no-write-reminder)
+      WRITE_REMINDER=0
       ;;
     --life-input-md)
       shift
@@ -2051,9 +2056,11 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   log "Step $LIFE_STEP/$TOTAL_STEPS: life reverse reminder planning"
   "$PROMPT_DIR/prompt_life_reverse_engineering_tool.sh" \
     --input-md "$LIFE_INPUT_MD" \
+    --company-focus "$LIGHTMIND_COMPANY_NAME" \
     --state-json "$LIFE_STATE_JSON" \
     --state-md "$LIFE_STATE_MD" \
     --list-name "Lightmind" \
+    --slot-prefix "Lightmind" \
     --market-summary-file "$MARKET_SUMMARY" \
     --plan-summary-file "$PLAN_SUMMARY" \
     --mentor-summary-file "$MENTOR_SUMMARY" \
@@ -2066,20 +2073,25 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
     --approval "$APPROVAL" \
+    $( [[ "$WRITE_REMINDER" == "0" ]] && printf '%s\n' "--no-write-reminder" ) \
     >/dev/null
 
   extract_summary "$LIFE_RESULT" "$LIFE_SUMMARY"
-  cp "$LIFE_RESULT" "$NOTES_ROOT/last_life_result.json"
-  cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
-  cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
+  if [[ "$WRITE_REMINDER" == "1" ]]; then
+    cp "$LIFE_RESULT" "$NOTES_ROOT/last_life_result.json"
+    cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
+    cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
 
-  "$PROMPT_DIR/prompt_la_note_save.sh" \
-    --account "iCloud" \
-    --root-folder "AutoLife" \
-    --folder-path "🏢 Companies/👓 Lightmind.art" \
-    --note "🗓️ Lightmind Life Reverse Plan / 反向规划 / 逆算計画" \
-    --mode replace \
-    --html-file "$LIFE_HTML"
+    "$PROMPT_DIR/prompt_la_note_save.sh" \
+      --account "iCloud" \
+      --root-folder "AutoLife" \
+      --folder-path "🏢 Companies/👓 Lightmind.art" \
+      --note "🗓️ Lightmind Life Reverse Plan / 反向规划 / 逆算計画" \
+      --mode replace \
+      --html-file "$LIFE_HTML"
+  else
+    log "Step $LIFE_STEP/$TOTAL_STEPS: life reverse plan generated only; persistence skipped"
+  fi
 else
   log "Step ${LOG_STEP}/$TOTAL_STEPS: life reminder skipped (disabled)"
   printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"

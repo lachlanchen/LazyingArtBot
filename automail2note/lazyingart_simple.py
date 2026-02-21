@@ -40,9 +40,9 @@ NOTE_SCRIPT = AUTOMATION_DIR / "create_note.applescript"
 
 MODEL = "gpt-5.1-codex-mini"
 REASONING = "medium"
-LOG_NOTE_ROOT = "Lazyingart/Log"
-DEFAULT_CALENDAR = "LazyingArt"
-DEFAULT_REMINDER_LIST = "LazyingArt"
+LOG_NOTE_ROOT = "AutoMail/Log"
+DEFAULT_CALENDAR = "AutoMail"
+DEFAULT_REMINDER_LIST = "AutoMail"
 LEGACY_CALENDAR_PLACEHOLDERS = {"lachlan", "calendar"}
 HARD_BLOCKED_ACCOUNTS = {"qq"}
 HARD_BLOCKED_SENDER_EMAILS = {"lachchen@qq.com"}
@@ -82,10 +82,10 @@ ACTION_SCHEMA: Dict[str, Any] = {
         "list": {"type": "string"},
         "folder": {
             "type": "string",
-            "pattern": r"^$|^Lazyingart/.+",
+            "pattern": r"^$|^AutoMail/.+",
             "description": (
-                "For decision=note, use a nested path that starts with Lazyingart/, "
-                "for example Lazyingart/Work/Meetings. "
+                "For decision=note, use a nested path that starts with AutoMail/, "
+                "for example AutoMail/Work/Meetings. "
                 "For non-note decisions this may be an empty string."
             ),
         },
@@ -1771,18 +1771,18 @@ Field rules:
 - Default destinations unless email explicitly implies otherwise:
   - calendar: {json.dumps(prompt_default_calendar)}
   - list: {json.dumps(DEFAULT_REMINDER_LIST)}
-- For decision=note, folder must be a nested path under Lazyingart in this format:
-  - "Lazyingart/<Flexible>/<Flexible...>"
+- For decision=note, folder must be a nested path under AutoMail in this format:
+  - "AutoMail/<Flexible>/<Flexible...>"
   - examples:
-    - "Lazyingart/Inbox"
-    - "Lazyingart/Work/Meetings"
-    - "Lazyingart/School/HKU"
-  - Keep the part after "Lazyingart/" flexible based on email context.
-  - if unclear, use "Lazyingart/Inbox".
+    - "AutoMail/Inbox"
+    - "AutoMail/Work/Meetings"
+    - "AutoMail/School/HKU"
+  - Keep the part after "AutoMail/" flexible based on email context.
+  - if unclear, use "AutoMail/Inbox".
 - For decision=calendar/reminder/skip, set folder to empty string "".
 - For bank/payment/financial transaction emails (bank alerts, card spend, receipts, statements):
   - prefer decision=note for bookkeeping, unless urgent action is required (then use reminder).
-  - use folder format: "Lazyingart/Finance/YYYY-MM-DD" (transaction date if available; otherwise received date).
+  - use folder format: "AutoMail/Finance/YYYY-MM-DD" (transaction date if available; otherwise received date).
   - use title format: "Finance Ledger YYYY-MM-DD".
   - include structured spending details in notes (merchant, amount, currency, channel/card, reference).
   - if it is the same date as another finance record, keep the same folder and title so entries can be grouped in one daily ledger note if possible.
@@ -1868,10 +1868,10 @@ Rules:
 - Prefer calendar for personal schedule/deadline/travel related to the user.
 - Use reminder for mass/broadcast/general notices that still need a nudge.
 - Use note for reference/bookkeeping.
-- For note actions, always use folder path starting with "Lazyingart/".
+- For note actions, always use folder path starting with "AutoMail/".
 - For finance/payment/bank emails:
   - prefer note unless urgent action needed;
-  - group by day: folder "Lazyingart/Finance/YYYY-MM-DD", title "Finance Ledger YYYY-MM-DD";
+  - group by day: folder "AutoMail/Finance/YYYY-MM-DD", title "Finance Ledger YYYY-MM-DD";
   - if a same-day ledger note already exists, reuse its exact title/folder.
 - For note content, produce structured text when useful:
   - Summary
@@ -1957,16 +1957,16 @@ Execution requirements:
    - note:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "<title>" "<notes>" "<folder>" "prepend"
 5) For note actions, dynamically merge into existing knowledge:
-   - folder must be meaningful and start with Lazyingart/
+   - folder must be meaningful and start with AutoMail/
    - prefer this top-level taxonomy when possible:
      Work / Research / Travel / MEMO / To-Do-List / Finance / School / Personal / Inbox
-   - use nested folders to keep context clear, examples:
-     Lazyingart/Work/Meetings
-     Lazyingart/Research/Papers
-     Lazyingart/Travel/Japan
-     Lazyingart/MEMO/Quick
-     Lazyingart/To-Do-List/ThisWeek
-   - avoid Lazyingart/Inbox when a better category is obvious
+  - use nested folders to keep context clear, examples:
+     AutoMail/Work/Meetings
+     AutoMail/Research/Papers
+     AutoMail/Travel/Japan
+     AutoMail/MEMO/Quick
+     AutoMail/To-Do-List/ThisWeek
+   - avoid AutoMail/Inbox when a better category is obvious
    - reuse same title/folder when semantically same topic
    - merge and rewrite consolidated note content when needed (not raw duplicate append), newest first
 6) Note content formatting requirements:
@@ -1985,14 +1985,14 @@ Execution requirements:
    - when merging existing notes, dedupe repeated checklist lines and reorder by urgency/date
 6) For finance/payment messages:
    - prefer daily ledger note
-   - folder: Lazyingart/Finance/YYYY-MM-DD
+  - folder: AutoMail/Finance/YYYY-MM-DD
    - title: Finance Ledger YYYY-MM-DD
 7) After actions, create one processing log note:
-   - folder: Lazyingart/Log/{today}
+  - folder: AutoMail/Log/{today}
    - title: Mail Log {today}
    - include run_id, message_id, subject, created/skipped/failed, and per-item summary
    - command:
-     osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "Mail Log {today}" "<log_text>" "Lazyingart/Log/{today}" "prepend"
+     osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "Mail Log {today}" "<log_text>" "AutoMail/Log/{today}" "prepend"
 8) Always return all items in item_results with status created/skipped/failed and concise reason.
 
 Defaults:
@@ -2107,7 +2107,7 @@ def enforce_low_importance_policy(action: Dict[str, Any], message: Dict[str, str
         old_decision = action["decision"]
         action["decision"] = "note"
         if not action.get("folder"):
-            action["folder"] = "Lazyingart/Inbox/LowPriority"
+            action["folder"] = "AutoMail/Inbox/LowPriority"
         if not action.get("notes"):
             action["notes"] = (
                 f"Low-importance email saved as note.\n"

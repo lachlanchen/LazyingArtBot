@@ -45,7 +45,11 @@ on run argv
 	set notesText to notesValue as text
 	tell application "Calendar"
 		if calendarText is "" then
-			set targetCal to first calendar
+			if (exists calendar "AutoMail") then
+				set targetCal to calendar "AutoMail"
+			else
+				set targetCal to first calendar
+			end if
 		else if calendarText starts with "id:" then
 			set calendarID to ""
 			if (length of calendarText) > 3 then set calendarID to text 4 thru -1 of calendarText
@@ -54,12 +58,20 @@ on run argv
 			else if (exists calendar calendarText) then
 				set targetCal to calendar calendarText
 			else
-				set targetCal to first calendar
+				if (exists calendar "AutoMail") then
+					set targetCal to calendar "AutoMail"
+				else
+					set targetCal to first calendar
+				end if
 			end if
 		else if (exists calendar calendarText) then
 			set targetCal to calendar calendarText
 		else
-			set targetCal to first calendar
+			if (exists calendar "AutoMail") then
+				set targetCal to calendar "AutoMail"
+			else
+				set targetCal to first calendar
+			end if
 		end if
 		tell targetCal
 			set newEvent to make new event with properties {summary:titleText, start date:startDate, end date:endDate, description:notesText}
