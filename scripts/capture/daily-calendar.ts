@@ -244,6 +244,55 @@ function stripReminderPrefix(input: string): string {
   return normalizeSpaces(out);
 }
 
+type FlightPreview = {
+  text: string;
+  key: string;
+};
+
+function parseFlightPreview(summary: string): FlightPreview | null {
+  const normalized = normalizeSpaces(summary.replace(/[。；，]/g, " "));
+  const hasFlightContext = /(航班|flight|\b[A-Z]{2}\d{3,4}\b|→|->|机场|機場|值機|值机|check[- ]?in)/i.test(
+    normalized,
+  );
+  if (!hasFlightContext) {
+    return null;
+  }
+
+  const timeHit = normalized.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  const depTime = timeHit ? `${timeHit[1].padStart(2, "0")}:${timeHit[2]}` : "";
+  const flightNoHit = normalized.match(/\b([A-Z]{2}\d{3,4})\b/i);
+  const flightNo = flightNoHit?.[1]?.toUpperCase() ?? "";
+
+  const routeHit = normalized.match(
+    /([A-Za-z\u4e00-\u9fff]{2,20}T\d)\s*(?:→|->|-)\s*([A-Za-z\u4e00-\u9fff]{2,20}T\d)/u,
+  );
+  const route = routeHit ? `${routeHit[1]}→${routeHit[2]}` : "";
+
+  if (!depTime && !flightNo && !route) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  parts.push(depTime ? `${depTime} 航班` : "航班");
+  if (flightNo) {
+    parts.push(`(${flightNo})`);
+  }
+  if (route) {
+    parts.push(route);
+  }
+
+  return {
+    text: parts.join(" ").trim(),
+    key: depTime
+      ? `time:${depTime}`
+      : flightNo
+        ? `flight:${flightNo}`
+        : route
+          ? `route:${route}`
+          : "flight:misc",
+  };
+}
+
 function categoryForQueueType(type: string): DisplayCategory {
   const normalized = type.toLowerCase();
   if (normalized === "action") {
@@ -388,30 +437,71 @@ function compareItems(a: DisplayItem, b: DisplayItem): number {
   return a.ref.localeCompare(b.ref);
 }
 
-function renderItemLine(item: DisplayItem, includeDate: boolean): string {
-  const when = includeDate ? `${item.date}${item.hm ? ` ${item.hm}` : ""}` : item.hm ?? "全天";
-  return `${when} ${iconForCategory(item.category)} (${item.priority}) ${shorten(item.summary, 52)}`;
-}
-
 function renderSection(params: {
   title: string;
   items: DisplayItem[];
   includeDate: boolean;
   empty: string;
   maxItems: number;
+  summaryLimit?: number;
+  currentYear?: string;
+  todayYmd?: string;
 }): string[] {
+  let compactedFlightCount = 0;
+  let itemsToRender = params.items;
+  if (params.todayYmd) {
+    const seenFlightKeys = new Set<string>();
+    const compacted: DisplayItem[] = [];
+    for (const item of params.items) {
+      const diff = dayDiff(params.todayYmd, parseYmd(item.date));
+      if (diff <= 1) {
+        compacted.push(item);
+        continue;
+      }
+
+      const preview = parseFlightPreview(item.summary);
+      if (!preview) {
+        compacted.push(item);
+        continue;
+      }
+
+      compactedFlightCount += 1;
+      const dedupeKey = `${item.date}|${preview.key}`;
+      if (seenFlightKeys.has(dedupeKey)) {
+        continue;
+      }
+      seenFlightKeys.add(dedupeKey);
+      compacted.push({
+        ...item,
+        summary: preview.text,
+      });
+    }
+    itemsToRender = compacted;
+  }
+
   const lines: string[] = [`【${params.title}】`];
-  if (params.items.length === 0) {
+  if (itemsToRender.length === 0) {
     lines.push(`• ${params.empty}`);
     return lines;
   }
 
-  const shown = params.items.slice(0, params.maxItems);
+  const shown = itemsToRender.slice(0, params.maxItems);
+  const summaryLimit = params.summaryLimit && params.summaryLimit > 0 ? params.summaryLimit : 52;
   for (const item of shown) {
-    lines.push(`• ${renderItemLine(item, params.includeDate)}`);
+    const displayDate =
+      params.currentYear && item.date.startsWith(`${params.currentYear}-`) && item.date.length >= 10
+        ? item.date.slice(5)
+        : item.date;
+    const when = params.includeDate
+      ? `${displayDate}${item.hm ? ` ${item.hm}` : ""}`
+      : item.hm ?? "全天";
+    lines.push(`• ${when} ${iconForCategory(item.category)} (${item.priority}) ${shorten(item.summary, summaryLimit)}`);
   }
-  if (params.items.length > shown.length) {
-    lines.push(`• 另外 ${params.items.length - shown.length} 項，已為你收起。`);
+  if (itemsToRender.length > shown.length) {
+    lines.push(`• 另外 ${itemsToRender.length - shown.length} 項，已為你收起。`);
+  }
+  if (compactedFlightCount > 0) {
+    lines.push("• 航班細節（值機/出發）會在前一天與當天再提醒。");
   }
   return lines;
 }
@@ -421,6 +511,7 @@ function buildPushVisualization(params: {
   items: DisplayItem[];
 }): string {
   const { today, items } = params;
+  const currentYear = today.slice(0, 4);
   const overdue: DisplayItem[] = [];
   const todayRows: DisplayItem[] = [];
   const within3Days: DisplayItem[] = [];
@@ -455,6 +546,12 @@ function buildPushVisualization(params: {
   within7Days.sort(compareItems);
   within21Days.sort(compareItems);
   overdue.sort(compareItems);
+  const within21DaysP0 = within21Days.filter((item) => item.priority === "P0");
+  const hiddenWithin21 = {
+    P1: within21Days.filter((item) => item.priority === "P1").length,
+    P2: within21Days.filter((item) => item.priority === "P2").length,
+    P3: within21Days.filter((item) => item.priority === "P3").length,
+  };
   const visibleItems = [...todayRows, ...within3Days, ...within7Days, ...within21Days, ...overdue];
   const priorityCounts: Record<PriorityLabel, number> = {
     P0: 0,
@@ -490,6 +587,8 @@ function buildPushVisualization(params: {
       includeDate: true,
       empty: "暫無。",
       maxItems: 6,
+      currentYear,
+      todayYmd: today,
     }),
   );
   lines.push("");
@@ -500,18 +599,36 @@ function buildPushVisualization(params: {
       includeDate: true,
       empty: "暫無。",
       maxItems: 6,
+      summaryLimit: 36,
+      currentYear,
+      todayYmd: today,
     }),
   );
   lines.push("");
   lines.push(
     ...renderSection({
-      title: "21天內（D+8 ~ D+21）",
-      items: within21Days,
+      title: "21天內（重要長線安排｜P0）",
+      items: within21DaysP0,
       includeDate: true,
-      empty: "暫無。",
+      empty: "目前沒有 P0 長線項目。",
       maxItems: 6,
+      currentYear,
+      todayYmd: today,
     }),
   );
+  const hiddenParts: string[] = [];
+  if (hiddenWithin21.P1 > 0) {
+    hiddenParts.push(`P1 ${hiddenWithin21.P1} 項`);
+  }
+  if (hiddenWithin21.P2 > 0) {
+    hiddenParts.push(`P2 ${hiddenWithin21.P2} 項`);
+  }
+  if (hiddenWithin21.P3 > 0) {
+    hiddenParts.push(`P3 ${hiddenWithin21.P3} 項`);
+  }
+  if (hiddenParts.length > 0) {
+    lines.push(`（已收起：${hiddenParts.join("、")}；我會在到期前再提醒）`);
+  }
 
   if (overdue.length > 0) {
     lines.push("");
@@ -522,6 +639,8 @@ function buildPushVisualization(params: {
         includeDate: true,
         empty: "暫無。",
         maxItems: 4,
+        currentYear,
+        todayYmd: today,
       }),
     );
   }
