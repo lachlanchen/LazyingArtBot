@@ -13,7 +13,7 @@ LIGHTMIND_OUTPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output
 
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="xhigh"
+REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
@@ -77,7 +77,7 @@ Options:
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
-  --reasoning <level>       Reasoning level (default: xhigh)
+  --reasoning <level>       Reasoning level (default: medium)
   --legal-dept              Enable legal/compliance stage (default: on)
   --no-legal-dept           Disable legal/compliance stage
   --no-write-reminder        Generate life reverse plan only; skip writing reminders and reminder notes

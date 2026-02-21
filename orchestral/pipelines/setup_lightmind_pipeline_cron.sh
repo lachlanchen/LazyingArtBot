@@ -8,7 +8,7 @@ TZ_NAME="Asia/Hong_Kong"
 JOB_NAME_AM="Lightmind Pipeline 07:00 HK"
 JOB_NAME_PM="Lightmind Pipeline 19:00 HK"
 MODEL="gpt-5.3-codex-spark"
-REASONING="xhigh"
+REASONING="medium"
 RUN_LIFE_REMINDER=1
 RUN_LEGAL_DEPT=1
 LIFE_INPUT_MD="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/PitchDemoTraning.md"
@@ -24,7 +24,7 @@ the Lightmind pipeline script through agent exec.
 
 Options:
   --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
-  --reasoning <level>     Reasoning level (default: xhigh)
+  --reasoning <level>     Reasoning level (default: medium)
   --life-reminder         Enable life reverse planning (default: on)
   --no-life-reminder      Disable life reverse planning
   --legal-dept            Enable legal compliance review (default: on)

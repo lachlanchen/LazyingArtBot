@@ -11,7 +11,7 @@ JOB_NAME_PM_ALT="LazyingArt Pipeline 21:00 HK"
 TO_ADDR="lachchen@qq.com"
 FROM_ADDR="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="xhigh"
+REASONING="medium"
 
 usage() {
   cat <<'USAGE'
@@ -24,7 +24,7 @@ Options:
   --to <email>            Digest recipient (default: lachchen@qq.com)
   --from <email>          Sender hint (default: lachlan.miao.chen@gmail.com)
   --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
-  --reasoning <level>     Agent reasoning level (default: xhigh)
+  --reasoning <level>     Agent reasoning level (default: medium)
   -h, --help              Show help
 USAGE
 }

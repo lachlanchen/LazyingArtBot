@@ -11,7 +11,7 @@ PIPELINE_LOCK_FILE="$ARTIFACT_BASE/.la_pipeline.lock"
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
 MODEL="gpt-5.3-codex-spark"
-REASONING="xhigh"
+REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
@@ -71,7 +71,7 @@ Options:
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
   --model <name>            Codex model (default: gpt-5.3-codex-spark)
-  --reasoning <level>       Reasoning level (default: xhigh)
+  --reasoning <level>       Reasoning level (default: medium)
   --market-context <path>   Optional extra context file for market step
   --resource-output-dir <p> Resource analysis markdown output directory
   --resource-label <name>   Resource analysis marker/label
