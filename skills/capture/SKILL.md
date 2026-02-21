@@ -92,10 +92,41 @@ The following STEP-6 workflows now have executable runners:
   - `pnpm moltbot:capture:stale-checker`
 - weekly reflection generation:
   - `pnpm moltbot:capture:weekly-reflection`
+- NotebookLM request enqueue:
+  - `pnpm moltbot:capture:notebooklm-enqueue -- "你的問題"`
+- NotebookLM queue worker:
+  - `pnpm moltbot:capture:notebooklm-worker`
 
 Fallback (without workspace install) for each runner:
 
 - `npx -y -p tsx tsx scripts/capture/<runner>.ts`
+
+NotebookLM queue/worker quick run:
+
+- enqueue request:
+  - `pnpm moltbot:capture:notebooklm-enqueue -- "幫我整理這週 AI agent framework 變化重點"`
+- run worker (tool command required):
+  - `CAPTURE_NOTEBOOKLM_TOOL_CMD='pnpm moltbot:capture:notebooklm-tool-mock' pnpm moltbot:capture:notebooklm-worker`
+
+NotebookLM isolation principle:
+
+- `Moltbot` 只做三件事：`調度`（queue + worker）、`記錄`（assistant_hub markdown/jsonl）、`推送`（OpenClaw send）。
+- 登入、cookies、瀏覽器不穩定等問題全部留在外部工具命令（`CAPTURE_NOTEBOOKLM_TOOL_CMD`）內部處理。
+- worker 對外部工具契約固定為：`stdin JSON -> stdout JSON`，避免把工具細節污染到 capture 核心。
+
+NotebookLM worker env:
+
+- `CAPTURE_NOTEBOOKLM_TOOL_CMD` (required)
+- `CAPTURE_NOTEBOOKLM_MAX_PER_RUN` (default `2`)
+- `CAPTURE_NOTEBOOKLM_TOOL_TIMEOUT_MS` (default `180000`)
+- `CAPTURE_NOTEBOOKLM_TOOL_MAX_ATTEMPTS` (default `2`)
+- `CAPTURE_NOTEBOOKLM_RETRY_FAILED` (default `false`)
+- `CAPTURE_NOTEBOOKLM_REQUEST_PUSH_DEFAULT` (default `true`)
+- Push:
+  - `CAPTURE_NOTEBOOKLM_PUSH_ENABLED`
+  - `CAPTURE_NOTEBOOKLM_PUSH_DRY_RUN` / `CAPTURE_NOTEBOOKLM_PUSH_DRY_RUN_CLI`
+  - `CAPTURE_NOTEBOOKLM_PUSH_CHANNEL` / `CAPTURE_NOTEBOOKLM_PUSH_TO` / `CAPTURE_NOTEBOOKLM_PUSH_ACCOUNT_ID`
+  - `CAPTURE_NOTEBOOKLM_PUSH_CLI_BIN`
 
 Watch-checker push env:
 
@@ -123,7 +154,7 @@ Daily-calendar push env:
 - `02_work/` (`tasks/`, `tasks_master.md`, `waiting.md`, `calendar.md`)
 - `03_life/` (`daily_logs/`, `ideas/`, `highlights/`)
 - `04_knowledge/` (`people/`, `questions/`, `beliefs/`, `references/`)
-- `05_meta/` (`reasoning_queue.jsonl`)
+- `05_meta/` (`reasoning_queue.jsonl`, `notebooklm_requests.jsonl`, `notebooklm_results.jsonl`)
 
 ## Behavior notes
 
@@ -140,6 +171,11 @@ Daily-calendar push env:
   - `05_meta/calendar_push_preview.md`
   - `05_meta/calendar_push_results.md`
   - `05_meta/calendar_push_payload.md` (when push enabled)
+- NotebookLM worker writes:
+  - `05_meta/notebooklm_worker_results.md`
+  - `05_meta/notebooklm_push_preview.md`
+  - `05_meta/notebooklm_push_results.md`
+  - `04_knowledge/references/notebooklm/*.md`
 - If capture fails, normal reply pipeline continues.
 
 ## Known limits
