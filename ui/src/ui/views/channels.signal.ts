@@ -17,7 +17,7 @@ export function renderSignalCard(params: {
       <div class="card-sub">signal-cli status and channel configuration.</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
+      <div class="status-list" style="margin-top: 10px;">
         <div>
           <span class="label">Configured</span>
           <span>${signal?.configured ? "Yes" : "No"}</span>
@@ -42,7 +42,7 @@ export function renderSignalCard(params: {
 
       ${
         signal?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${signal.lastError}
           </div>`
           : nothing
@@ -50,7 +50,7 @@ export function renderSignalCard(params: {
 
       ${
         signal?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             Probe ${signal.probe.ok ? "ok" : "failed"} ·
             ${signal.probe.status ?? ""} ${signal.probe.error ?? ""}
           </div>`
@@ -59,7 +59,7 @@ export function renderSignalCard(params: {
 
       ${renderChannelConfigSection({ channelId: "signal", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
           Probe
         </button>

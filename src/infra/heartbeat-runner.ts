@@ -730,6 +730,25 @@ export async function runHeartbeatOnce(opts: {
       deps: opts.deps,
     });
 
+    // Mirror delivery: fan-out to additional channels (best-effort).
+    const heartbeatMirrorTargets = heartbeat?.mirrorTo ?? [];
+    if (!shouldSkipMain && normalized.text.trim() && heartbeatMirrorTargets.length > 0) {
+      for (const mirror of heartbeatMirrorTargets) {
+        try {
+          await deliverOutboundPayloads({
+            cfg,
+            channel: mirror.channel,
+            to: mirror.to,
+            accountId: mirror.accountId,
+            payloads: [{ text: normalized.text }],
+            deps: opts.deps,
+          });
+        } catch {
+          // best-effort: mirror failure never blocks the heartbeat
+        }
+      }
+    }
+
     // Record last delivered heartbeat payload for dedupe.
     if (!shouldSkipMain && normalized.text.trim()) {
       const store = loadSessionStore(storePath);

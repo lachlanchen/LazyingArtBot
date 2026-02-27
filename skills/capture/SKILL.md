@@ -128,7 +128,9 @@ NotebookLM trigger (Telegram/Feishu inbound):
 
 NotebookLM worker env:
 
-- `CAPTURE_NOTEBOOKLM_TOOL_CMD` (required)
+- `CAPTURE_NOTEBOOKLM_TOOL_CMD` (required, e.g. `pnpm moltbot:capture:notebooklm-tool-generate`)
+- `NOTEBOOKLM_API_KEY` / `NOTEBOOKLM_ACCESS_TOKEN` (choose one; used by the wrapper script)
+- `NOTEBOOKLM_MODEL` (default `notebooklm-text-bison-001`), `NOTEBOOKLM_API_ENDPOINT`, `NOTEBOOKLM_TEMPERATURE`, `NOTEBOOKLM_API_TIMEOUT`
 - `CAPTURE_NOTEBOOKLM_MAX_PER_RUN` (default `2`)
 - `CAPTURE_NOTEBOOKLM_TOOL_TIMEOUT_MS` (default `180000`)
 - `CAPTURE_NOTEBOOKLM_TOOL_MAX_ATTEMPTS` (default `2`)
@@ -139,6 +141,14 @@ NotebookLM worker env:
   - `CAPTURE_NOTEBOOKLM_PUSH_DRY_RUN` / `CAPTURE_NOTEBOOKLM_PUSH_DRY_RUN_CLI`
   - `CAPTURE_NOTEBOOKLM_PUSH_CHANNEL` / `CAPTURE_NOTEBOOKLM_PUSH_TO` / `CAPTURE_NOTEBOOKLM_PUSH_ACCOUNT_ID`
   - `CAPTURE_NOTEBOOKLM_PUSH_CLI_BIN`
+
+NotebookLM mimic guidance (core model path):
+
+- When `CAPTURE_NOTEBOOKLM_TOOL_CMD` is set to the mock runner and push is disabled (`CAPTURE_NOTEBOOKLM_PUSH_ENABLED=0`), assume NotebookLM tooling is "dry run" and let the core model produce the response directly.
+- Treat `/nb` requests as deep-research prompts: summarize the user's question, list relevant facts/focal points, surface hypotheses/assumptions, and end with a concise action list.
+- Structure replies like a NotebookLM output: begin with a short narrative summary, follow with bullet `Key Points` (2-4), then `Action Items` (3 items max), and optionally cite sources if the context contains obvious references (dates, names, tools).
+- Highlight uncertainties by stating confidence/assumptions, e.g., `Confident: high` or `Assumptions: ...` when the data is incomplete.
+- Keeping this structure consistent trains the skill to imitate NotebookLM even when the external tool is disabled.
 
 Watch-checker push env:
 

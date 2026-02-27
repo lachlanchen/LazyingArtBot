@@ -17,7 +17,7 @@ export function renderWhatsAppCard(params: {
       <div class="card-sub">Link WhatsApp Web and monitor connection health.</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
+      <div class="status-list" style="margin-top: 10px;">
         <div>
           <span class="label">Configured</span>
           <span>${whatsapp?.configured ? "Yes" : "No"}</span>
@@ -56,7 +56,7 @@ export function renderWhatsAppCard(params: {
 
       ${
         whatsapp?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${whatsapp.lastError}
           </div>`
           : nothing
@@ -64,7 +64,7 @@ export function renderWhatsAppCard(params: {
 
       ${
         props.whatsappMessage
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             ${props.whatsappMessage}
           </div>`
           : nothing

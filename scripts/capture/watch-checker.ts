@@ -22,7 +22,16 @@ function runOpenclawMessageSend(params: {
   pushDryRun: boolean;
 }) {
   const cliBin = (process.env.CAPTURE_WATCH_PUSH_CLI_BIN ?? "openclaw").trim() || "openclaw";
-  const sendArgs = ["message", "send", "--channel", params.pushChannel, "--target", params.pushTo, "--message", params.text];
+  const sendArgs = [
+    "message",
+    "send",
+    "--channel",
+    params.pushChannel,
+    "--target",
+    params.pushTo,
+    "--message",
+    params.text,
+  ];
   if (params.pushAccountId) {
     sendArgs.push("--account", params.pushAccountId);
   }
@@ -76,17 +85,15 @@ function isWatchExpired(entry: Record<string, unknown>, today: string): boolean 
   if (type !== "watch") {
     return false;
   }
-  const autoArchiveAfter = typeof entry.auto_archive_after === "string" ? parseYmd(entry.auto_archive_after) : "";
+  const autoArchiveAfter =
+    typeof entry.auto_archive_after === "string" ? parseYmd(entry.auto_archive_after) : "";
   if (!autoArchiveAfter) {
     return false;
   }
   return autoArchiveAfter < today;
 }
 
-async function archiveWatchCard(params: {
-  filePath: string;
-  today: string;
-}): Promise<boolean> {
+async function archiveWatchCard(params: { filePath: string; today: string }): Promise<boolean> {
   const raw = await readText(params.filePath);
   if (!raw || !raw.startsWith("---\n")) {
     return false;
@@ -133,7 +140,10 @@ async function archiveWatchCard(params: {
   return true;
 }
 
-function removeWaitingLines(raw: string, expiredIds: Set<string>): { changed: boolean; text: string; removed: number } {
+function removeWaitingLines(
+  raw: string,
+  expiredIds: Set<string>,
+): { changed: boolean; text: string; removed: number } {
   if (!raw.trim() || expiredIds.size === 0) {
     return { changed: false, text: raw, removed: 0 };
   }
@@ -227,10 +237,7 @@ function normalizePriority(input: string | null | undefined): PriorityLabel | nu
   return `P${hit[1]}` as PriorityLabel;
 }
 
-function inferWatchPriority(params: {
-  type: string;
-  priorityRaw?: string | null;
-}): PriorityLabel {
+function inferWatchPriority(params: { type: string; priorityRaw?: string | null }): PriorityLabel {
   const direct = normalizePriority(params.priorityRaw);
   if (direct) {
     return direct;
@@ -257,7 +264,9 @@ async function main() {
   const queuePath = path.join(paths.meta, "reasoning_queue.jsonl");
   const queue = await readJsonl<Record<string, unknown>>(queuePath);
   const cards = await buildCardIndex(paths.root);
-  const existingFeedback = await readJsonl<Record<string, unknown>>(path.join(paths.meta, "feedback_signals.jsonl"));
+  const existingFeedback = await readJsonl<Record<string, unknown>>(
+    path.join(paths.meta, "feedback_signals.jsonl"),
+  );
   const existingTokens = new Set(
     existingFeedback.map((row) => String(row?.token ?? "")).filter((value) => value.length > 0),
   );
@@ -343,10 +352,10 @@ async function main() {
     const token = `watch_checkpoint:${today}:${id}`;
     if (!existingTokens.has(token)) {
       newReminderLines.push(line);
+      const displayTitle = friendlyMeaning ?? (summary !== title ? summary : title);
       newReminderPushBlocks.push(
         [
-          `• ${id}（${type}｜${priority}）`,
-          ...(friendlyMeaning ? [`  白話：${friendlyMeaning}`, `  原文：${summary}`] : [`  這條是：${summary}`]),
+          `• ${displayTitle}（${priority}）`,
           `  到期：${dueText}（今天是 checkpoint 提醒，不是到期）`,
           `  回覆：1 ${id} = 轉任務；0 ${id} = 停止提醒`,
         ].join("\n"),
@@ -421,7 +430,16 @@ async function main() {
       pushPayloadPath = path.join(paths.meta, "watch_push_payload.md");
       await writeText(
         pushPayloadPath,
-        ["# watch_push_payload", "", `date: ${today}`, `channel: ${pushChannel}`, `target: ${pushTo}`, "", text, ""].join("\n"),
+        [
+          "# watch_push_payload",
+          "",
+          `date: ${today}`,
+          `channel: ${pushChannel}`,
+          `target: ${pushTo}`,
+          "",
+          text,
+          "",
+        ].join("\n"),
       );
 
       if (pushDryRun && !pushDryRunCli) {

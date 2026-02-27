@@ -1,8 +1,8 @@
 #!/usr/bin/env -S node --import tsx
+import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { envBool, initHub, readText, tokyoYmd, writeText } from "./_utils.js";
 
@@ -263,8 +263,14 @@ function normalizePreferences(raw: Partial<GmailDigestPreferences> | null): Gmai
         ? raw.role.trim()
         : DEFAULT_GMAIL_PREFERENCES.role,
     focus: normalizeFocusList(raw?.focus, DEFAULT_GMAIL_PREFERENCES.focus),
-    importantSenders: normalizeList(raw?.importantSenders, DEFAULT_GMAIL_PREFERENCES.importantSenders),
-    importantDomains: normalizeList(raw?.importantDomains, DEFAULT_GMAIL_PREFERENCES.importantDomains),
+    importantSenders: normalizeList(
+      raw?.importantSenders,
+      DEFAULT_GMAIL_PREFERENCES.importantSenders,
+    ),
+    importantDomains: normalizeList(
+      raw?.importantDomains,
+      DEFAULT_GMAIL_PREFERENCES.importantDomains,
+    ),
     mutedSenders: normalizeList(raw?.mutedSenders, DEFAULT_GMAIL_PREFERENCES.mutedSenders),
     mutedDomains: normalizeList(raw?.mutedDomains, DEFAULT_GMAIL_PREFERENCES.mutedDomains),
     boostKeywords: normalizeList(raw?.boostKeywords, DEFAULT_GMAIL_PREFERENCES.boostKeywords),
@@ -308,7 +314,16 @@ function runOpenclawMessageSend(params: {
   pushDryRun: boolean;
 }) {
   const cliBin = (process.env.CAPTURE_GMAIL_DIGEST_PUSH_CLI_BIN ?? "openclaw").trim() || "openclaw";
-  const sendArgs = ["message", "send", "--channel", params.pushChannel, "--target", params.pushTo, "--message", params.text];
+  const sendArgs = [
+    "message",
+    "send",
+    "--channel",
+    params.pushChannel,
+    "--target",
+    params.pushTo,
+    "--message",
+    params.text,
+  ];
   if (params.pushAccountId) {
     sendArgs.push("--account", params.pushAccountId);
   }
@@ -389,8 +404,12 @@ async function loadPreferences(metaPath: string): Promise<{
   }
 }
 
-function parseExternalEmailBlock(rawText: string): { from: string; subject: string; snippet: string } | null {
-  const blockMatch = rawText.match(/<<<EXTERNAL_UNTRUSTED_CONTENT>>>\n([\s\S]*?)\n<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>/);
+function parseExternalEmailBlock(
+  rawText: string,
+): { from: string; subject: string; snippet: string } | null {
+  const blockMatch = rawText.match(
+    /<<<EXTERNAL_UNTRUSTED_CONTENT>>>\n([\s\S]*?)\n<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>/,
+  );
   if (!blockMatch?.[1]) {
     return null;
   }
@@ -409,7 +428,10 @@ function parseExternalEmailBlock(rawText: string): { from: string; subject: stri
   let snippet = "";
   const subjectIndex = lines.findIndex((line) => line.startsWith("Subject:"));
   if (subjectIndex >= 0) {
-    snippet = lines.slice(subjectIndex + 1).join(" ").trim();
+    snippet = lines
+      .slice(subjectIndex + 1)
+      .join(" ")
+      .trim();
   }
 
   if (!from && !subject && !snippet) {
@@ -451,7 +473,9 @@ async function parseGmailItemFromSession(params: {
       if (row.type !== "message" || row.message?.role !== "user") {
         continue;
       }
-      const textPart = row.message.content?.find((part) => part?.type === "text" && typeof part.text === "string")?.text;
+      const textPart = row.message.content?.find(
+        (part) => part?.type === "text" && typeof part.text === "string",
+      )?.text;
       if (!textPart || !textPart.includes("Task: Gmail")) {
         continue;
       }
@@ -613,7 +637,9 @@ function buildPushText(params: {
   const { today, lookbackHours, important, useful, ignoredCount, preferences } = params;
   const lines: string[] = [];
   lines.push(`📮 郵件日摘要（${today}）`);
-  lines.push(`窗口：近 ${lookbackHours} 小時｜重要 ${important.length}｜有用 ${useful.length}｜忽略 ${ignoredCount}`);
+  lines.push(
+    `窗口：近 ${lookbackHours} 小時｜重要 ${important.length}｜有用 ${useful.length}｜忽略 ${ignoredCount}`,
+  );
   if (preferences.focus.length > 0) {
     lines.push(`偏好：${preferences.focus.slice(0, 4).join(" / ")}`);
   }
@@ -652,15 +678,21 @@ function buildPushText(params: {
 async function main() {
   const today = tokyoYmd();
   const lookbackHoursRaw = Number(process.env.CAPTURE_GMAIL_DIGEST_LOOKBACK_HOURS ?? "24");
-  const lookbackHours = Number.isFinite(lookbackHoursRaw) && lookbackHoursRaw > 0 ? Math.floor(lookbackHoursRaw) : 24;
+  const lookbackHours =
+    Number.isFinite(lookbackHoursRaw) && lookbackHoursRaw > 0 ? Math.floor(lookbackHoursRaw) : 24;
   const pushEnabled = envBool("CAPTURE_GMAIL_DIGEST_PUSH_ENABLED", false);
   const pushDryRun = envBool("CAPTURE_GMAIL_DIGEST_PUSH_DRY_RUN", true);
   const pushDryRunCli = envBool("CAPTURE_GMAIL_DIGEST_PUSH_DRY_RUN_CLI", false);
-  const pushChannel = (process.env.CAPTURE_GMAIL_DIGEST_PUSH_CHANNEL ?? "telegram").trim() || "telegram";
+  const pushChannel =
+    (process.env.CAPTURE_GMAIL_DIGEST_PUSH_CHANNEL ?? "telegram").trim() || "telegram";
   const pushTo = (process.env.CAPTURE_GMAIL_DIGEST_PUSH_TO ?? "").trim();
-  const pushAccountId = (process.env.CAPTURE_GMAIL_DIGEST_PUSH_ACCOUNT_ID ?? "").trim() || undefined;
+  const pushAccountId =
+    (process.env.CAPTURE_GMAIL_DIGEST_PUSH_ACCOUNT_ID ?? "").trim() || undefined;
 
-  const sessionsDir = (process.env.CAPTURE_GMAIL_SESSIONS_DIR ?? path.join(os.homedir(), ".openclaw", "agents", "main", "sessions")).trim();
+  const sessionsDir = (
+    process.env.CAPTURE_GMAIL_SESSIONS_DIR ??
+    path.join(os.homedir(), ".openclaw", "agents", "main", "sessions")
+  ).trim();
   const sessionsIndexPath = path.join(sessionsDir, "sessions.json");
 
   const paths = await initHub();
@@ -684,7 +716,7 @@ async function main() {
     })
     .filter((row) => row.id && row.sessionId)
     .filter((row) => row.updatedAtMs === 0 || row.updatedAtMs >= sinceMs)
-    .sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+    .toSorted((a, b) => b.updatedAtMs - a.updatedAtMs);
 
   const parsedItems = (
     await Promise.all(
@@ -760,6 +792,25 @@ async function main() {
       "",
     ].join("\n"),
   );
+
+  // Write concise inbox summary to work/ so LLM hub-context can read it
+  const inboxLines: string[] = [
+    `# gmail (${today}，重要 ${important.length} / 有用 ${useful.length})`,
+  ];
+  for (const item of important.slice(0, 6)) {
+    inboxLines.push(
+      `- (${item.priority}) ${shorten(item.subject, 50)} | ${shorten(item.from, 30)}`,
+    );
+  }
+  if (useful.length > 0) {
+    inboxLines.push(
+      `_有用 ${useful.length} 封（${useful
+        .slice(0, 3)
+        .map((i) => shorten(i.subject, 30))
+        .join(" / ")}${useful.length > 3 ? " …" : ""}）_`,
+    );
+  }
+  await writeText(path.join(paths.work, "gmail.md"), inboxLines.join("\n") + "\n");
 
   let pushed = 0;
   let pushError: string | null = null;

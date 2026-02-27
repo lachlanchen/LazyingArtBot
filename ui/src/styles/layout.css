@@ -3,10 +3,10 @@
    =========================================== */
 
 .shell {
-  --shell-pad: 16px;
-  --shell-gap: 16px;
-  --shell-nav-width: 220px;
-  --shell-topbar-height: 56px;
+  --shell-pad: 12px;
+  --shell-gap: 12px;
+  --shell-nav-width: 196px;
+  --shell-topbar-height: 48px;
   --shell-focus-duration: 200ms;
   --shell-focus-ease: var(--ease-out);
   height: 100vh;
@@ -81,7 +81,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 0 20px;
+  padding: 0 18px;
   height: var(--shell-topbar-height);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
@@ -198,7 +198,7 @@
   grid-area: nav;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px 12px;
+  padding: 10px 10px;
   background: var(--bg);
   scrollbar-width: none; /* Firefox */
   transition:
@@ -279,9 +279,9 @@
 
 /* Nav groups */
 .nav-group {
-  margin-bottom: 20px;
+  margin-bottom: 6px;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .nav-group:last-child {
@@ -304,11 +304,11 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -353,8 +353,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   background: transparent;
@@ -389,7 +389,7 @@
 }
 
 .nav-item__text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -407,6 +407,8 @@
 .nav-item.active {
   color: var(--text-strong);
   background: var(--accent-subtle);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .nav-item.active .nav-item__icon {
@@ -420,15 +422,19 @@
 
 .content {
   grid-area: content;
-  padding: 12px 16px 32px;
+  padding: 10px 14px 20px;
   display: block;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
+.content > * {
+  max-width: 1400px;
+}
+
 .content > * + * {
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 :root[data-theme="light"] .content {
@@ -452,8 +458,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  padding: 4px 8px;
+  gap: 12px;
+  padding: 2px 4px;
   overflow: hidden;
   transform-origin: top center;
   transition:
@@ -473,18 +479,18 @@
 }
 
 .page-title {
-  font-size: 26px;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
   color: var(--text-strong);
 }
 
 .page-sub {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
-  margin-top: 6px;
+  margin-top: 2px;
   letter-spacing: -0.01em;
 }
 
@@ -519,7 +525,7 @@
 
 .grid {
   display: grid;
-  gap: 20px;
+  gap: 12px;
 }
 
 .grid-cols-2 {
@@ -532,14 +538,14 @@
 
 .stat-grid {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .note-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .row {

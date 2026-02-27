@@ -12,11 +12,20 @@ export type CronMessageChannel = ChannelId | "last";
 
 export type CronDeliveryMode = "none" | "announce";
 
+/** Additional delivery target for fan-out (best-effort). */
+export type CronMirrorTarget = {
+  channel: ChannelId;
+  to?: string;
+  accountId?: string;
+};
+
 export type CronDelivery = {
   mode: CronDeliveryMode;
   channel?: CronMessageChannel;
   to?: string;
   bestEffort?: boolean;
+  /** Fan-out: also deliver to these channels after the primary delivery. */
+  mirrorTo?: CronMirrorTarget[];
 };
 
 export type CronDeliveryPatch = Partial<CronDelivery>;

@@ -3,6 +3,8 @@ import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
 import { resolveAgentMainSessionKey } from "../config/sessions.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
+import { ensureBootstrapJobs } from "../cron/bootstrap-jobs.js";
+import { registerGlobalCron } from "../cron/global-cron.js";
 import { runCronIsolatedAgentTurn } from "../cron/isolated-agent.js";
 import { appendCronRunLog, resolveCronRunLogPath } from "../cron/run-log.js";
 import { CronService } from "../cron/service.js";
@@ -116,5 +118,11 @@ export function buildGatewayCronService(params: {
     },
   });
 
+  registerGlobalCron(cron);
+  if (cronEnabled) {
+    void ensureBootstrapJobs(cron).catch((err) => {
+      cronLogger.warn({ err: String(err) }, "cron: bootstrap jobs setup failed");
+    });
+  }
   return { cron, storePath, cronEnabled };
 }

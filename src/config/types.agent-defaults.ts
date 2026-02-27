@@ -197,6 +197,8 @@ export type AgentDefaultsConfig = {
      * Default: false (only the final heartbeat payload is delivered).
      */
     includeReasoning?: boolean;
+    /** Fan-out: also deliver heartbeat to these channels after the primary delivery (best-effort). */
+    mirrorTo?: Array<{ channel: ChannelId; to?: string; accountId?: string }>;
   };
   /** Max concurrent agent runs across all conversations. Default: 1 (sequential). */
   maxConcurrent?: number;

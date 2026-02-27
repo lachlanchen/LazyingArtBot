@@ -69,6 +69,7 @@
     "moltbot:capture:gmail-classify-all": "node --import tsx scripts/capture/gmail-classify-all.ts",
     "moltbot:capture:gmail-digest": "node --import tsx scripts/capture/gmail-digest.ts",
     "moltbot:capture:notebooklm-enqueue": "node --import tsx scripts/capture/notebooklm-enqueue.ts",
+    "moltbot:capture:notebooklm-tool-generate": "node --import tsx scripts/capture/notebooklm-tool-generate.ts",
     "moltbot:capture:notebooklm-tool-mock": "node --import tsx scripts/capture/notebooklm-tool-mock.ts",
     "moltbot:capture:notebooklm-worker": "node --import tsx scripts/capture/notebooklm-worker.ts",
     "moltbot:capture:stale-checker": "node --import tsx scripts/capture/stale-checker.ts",

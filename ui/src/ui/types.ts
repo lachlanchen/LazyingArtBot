@@ -191,6 +191,19 @@ export type SlackStatus = {
   lastProbeAt?: number | null;
 };
 
+export type FeishuStatus = {
+  configured: boolean;
+  appId?: string | null;
+  domain?: string | null;
+  connectionMode?: string | null;
+  running: boolean;
+  connected?: boolean | null;
+  lastStartAt?: number | null;
+  lastStopAt?: number | null;
+  lastError?: string | null;
+  lastInboundAt?: number | null;
+};
+
 export type SignalProbe = {
   ok: boolean;
   status?: number | null;

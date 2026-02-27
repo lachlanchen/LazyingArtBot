@@ -17,7 +17,7 @@ export function renderSlackCard(params: {
       <div class="card-sub">Socket mode status and channel configuration.</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
+      <div class="status-list" style="margin-top: 10px;">
         <div>
           <span class="label">Configured</span>
           <span>${slack?.configured ? "Yes" : "No"}</span>
@@ -38,7 +38,7 @@ export function renderSlackCard(params: {
 
       ${
         slack?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${slack.lastError}
           </div>`
           : nothing
@@ -46,7 +46,7 @@ export function renderSlackCard(params: {
 
       ${
         slack?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             Probe ${slack.probe.ok ? "ok" : "failed"} ·
             ${slack.probe.status ?? ""} ${slack.probe.error ?? ""}
           </div>`
@@ -55,7 +55,7 @@ export function renderSlackCard(params: {
 
       ${renderChannelConfigSection({ channelId: "slack", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
           Probe
         </button>

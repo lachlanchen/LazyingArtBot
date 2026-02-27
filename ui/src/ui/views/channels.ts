@@ -4,6 +4,7 @@ import type {
   ChannelUiMetaEntry,
   ChannelsStatusSnapshot,
   DiscordStatus,
+  FeishuStatus,
   GoogleChatStatus,
   IMessageStatus,
   NostrProfile,
@@ -17,6 +18,7 @@ import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.
 import { formatRelativeTimestamp } from "../format.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
 import { renderDiscordCard } from "./channels.discord.ts";
+import { renderFeishuCard } from "./channels.feishu.ts";
 import { renderGoogleChatCard } from "./channels.googlechat.ts";
 import { renderIMessageCard } from "./channels.imessage.ts";
 import { renderNostrCard } from "./channels.nostr.ts";
@@ -31,6 +33,7 @@ export function renderChannels(props: ChannelsProps) {
   const whatsapp = (channels?.whatsapp ?? undefined) as WhatsAppStatus | undefined;
   const telegram = (channels?.telegram ?? undefined) as TelegramStatus | undefined;
   const discord = (channels?.discord ?? null) as DiscordStatus | null;
+  const feishu = (channels?.feishu ?? null) as FeishuStatus | null;
   const googlechat = (channels?.googlechat ?? null) as GoogleChatStatus | null;
   const slack = (channels?.slack ?? null) as SlackStatus | null;
   const signal = (channels?.signal ?? null) as SignalStatus | null;
@@ -57,6 +60,7 @@ export function renderChannels(props: ChannelsProps) {
           whatsapp,
           telegram,
           discord,
+          feishu,
           googlechat,
           slack,
           signal,
@@ -67,7 +71,7 @@ export function renderChannels(props: ChannelsProps) {
       )}
     </section>
 
-    <section class="card" style="margin-top: 18px;">
+    <section class="card" style="margin-top: 10px;">
       <div class="row" style="justify-content: space-between;">
         <div>
           <div class="card-title">Channel health</div>
@@ -77,12 +81,12 @@ export function renderChannels(props: ChannelsProps) {
       </div>
       ${
         props.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${props.lastError}
           </div>`
           : nothing
       }
-      <pre class="code-block" style="margin-top: 12px;">
+      <pre class="code-block" style="margin-top: 8px;">
 ${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : "No snapshot yet."}
       </pre>
     </section>
@@ -119,6 +123,12 @@ function renderChannel(key: ChannelKey, props: ChannelsProps, data: ChannelsChan
       return renderDiscordCard({
         props,
         discord: data.discord,
+        accountCountLabel,
+      });
+    case "feishu":
+      return renderFeishuCard({
+        props,
+        feishu: data.feishu,
         accountCountLabel,
       });
     case "googlechat":
@@ -205,7 +215,7 @@ function renderGenericChannelCard(
             </div>
           `
           : html`
-            <div class="status-list" style="margin-top: 16px;">
+            <div class="status-list" style="margin-top: 10px;">
               <div>
                 <span class="label">Configured</span>
                 <span>${configured == null ? "n/a" : configured ? "Yes" : "No"}</span>
@@ -224,7 +234,7 @@ function renderGenericChannelCard(
 
       ${
         lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${lastError}
           </div>`
           : nothing

@@ -196,7 +196,7 @@ export function renderNostrCard(params: {
             </div>
           `
           : html`
-            <div class="status-list" style="margin-top: 16px;">
+            <div class="status-list" style="margin-top: 10px;">
               <div>
                 <span class="label">Configured</span>
                 <span>${summaryConfigured ? "Yes" : "No"}</span>
@@ -221,7 +221,7 @@ export function renderNostrCard(params: {
 
       ${
         summaryLastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">${summaryLastError}</div>`
+          ? html`<div class="callout danger" style="margin-top: 8px;">${summaryLastError}</div>`
           : nothing
       }
 
@@ -229,7 +229,7 @@ export function renderNostrCard(params: {
 
       ${renderChannelConfigSection({ channelId: "nostr", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(false)}>Refresh</button>
       </div>
     </div>

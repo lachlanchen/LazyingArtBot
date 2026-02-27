@@ -289,7 +289,9 @@ export async function dispatchReplyFromConfig(params: {
 
     const captureResult = await maybeRunCapture({ ctx, cfg });
     if (captureResult.error) {
-      logVerbose(`dispatch-from-config: capture handler skipped after error: ${captureResult.error}`);
+      logVerbose(
+        `dispatch-from-config: capture handler skipped after error: ${captureResult.error}`,
+      );
     }
     if (captureResult.handled && captureResult.payload) {
       let queuedFinal = false;
@@ -322,6 +324,24 @@ export async function dispatchReplyFromConfig(params: {
       recordProcessed("completed", { reason: "capture_handled" });
       markIdle("message_completed");
       return { queuedFinal, counts };
+    }
+
+    // When capture is in "also reply" mode (handled=false but payload present),
+    // send the capture ACK as a pre-message before allowing the LLM to respond.
+    if (!captureResult.handled && captureResult.payload) {
+      if (shouldRouteToOriginating && originatingChannel && originatingTo) {
+        await routeReply({
+          payload: captureResult.payload,
+          channel: originatingChannel,
+          to: originatingTo,
+          sessionKey: ctx.SessionKey,
+          accountId: ctx.AccountId,
+          threadId: ctx.MessageThreadId,
+          cfg,
+        });
+      } else {
+        dispatcher.sendToolResult(captureResult.payload);
+      }
     }
 
     // Track accumulated block text for TTS generation after streaming completes.

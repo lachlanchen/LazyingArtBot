@@ -3,6 +3,7 @@ import type {
   ChannelsStatusSnapshot,
   ConfigUiHints,
   DiscordStatus,
+  FeishuStatus,
   GoogleChatStatus,
   IMessageStatus,
   NostrProfile,
@@ -53,6 +54,7 @@ export type ChannelsChannelData = {
   whatsapp?: WhatsAppStatus;
   telegram?: TelegramStatus;
   discord?: DiscordStatus | null;
+  feishu?: FeishuStatus | null;
   googlechat?: GoogleChatStatus | null;
   slack?: SlackStatus | null;
   signal?: SignalStatus | null;

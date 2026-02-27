@@ -37,7 +37,13 @@ export default defineConfig([
     platform: "node",
   },
   {
-    entry: ["src/hooks/bundled/*/handler.ts", "src/hooks/llm-slug-generator.ts"],
+    entry: [
+      "src/hooks/bundled/boot-md/handler.ts",
+      "src/hooks/bundled/command-logger/handler.ts",
+      "src/hooks/bundled/session-memory/handler.ts",
+      "src/hooks/bundled/soul-evil/handler.ts",
+      "src/hooks/llm-slug-generator.ts",
+    ],
     env,
     fixedExtension: false,
     platform: "node",

@@ -1,5 +1,21 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type {
+  CaptureAck,
+  CaptureAgentRunParams,
+  CaptureAgentCardOutput,
+  CaptureCardFrontmatter,
+  CaptureContentParts,
+  CaptureDateParts,
+  CaptureFeedback,
+  CaptureFileOp,
+  CaptureInference,
+  CaptureItem,
+  CaptureJsonOutput,
+  CaptureRunOutput,
+  CaptureRemindSchedule,
+  CaptureType,
+} from "./types.js";
 import {
   classifyCaptureInput,
   inferRemindSchedule,
@@ -18,22 +34,6 @@ import {
   slugifyTitle,
   typeEmoji,
 } from "./hub.js";
-import type {
-  CaptureAck,
-  CaptureAgentRunParams,
-  CaptureAgentCardOutput,
-  CaptureCardFrontmatter,
-  CaptureContentParts,
-  CaptureDateParts,
-  CaptureFeedback,
-  CaptureFileOp,
-  CaptureInference,
-  CaptureItem,
-  CaptureJsonOutput,
-  CaptureRunOutput,
-  CaptureRemindSchedule,
-  CaptureType,
-} from "./types.js";
 
 const TZ = "Asia/Shanghai";
 const DEDUPE_FILE_AGE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -90,7 +90,7 @@ async function listInboxFilesForDay(inboxDir: string, ymd: string): Promise<stri
       .map((entry) => entry.name)
       .filter((name) => name.startsWith(`${ymd}_`) && name.endsWith("_inbox.md"))
       .map((name) => path.join(inboxDir, name))
-      .sort();
+      .toSorted();
   } catch {
     return [];
   }
@@ -391,7 +391,11 @@ function normalizeDueDate(due: string | null): string | null {
   return due;
 }
 
-function includeCalendarEntry(type: CaptureType, due: string | null, schedule: CaptureRemindSchedule): boolean {
+function includeCalendarEntry(
+  type: CaptureType,
+  due: string | null,
+  schedule: CaptureRemindSchedule,
+): boolean {
   if (type === "timeline") {
     return true;
   }
@@ -495,11 +499,10 @@ function isCardMarkdownWrite(op: CaptureFileOp): boolean {
   return op.content.includes("\n## 原文\n") && op.content.includes("\n## 你的整理\n");
 }
 
-function buildAgentOutput(params: {
-  root: string;
-  ops: CaptureFileOp[];
-  ack: CaptureAck;
-}): { cards: CaptureAgentCardOutput[]; text: string } {
+function buildAgentOutput(params: { root: string; ops: CaptureFileOp[]; ack: CaptureAck }): {
+  cards: CaptureAgentCardOutput[];
+  text: string;
+} {
   const { root, ops, ack } = params;
   const cards = ops
     .filter((op) => isCardMarkdownWrite(op))
@@ -508,7 +511,9 @@ function buildAgentOutput(params: {
       content: op.content,
     }));
   const ackText = [ack.line1, ack.line2, ack.line3].filter(Boolean).join("\n");
-  const text = [...cards.map((card) => card.content.trimEnd()), ackText].filter(Boolean).join("\n\n");
+  const text = [...cards.map((card) => card.content.trimEnd()), ackText]
+    .filter(Boolean)
+    .join("\n\n");
   return { cards, text };
 }
 
@@ -533,11 +538,10 @@ function buildAck(params: {
   if (inference.confidence >= 0.85) {
     return { line1, line2 };
   }
-  const line3 =
-    inference.type === "watch"
-      ? "回覆：1=轉任務  6=只提醒一次  0=不用提醒了"
-      : "回覆：1=轉任務  2=加期限  3=長期記憶  4=拆分  5=合併上一條  0=忽略";
-  return { line1, line2, line3 };
+  if (inference.type === "watch") {
+    return { line1, line2, line3: "回覆：1=轉任務  6=只提醒一次  0=不用提醒了" };
+  }
+  return { line1, line2 };
 }
 
 function buildMemoryLogBlock(params: {
@@ -548,13 +552,17 @@ function buildMemoryLogBlock(params: {
   const { now, inputText, inference } = params;
   const tags = inference.tags.join(", ");
   const attachments =
-    inference.attachments.length > 0 ? inference.attachments.map((value) => `"${value}"`).join(", ") : "";
+    inference.attachments.length > 0
+      ? inference.attachments.map((value) => `"${value}"`).join(", ")
+      : "";
   return [
     `## ${now.hm}`,
     `原文：${inputText}`,
     `整理：${inference.title}`,
     `tags：${tags || "none"}`,
-    inference.rawInput.metadata.messageId ? `message_id: ${inference.rawInput.metadata.messageId}` : "",
+    inference.rawInput.metadata.messageId
+      ? `message_id: ${inference.rawInput.metadata.messageId}`
+      : "",
     inference.rawInput.metadata.replyTo ? `reply_to: ${inference.rawInput.metadata.replyTo}` : "",
     inference.rawInput.metadata.groupId ? `group_id: ${inference.rawInput.metadata.groupId}` : "",
     `attachments：${attachments || "none"}`,
@@ -572,8 +580,10 @@ function buildCalendarLine(params: {
   schedule: CaptureRemindSchedule;
 }): string {
   const { now, title, type, due, schedule } = params;
-  const firstDate = due ? due.slice(0, 10) : schedule.checkpoints[0] ?? now.ymd;
-  const dueText = due ?? (schedule.checkpoints.length > 0 ? `checkpoints:${schedule.checkpoints.join(",")}` : "none");
+  const firstDate = due ? due.slice(0, 10) : (schedule.checkpoints[0] ?? now.ymd);
+  const dueText =
+    due ??
+    (schedule.checkpoints.length > 0 ? `checkpoints:${schedule.checkpoints.join(",")}` : "none");
   return `| ${escapeTableCell(firstDate)} | ${escapeTableCell(title)} | ${typeEmoji(type)} ${type} | ${escapeTableCell(dueText)} |\n`;
 }
 
@@ -643,7 +653,10 @@ async function buildItemAndOps(params: {
 
   if (inference.type === "memory") {
     const existingMemoryLog = await readText(mainPath);
-    memoryAlreadySeen = containsMessageRef(existingMemoryLog ?? "", inference.rawInput.metadata.messageId);
+    memoryAlreadySeen = containsMessageRef(
+      existingMemoryLog ?? "",
+      inference.rawInput.metadata.messageId,
+    );
     if (!memoryAlreadySeen) {
       ops.push({
         op: "append",
@@ -805,7 +818,11 @@ async function buildItemAndOps(params: {
 }
 
 export async function runCaptureAgent(params: CaptureAgentRunParams): Promise<CaptureRunOutput> {
-  const requestedOutputMode = (params.outputMode ?? process.env.OUTPUT_MODE ?? "json").toLowerCase();
+  const requestedOutputMode = (
+    params.outputMode ??
+    process.env.OUTPUT_MODE ??
+    "json"
+  ).toLowerCase();
   const outputMode = requestedOutputMode === "agent" ? "agent" : "json";
 
   const ts = parseTimestamp(params.input.metadata.timestamp);
@@ -824,7 +841,9 @@ export async function runCaptureAgent(params: CaptureAgentRunParams): Promise<Ca
     inference: inferenceRaw,
     nowTs: ts,
   });
-  const id = appendMatch ? (extractIdFromPath(appendMatch.path) ?? (await nextDailyId(hubPaths, now))) : await nextDailyId(hubPaths, now);
+  const id = appendMatch
+    ? (extractIdFromPath(appendMatch.path) ?? (await nextDailyId(hubPaths, now)))
+    : await nextDailyId(hubPaths, now);
   const slug = slugifyTitle(inferenceRaw.title, inferenceRaw.type);
   const mainPath =
     appendMatch?.path ??

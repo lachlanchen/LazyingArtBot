@@ -66,7 +66,7 @@ export function renderTelegramCard(params: {
             </div>
           `
           : html`
-            <div class="status-list" style="margin-top: 16px;">
+            <div class="status-list" style="margin-top: 10px;">
               <div>
                 <span class="label">Configured</span>
                 <span>${telegram?.configured ? "Yes" : "No"}</span>
@@ -93,7 +93,7 @@ export function renderTelegramCard(params: {
 
       ${
         telegram?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${telegram.lastError}
           </div>`
           : nothing
@@ -101,7 +101,7 @@ export function renderTelegramCard(params: {
 
       ${
         telegram?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             Probe ${telegram.probe.ok ? "ok" : "failed"} ·
             ${telegram.probe.status ?? ""} ${telegram.probe.error ?? ""}
           </div>`
@@ -110,7 +110,7 @@ export function renderTelegramCard(params: {
 
       ${renderChannelConfigSection({ channelId: "telegram", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
           Probe
         </button>

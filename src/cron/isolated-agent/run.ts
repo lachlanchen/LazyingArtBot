@@ -587,5 +587,27 @@ export async function runCronIsolatedAgentTurn(params: {
     }
   }
 
+  // Mirror delivery: fan-out to additional channels (always best-effort).
+  const mirrorTargets = params.job.delivery?.mirrorTo ?? [];
+  if (deliveryRequested && !skipHeartbeatDelivery && synthesizedText && mirrorTargets.length > 0) {
+    const mirrorPayloads =
+      deliveryPayloads.length > 0 ? deliveryPayloads : [{ text: synthesizedText }];
+    for (const mirror of mirrorTargets) {
+      try {
+        await deliverOutboundPayloads({
+          cfg: cfgWithAgentDefaults,
+          channel: mirror.channel,
+          to: mirror.to,
+          accountId: mirror.accountId,
+          payloads: mirrorPayloads,
+          bestEffort: true,
+          deps: createOutboundSendDeps(params.deps),
+        });
+      } catch {
+        // best-effort: mirror failure never blocks the job
+      }
+    }
+  }
+
   return withRunSession({ status: "ok", summary, outputText });
 }

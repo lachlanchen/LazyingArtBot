@@ -17,7 +17,7 @@ export function renderIMessageCard(params: {
       <div class="card-sub">macOS bridge status and channel configuration.</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
+      <div class="status-list" style="margin-top: 10px;">
         <div>
           <span class="label">Configured</span>
           <span>${imessage?.configured ? "Yes" : "No"}</span>
@@ -38,7 +38,7 @@ export function renderIMessageCard(params: {
 
       ${
         imessage?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${imessage.lastError}
           </div>`
           : nothing
@@ -46,7 +46,7 @@ export function renderIMessageCard(params: {
 
       ${
         imessage?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             Probe ${imessage.probe.ok ? "ok" : "failed"} ·
             ${imessage.probe.error ?? ""}
           </div>`
@@ -55,7 +55,7 @@ export function renderIMessageCard(params: {
 
       ${renderChannelConfigSection({ channelId: "imessage", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
           Probe
         </button>

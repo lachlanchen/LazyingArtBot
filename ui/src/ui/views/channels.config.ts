@@ -90,7 +90,7 @@ function renderExtraChannelFields(value: Record<string, unknown>) {
     return null;
   }
   return html`
-    <div class="status-list" style="margin-top: 12px;">
+    <div class="status-list" style="margin-top: 8px;">
       ${entries.map(
         ([field, raw]) => html`
           <div>
@@ -140,7 +140,7 @@ export function renderChannelConfigSection(params: { channelId: string; props: C
   const { channelId, props } = params;
   const disabled = props.configSaving || props.configSchemaLoading;
   return html`
-    <div style="margin-top: 16px;">
+    <div style="margin-top: 10px;">
       ${
         props.configSchemaLoading
           ? html`
@@ -155,7 +155,7 @@ export function renderChannelConfigSection(params: { channelId: string; props: C
               onPatch: props.onConfigPatch,
             })
       }
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button
           class="btn primary"
           ?disabled=${disabled || !props.configFormDirty}

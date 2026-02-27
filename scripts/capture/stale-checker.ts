@@ -15,6 +15,13 @@ function parseIdFromLine(line: string): string | null {
   return hit?.[1] ?? null;
 }
 
+function parseTitleFromLine(line: string): string {
+  // Extract human-readable title from tasks_master line
+  // Format: - [ ] (P1) 任務標題 (id:...) type:... due:...
+  const hit = line.match(/^-\s*\[.?\]\s*(?:\([^)]*\)\s*)?(.+?)\s*\(id:/);
+  return hit?.[1]?.trim() ?? line.replace(/^-\s*\[.?\]\s*/, "").slice(0, 60);
+}
+
 async function main() {
   const horizon = Number.parseInt(process.env.CAPTURE_STALE_DAYS ?? "7", 10);
   const today = tokyoYmd();
@@ -41,7 +48,7 @@ async function main() {
       return { id, ageDays, line };
     })
     .filter((item): item is { id: string; ageDays: number; line: string } => Boolean(item))
-    .sort((a, b) => b.ageDays - a.ageDays);
+    .toSorted((a, b) => b.ageDays - a.ageDays);
 
   const reportPath = path.join(paths.meta, "stale_actions.md");
   const reportLines = [
@@ -56,7 +63,8 @@ async function main() {
     reportLines.push("- (none)");
   } else {
     for (const item of stale) {
-      reportLines.push(`- ${item.line} age_days:${item.ageDays}`);
+      const title = parseTitleFromLine(item.line);
+      reportLines.push(`- ${title} (id:${item.id}) age_days:${item.ageDays}`);
     }
   }
   reportLines.push("");
@@ -76,7 +84,9 @@ async function main() {
     rows: feedbackRows,
   });
 
-  console.log(`capture:stale-checker stale=${stale.length} signals_added=${added} -> ${reportPath}`);
+  console.log(
+    `capture:stale-checker stale=${stale.length} signals_added=${added} -> ${reportPath}`,
+  );
 }
 
 await main();

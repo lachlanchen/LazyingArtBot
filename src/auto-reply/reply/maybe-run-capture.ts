@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { CronMessageChannel } from "../../cron/types.js";
 import type { FinalizedMsgContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { toEmailCaptureInput } from "../../adapters/email-capture-adapter.js";
@@ -9,8 +10,9 @@ import { toGenericCaptureInput } from "../../adapters/generic-capture-adapter.js
 import { toTelegramCaptureInput } from "../../adapters/telegram-capture-adapter.js";
 import { toWechatCaptureInput } from "../../adapters/wechat-capture-adapter.js";
 import { toWhatsAppCaptureInput } from "../../adapters/whatsapp-capture-adapter.js";
-import { resolveHubPaths } from "../../capture-agent/hub.js";
+import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
 import { runCaptureAgent } from "../../capture-agent/run.js";
+import { getGlobalCron } from "../../cron/global-cron.js";
 
 export type MaybeRunCaptureResult = {
   handled: boolean;
@@ -79,6 +81,193 @@ function isCaptureEnabled(cfg: OpenClawConfig): boolean {
   }
   const enabled = (captureValue as Record<string, unknown>)["enabled"];
   return enabled === true;
+}
+
+async function maybeUpdateHeartbeat(out: {
+  items: Array<{
+    type: string;
+    title: string;
+    id: string;
+    due: string | null;
+    nextBestAction: string | null;
+    priority: string | null;
+  }>;
+}): Promise<void> {
+  const item = out.items[0];
+  if (!item) {
+    return;
+  }
+
+  const { type, title, id, due, nextBestAction, priority } = item;
+  const isActionable = type === "action" || type === "watch" || type === "timeline";
+  const hasNextAction =
+    typeof nextBestAction === "string" &&
+    nextBestAction !== "none" &&
+    nextBestAction !== "null" &&
+    nextBestAction.trim().length > 0;
+
+  if (!isActionable && !hasNextAction) {
+    return;
+  }
+
+  // hub root = ~/.openclaw/workspace/automation/assistant_hub → workspace root is 2 levels up
+  const workspaceRoot = path.resolve(resolveHubRoot(), "../..");
+  const heartbeatPath = path.join(workspaceRoot, "HEARTBEAT.md");
+
+  const hm = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date());
+
+  let line: string;
+  if (isActionable) {
+    const dueStr = due ? ` due:${due}` : "";
+    const prioStr = priority ? ` [${priority}]` : "";
+    line = `- [ ] [${type}]${prioStr} ${title} (id:${id})${dueStr} · ${hm}`;
+  } else {
+    line = `- [ ] [跟進] ${nextBestAction} (ref:${id}) · ${hm}`;
+  }
+
+  try {
+    await fs.appendFile(heartbeatPath, `\n${line}\n`, "utf8");
+  } catch {
+    // best-effort: don't fail capture if heartbeat write fails
+  }
+}
+
+function parseDueToIso(due: string): string | null {
+  // Accept "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm..." — schedule at 09:00 Asia/Shanghai on that day
+  const dateMatch = due.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch?.[1]) {
+    return null;
+  }
+  const scheduledAt = new Date(`${dateMatch[1]}T09:00:00+08:00`);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return null;
+  }
+  // Skip if already past
+  if (scheduledAt <= new Date()) {
+    return null;
+  }
+  return scheduledAt.toISOString();
+}
+
+async function maybeScheduleCronReminder(
+  out: {
+    items: Array<{
+      type: string;
+      title: string;
+      id: string;
+      due: string | null;
+      nextBestAction: string | null;
+    }>;
+  },
+  _ctx: FinalizedMsgContext,
+): Promise<void> {
+  const item = out.items[0];
+  if (!item) {
+    return;
+  }
+  const { type, title, id, due, nextBestAction } = item;
+
+  // Only action/timeline items with a future due date
+  if (type !== "action" && type !== "timeline") {
+    return;
+  }
+  if (!due) {
+    return;
+  }
+
+  const atIso = parseDueToIso(due);
+  if (!atIso) {
+    return;
+  }
+
+  const cron = getGlobalCron();
+  if (!cron) {
+    return;
+  }
+
+  // 4A — deduplication: skip if a job for this capture id already exists
+  try {
+    const existing = await cron.list({ includeDisabled: false });
+    const isDuplicate = existing.jobs.some(
+      (j) => j.description?.includes(`capture id:${id}`) || j.name === `到期提醒：${title}`,
+    );
+    if (isDuplicate) {
+      return;
+    }
+  } catch {
+    // if list fails, proceed anyway (best-effort)
+  }
+
+  const hubPaths = resolveHubPaths();
+  const nba =
+    typeof nextBestAction === "string" &&
+    nextBestAction !== "none" &&
+    nextBestAction !== "null" &&
+    nextBestAction.trim()
+      ? nextBestAction.trim()
+      : null;
+
+  // 4B — post-execution lifecycle + 4C — autonomous reschedule if incomplete
+  const messageParts = [
+    `【到期任務追蹤】`,
+    `任務：${title}（id:${id}）`,
+    `到期：${due}`,
+    nba ? `建議行動：${nba}` : null,
+    ``,
+    `執行指引：`,
+    `1. 找任務卡片：find ${hubPaths.tasks} -name "${id}_*" -type f`,
+    `2. read 卡片取得完整上下文與最新狀態`,
+    `3. 按建議行動執行（可用 exec/web_fetch/cron 等工具）`,
+    `4. 用繁體中文向 Ken 簡短回報結果`,
+    ``,
+    `執行後自主更新狀態（Ken 不需要手動標記任何東西）：`,
+    `- 任務**完成** → edit 卡片 frontmatter：status: done, completed_at: <today_yyyy-mm-dd>`,
+    `  → 在 ${hubPaths.work}/tasks_master.md 找 (id:${id}) 那行，把 [ ] 改為 [x]`,
+    `- 任務**未完成/需繼續追蹤** → cron 工具重排提醒（3天後），並在卡片加一行進度備註`,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+
+  try {
+    await cron.add({
+      name: `到期提醒：${title}`,
+      description: `capture id:${id} auto due-reminder`,
+      schedule: { kind: "at", at: atIso },
+      sessionTarget: "isolated",
+      deleteAfterRun: true,
+      payload: {
+        kind: "agentTurn",
+        message: messageParts,
+        // Use "last" so the system delivers to the main agent's last active chat.
+        // This is more reliable than capturing ctx.From at schedule time.
+        deliver: true,
+        channel: "last" as CronMessageChannel,
+        bestEffortDeliver: true,
+      },
+    });
+  } catch {
+    // best-effort; don't fail capture if cron scheduling fails
+  }
+}
+
+function isAlsoReplyEnabled(cfg: OpenClawConfig): boolean {
+  const fromEnv = process.env.MOLTBOT_CAPTURE_ALSO_REPLY?.trim().toLowerCase();
+  if (fromEnv === "1" || fromEnv === "true" || fromEnv === "yes" || fromEnv === "on") {
+    return true;
+  }
+  const captureValue = (cfg as Record<string, unknown>)["capture"];
+  if (!captureValue || typeof captureValue !== "object") {
+    return false;
+  }
+  const alsoReply = (captureValue as Record<string, unknown>)["alsoReply"];
+  return alsoReply === true;
 }
 
 function isGenericCaptureEnabled(cfg: OpenClawConfig): boolean {
@@ -266,7 +455,7 @@ function extractNotebookLmTrigger(
       const before = raw.slice(0, idx).trim();
       const after = raw.slice(idx + loweredKeyword.length).trim();
       query = `${before} ${after}`.replace(/\s+/g, " ").trim();
-      query = query.replace(/^[:：,，\-]+\s*/u, "").trim();
+      query = query.replace(/^[:：,，-]+\s*/u, "").trim();
     }
     return {
       keyword: trimmed,
@@ -944,6 +1133,21 @@ async function maybeHandleCaptureControlCommand(params: {
   });
 
   if (action === "watch_converted") {
+    // 4A/B: schedule a cron reminder for the newly-converted action if it has a due date
+    await maybeScheduleCronReminder(
+      {
+        items: [
+          {
+            type: "action",
+            title: target.title,
+            id: target.id,
+            due: target.due,
+            nextBestAction: null,
+          },
+        ],
+      },
+      {} as FinalizedMsgContext,
+    );
     return {
       text: `✅ 已轉任務：${target.title} (id:${target.id})\n→ 之後不再用 watch checkpoint 追這條，改按 action 追蹤。`,
     };
@@ -982,6 +1186,19 @@ export async function maybeRunCapture(params: {
       return {
         handled: true,
         payload,
+      };
+    }
+
+    const deleteRequest = parseDeleteRequest(commandText);
+    if (deleteRequest) {
+      const result = await deleteFromAssistantHub(deleteRequest.query);
+      const text =
+        result.removedLines > 0
+          ? `✅ 已處理：已刪除「${deleteRequest.query}」相關 ${result.removedLines} 行（${result.touchedFiles} 檔）`
+          : `✅ 已檢查：未找到「${deleteRequest.query}」相關內容`;
+      return {
+        handled: true,
+        payload: { text },
       };
     }
 
@@ -1028,6 +1245,8 @@ export async function maybeRunCapture(params: {
       applyWrites: true,
       outputMode: process.env.OUTPUT_MODE ?? "json",
     });
+    await maybeUpdateHeartbeat(out);
+    await maybeScheduleCronReminder(out, ctx);
     const lines = [out.ack.line1, out.ack.line2, out.ack.line3].filter(Boolean);
 
     if (notebookLmQueued?.mode === "queue_capture_and_model") {
@@ -1038,9 +1257,10 @@ export async function maybeRunCapture(params: {
 
     const notebookAck = notebookLmQueued ? buildNotebookLmQueueAck(notebookLmQueued) : "";
     const combined = notebookAck ? [...lines, notebookAck].join("\n") : lines.join("\n");
+    const alsoReply = isAlsoReplyEnabled(cfg);
     return {
-      handled: true,
-      payload: { text: combined },
+      handled: !alsoReply,
+      payload: alsoReply ? undefined : { text: combined },
     };
   } catch (err) {
     return {

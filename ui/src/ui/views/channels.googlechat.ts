@@ -17,7 +17,7 @@ export function renderGoogleChatCard(params: {
       <div class="card-sub">Chat API webhook status and channel configuration.</div>
       ${accountCountLabel}
 
-      <div class="status-list" style="margin-top: 16px;">
+      <div class="status-list" style="margin-top: 10px;">
         <div>
           <span class="label">Configured</span>
           <span>${googleChat ? (googleChat.configured ? "Yes" : "No") : "n/a"}</span>
@@ -52,7 +52,7 @@ export function renderGoogleChatCard(params: {
 
       ${
         googleChat?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+          ? html`<div class="callout danger" style="margin-top: 8px;">
             ${googleChat.lastError}
           </div>`
           : nothing
@@ -60,7 +60,7 @@ export function renderGoogleChatCard(params: {
 
       ${
         googleChat?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
+          ? html`<div class="callout" style="margin-top: 8px;">
             Probe ${googleChat.probe.ok ? "ok" : "failed"} ·
             ${googleChat.probe.status ?? ""} ${googleChat.probe.error ?? ""}
           </div>`
@@ -69,7 +69,7 @@ export function renderGoogleChatCard(params: {
 
       ${renderChannelConfigSection({ channelId: "googlechat", props })}
 
-      <div class="row" style="margin-top: 12px;">
+      <div class="row" style="margin-top: 8px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
           Probe
         </button>

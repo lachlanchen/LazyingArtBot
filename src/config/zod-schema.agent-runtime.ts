@@ -27,6 +27,17 @@ export const HeartbeatSchema = z
     accountId: z.string().optional(),
     prompt: z.string().optional(),
     ackMaxChars: z.number().int().nonnegative().optional(),
+    mirrorTo: z
+      .array(
+        z
+          .object({
+            channel: z.string(),
+            to: z.string().optional(),
+            accountId: z.string().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict()
   .superRefine((val, ctx) => {

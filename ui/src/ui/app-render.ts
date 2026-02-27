@@ -219,8 +219,22 @@ export function renderApp(state: AppViewState) {
                 presenceCount,
                 sessionsCount,
                 cronEnabled: state.cronStatus?.enabled ?? null,
+                cronJobsCount: state.cronStatus?.jobs ?? null,
                 cronNext,
                 lastChannelsRefresh: state.channelsLastSuccess,
+                channelsSnapshot: state.channelsSnapshot,
+                recentSessions: (state.sessionsResult?.sessions ?? [])
+                  .filter((s) => s.updatedAt != null)
+                  .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+                  .slice(0, 5),
+                cronJobs: state.cronJobs
+                  .filter((j) => j.enabled)
+                  .toSorted(
+                    (a, b) =>
+                      (a.state?.nextRunAtMs ?? Infinity) - (b.state?.nextRunAtMs ?? Infinity),
+                  )
+                  .slice(0, 5),
+                presenceEntries: state.presenceEntries,
                 onSettingsChange: (next) => state.applySettings(next),
                 onPasswordChange: (next) => (state.password = next),
                 onSessionKeyChange: (next) => {

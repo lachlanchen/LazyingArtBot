@@ -5,7 +5,7 @@
 /* Layout Container */
 .config-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
   gap: 0;
   height: calc(100vh - 160px);
   margin: -16px;
@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 18px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -47,14 +47,14 @@
 
 .config-sidebar__footer {
   margin-top: auto;
-  padding: 14px;
+  padding: 8px;
   border-top: 1px solid var(--border);
 }
 
 /* Search */
 .config-search {
   position: relative;
-  padding: 14px;
+  padding: 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -71,7 +71,7 @@
 
 .config-search__input {
   width: 100%;
-  padding: 11px 36px 11px 42px;
+  padding: 5px 30px 5px 36px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -138,14 +138,14 @@
 .config-nav__item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  padding: 11px 14px;
+  padding: 6px 10px;
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -212,7 +212,7 @@
 
 .config-mode-toggle__btn {
   flex: 1;
-  padding: 9px 14px;
+  padding: 5px 10px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -254,8 +254,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 22px;
+  gap: 8px;
+  padding: 8px 14px;
   background: var(--bg-accent);
   border-bottom: 1px solid var(--border);
 }
@@ -288,7 +288,7 @@
 
 /* Diff Panel */
 .config-diff {
-  margin: 18px 22px 0;
+  margin: 8px 14px 0;
   border: 1px solid rgba(255, 77, 77, 0.25);
   border-radius: var(--radius-lg);
   background: var(--accent-subtle);
@@ -378,8 +378,8 @@
 .config-section-hero {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 22px;
+  gap: 10px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-accent);
 }
@@ -389,8 +389,8 @@
 }
 
 .config-section-hero__icon {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   color: var(--accent);
   display: flex;
   align-items: center;
@@ -411,7 +411,7 @@
 }
 
 .config-section-hero__title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -427,8 +427,8 @@
 /* Subsection Nav */
 .config-subnav {
   display: flex;
-  gap: 8px;
-  padding: 12px 22px 14px;
+  gap: 6px;
+  padding: 6px 14px 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-accent);
   overflow-x: auto;
@@ -441,7 +441,7 @@
 .config-subnav__item {
   border: 1px solid transparent;
   border-radius: var(--radius-full);
-  padding: 7px 14px;
+  padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
@@ -473,7 +473,7 @@
 .config-content {
   flex: 1;
   overflow-y: auto;
-  padding: 22px;
+  padding: 14px;
 }
 
 .config-raw-field textarea {
@@ -536,7 +536,7 @@
 
 .config-form--modern {
   display: grid;
-  gap: 26px;
+  gap: 12px;
 }
 
 .config-section-card {
@@ -558,8 +558,8 @@
 .config-section-card__header {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 20px 22px;
+  gap: 10px;
+  padding: 10px 14px;
   background: var(--bg-accent);
   border-bottom: 1px solid var(--border);
 }
@@ -569,8 +569,8 @@
 }
 
 .config-section-card__icon {
-  width: 34px;
-  height: 34px;
+  width: 22px;
+  height: 22px;
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -587,7 +587,7 @@
 
 .config-section-card__title {
   margin: 0;
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -603,7 +603,7 @@
 }
 
 .config-section-card__content {
-  padding: 22px;
+  padding: 12px 14px;
 }
 
 /* ===========================================
@@ -612,12 +612,12 @@
 
 .cfg-fields {
   display: grid;
-  gap: 22px;
+  gap: 12px;
 }
 
 .cfg-field {
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .cfg-field--error {
@@ -652,11 +652,11 @@
 
 .cfg-input {
   flex: 1;
-  padding: 11px 14px;
+  padding: 6px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-accent);
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   transition:
     border-color var(--duration-fast) ease,
@@ -756,12 +756,12 @@
 }
 
 .cfg-number__btn {
-  width: 44px;
+  width: 30px;
   border: none;
   background: var(--bg-elevated);
   color: var(--text);
-  font-size: 18px;
-  font-weight: 300;
+  font-size: 14px;
+  font-weight: 400;
   cursor: pointer;
   transition: background var(--duration-fast) ease;
 }
@@ -784,13 +784,13 @@
 }
 
 .cfg-number__input {
-  width: 85px;
-  padding: 11px;
+  width: 64px;
+  padding: 6px 8px;
   border: none;
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
   outline: none;
   -moz-appearance: textfield;
@@ -804,14 +804,14 @@
 
 /* Select */
 .cfg-select {
-  padding: 11px 40px 11px 14px;
+  padding: 6px 32px 6px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background-color: var(--bg-accent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  font-size: 14px;
+  background-position: right 8px center;
+  font-size: 13px;
   cursor: pointer;
   outline: none;
   appearance: none;
@@ -843,7 +843,7 @@
 }
 
 .cfg-segmented__btn {
-  padding: 9px 18px;
+  padding: 4px 12px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -877,8 +877,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 16px 18px;
+  gap: 12px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-accent);
@@ -913,7 +913,7 @@
 
 .cfg-toggle-row__label {
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text);
 }
@@ -941,8 +941,8 @@
 
 .cfg-toggle__track {
   display: block;
-  width: 50px;
-  height: 28px;
+  width: 36px;
+  height: 20px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-full);
@@ -959,10 +959,10 @@
 .cfg-toggle__track::after {
   content: "";
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
   background: var(--text);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
@@ -977,7 +977,7 @@
 }
 
 .cfg-toggle input:checked + .cfg-toggle__track::after {
-  transform: translateX(22px);
+  transform: translateX(16px);
   background: var(--ok);
 }
 
@@ -1001,7 +1001,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 8px 12px;
   cursor: pointer;
   list-style: none;
   transition: background var(--duration-fast) ease;
@@ -1016,7 +1016,7 @@
 }
 
 .cfg-object__title {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
@@ -1038,16 +1038,16 @@
 }
 
 .cfg-object__help {
-  padding: 0 18px 14px;
+  padding: 0 12px 8px;
   font-size: 12px;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
 }
 
 .cfg-object__content {
-  padding: 18px;
+  padding: 12px;
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
 
 /* Array */
@@ -1060,8 +1060,8 @@
 .cfg-array__header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 10px;
+  padding: 8px 12px;
   background: var(--bg-accent);
   border-bottom: 1px solid var(--border);
 }
@@ -1072,7 +1072,7 @@
 
 .cfg-array__label {
   flex: 1;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
@@ -1092,8 +1092,8 @@
 .cfg-array__add {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
+  gap: 5px;
+  padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -1131,7 +1131,7 @@
 }
 
 .cfg-array__empty {
-  padding: 36px 18px;
+  padding: 16px 12px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
@@ -1151,7 +1151,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 6px 10px;
   background: var(--bg-accent);
   border-bottom: 1px solid var(--border);
 }
@@ -1169,8 +1169,8 @@
 }
 
 .cfg-array__item-remove {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1200,7 +1200,7 @@
 }
 
 .cfg-array__item-content {
-  padding: 18px;
+  padding: 10px 12px;
 }
 
 /* Map (custom entries) */
@@ -1214,8 +1214,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--bg-accent);
   border-bottom: 1px solid var(--border);
 }
@@ -1233,8 +1233,8 @@
 .cfg-map__add {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
+  gap: 4px;
+  padding: 3px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -1260,7 +1260,7 @@
 }
 
 .cfg-map__empty {
-  padding: 28px 18px;
+  padding: 14px 12px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
@@ -1268,8 +1268,8 @@
 
 .cfg-map__items {
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 10px;
 }
 
 .cfg-map__item {
@@ -1288,8 +1288,8 @@
 }
 
 .cfg-map__item-remove {
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
