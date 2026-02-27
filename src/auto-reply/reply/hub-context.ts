@@ -141,6 +141,12 @@ export async function buildHubContext(): Promise<string> {
     sections.push(`## 郵件\n${emailSections.join("\n\n")}`);
   }
 
+  // Tophub hot topics (written by tophub-digest cron at 07:08)
+  const tophub = await readTail(path.join(hubPaths.work, "tophub-digest.md"), 400);
+  if (tophub && tophub.split("\n").filter((l) => l.trim()).length > 3) {
+    sections.push(`## 今日熱榜\n${tophub}`);
+  }
+
   // Calendar (written by daily-calendar cron at 07:00)
   const calendarRaw = await readTail(path.join(hubPaths.work, "calendar.md"), 1200);
   if (calendarRaw && calendarRaw.includes("|")) {

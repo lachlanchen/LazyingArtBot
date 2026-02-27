@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { CronMessageChannel } from "../../cron/types.js";
@@ -254,6 +255,90 @@ async function maybeScheduleCronReminder(
     });
   } catch {
     // best-effort; don't fail capture if cron scheduling fails
+  }
+}
+
+async function maybeCreateFeishuCalendarEvent(out: {
+  items: Array<{
+    type: string;
+    title: string;
+    id: string;
+    due: string | null;
+  }>;
+}): Promise<void> {
+  const item = out.items[0];
+  if (!item) {
+    return;
+  }
+
+  const { type, title, id, due } = item;
+  if (type !== "action" && type !== "timeline") {
+    return;
+  }
+  if (!due) {
+    return;
+  }
+
+  const dateMatch = due.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch?.[1]) {
+    return;
+  }
+  const dateStr = dateMatch[1];
+
+  // Skip if already past
+  if (new Date(`${dateStr}T23:59:59+08:00`) <= new Date()) {
+    return;
+  }
+
+  const TOKEN_FILE = path.join(os.homedir(), ".openclaw", "feishu_user_token.json");
+  let tokenData: { access_token: string; calendar_id: string } | null = null;
+  try {
+    const raw = await fs.readFile(TOKEN_FILE, "utf8");
+    tokenData = JSON.parse(raw) as { access_token: string; calendar_id: string };
+  } catch {
+    return; // No token file, silently skip
+  }
+
+  if (!tokenData?.access_token || !tokenData?.calendar_id) {
+    return;
+  }
+
+  const calendarId = tokenData.calendar_id;
+
+  // End date = next day (Feishu all-day event convention)
+  const endDateObj = new Date(`${dateStr}T00:00:00+08:00`);
+  endDateObj.setDate(endDateObj.getDate() + 1);
+  const endDateStr = endDateObj.toISOString().slice(0, 10);
+
+  const body = {
+    summary: title,
+    description: `[Kairo] capture id:${id}`,
+    start_time: { date: dateStr },
+    end_time: { date: endDateStr },
+    visibility: "default",
+    color: -1,
+  };
+
+  try {
+    const resp = await fetch(
+      `https://open.feishu.cn/open-apis/calendar/v4/calendars/${encodeURIComponent(calendarId)}/events`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    const data = (await resp.json()) as { code?: number; msg?: string };
+    if (data.code !== 0) {
+      console.warn("[feishu-calendar-create] API error:", data.code, data.msg);
+    } else {
+      console.log(`[feishu-calendar-create] Created event "${title}" on ${dateStr}`);
+    }
+  } catch (e) {
+    console.warn("[feishu-calendar-create] fetch error:", e);
   }
 }
 
@@ -1247,6 +1332,7 @@ export async function maybeRunCapture(params: {
     });
     await maybeUpdateHeartbeat(out);
     await maybeScheduleCronReminder(out, ctx);
+    await maybeCreateFeishuCalendarEvent(out);
     const lines = [out.ack.line1, out.ack.line2, out.ack.line3].filter(Boolean);
 
     if (notebookLmQueued?.mode === "queue_capture_and_model") {
