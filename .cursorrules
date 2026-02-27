@@ -1,0 +1,34 @@
+# Kairo — AI 秘書系統
+
+## 項目簡介
+Kairo 是自托管的主動 AI 秘書，通過 Telegram/飛書 IM 與用戶交互。
+核心：零摩擦捕捉 → 閉環跟蹤 → 主動推送。數據為本地 Markdown，無訂閱費。
+
+## 技術棧
+- TypeScript / Node.js 22+，pnpm workspaces，tsdown 打包，vitest 測試
+- 框架：openclaw（多頻道 AI gateway），飛書 plugin 在 `extensions/feishu/`
+
+## 目錄結構
+- `src/agents/` — LLM agent + 工具（新工具加 `src/agents/tools/`，在 `openclaw-tools.ts` 註冊）
+- `src/auto-reply/reply/` — 消息處理管道（capture / hub-context / dispatch）
+- `src/cron/` — 定時任務（global-cron singleton，bootstrap-jobs 啟動保證）
+- `src/gateway/` — HTTP 入口
+- `scripts/capture/` — 每日採集腳本（郵件/日曆/熱榜）
+- `dist/` — 編譯輸出，`reply-*.js` = capture 邏輯 bundle
+
+## 重要約定
+1. 新 LLM tool → `src/agents/tools/createXxx.ts` + 在 `openclaw-tools.ts` 加入（不是 `moltbot-tools.ts`）
+2. `/opt/LazyingArtBot/` 由 root 擁有，需 `sudo` 修改文件
+3. 修改後重建：`sudo rm dist/.buildstamp && openclaw-restart`
+4. Config：`~/.openclaw/openclaw.json`；Cron：`~/.openclaw/cron/jobs.json`
+
+## 構建命令
+```bash
+pnpm install && pnpm build        # 本地開發
+openclaw-restart                   # 伺服器重啟（自動重建）
+```
+
+## 不要做的事
+- 不要直接用 Edit/Write 工具寫 root 擁有的文件（先 sudo chmod 或用 sudo tee）
+- 不要在 moltbot-tools.ts 加生產 tool（那是測試文件）
+- 不要 `git push --force` main 分支
