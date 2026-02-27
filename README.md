@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./assets/kairo-banner.svg" alt="Kairo — 個人全能 AI 秘書" width="100%"/>
+
 <h1>Kairo · 個人全能 AI 秘書</h1>
 
 <p><b>你思考。Kairo 記憶、整理、跟進 — 在恰好的時刻主動找到你。</b><br/>
