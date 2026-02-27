@@ -1,9 +1,9 @@
 # content/
 
-Kairo 情報中心輸出目錄。所有文件由 Kairo cron 任務自動生成，Markdown 格式，本地存儲。
+Kairo 情报中心输出目录。所有文件由 Kairo cron 任务自动生成，Markdown 格式，本地存储。
 
-| 目錄                                       | 欄目                                        | 更新頻率       |
+| 目录                                       | 栏目                                        | 更新频率       |
 | ------------------------------------------ | ------------------------------------------- | -------------- |
-| [`daily/`](./daily/)                       | 工具日報 · 編輯精選 · 社交情報 · 工作流靈感 | 每日           |
-| [`frameworks/`](./frameworks/)             | 架構深評                                    | 周二 / 四 / 六 |
-| [`reports/biweekly/`](./reports/biweekly/) | 雙週推理報告                                | 隔週一         |
+| [`daily/`](./daily/)                       | 工具日报 · 编辑精选 · 社交情报 · 工作流灵感 | 每日           |
+| [`frameworks/`](./frameworks/)             | 架构深评                                    | 周二 / 四 / 六 |
+| [`reports/biweekly/`](./reports/biweekly/) | 双周推理报告                                | 隔周一         |
