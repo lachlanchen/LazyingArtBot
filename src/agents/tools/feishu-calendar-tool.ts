@@ -30,7 +30,24 @@ async function saveToken(token: FeishuToken): Promise<void> {
   await fs.writeFile(TOKEN_FILE, JSON.stringify(token, null, 2));
 }
 
-async function refreshToken(stored: FeishuToken): Promise<string | null> {
+async function getAppAccessToken(appId: string, appSecret: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${FEISHU_BASE}/auth/v3/app_access_token/internal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const d = (await res.json()) as Record<string, unknown>;
+    return (d.code === 0 ? (d.app_access_token as string) : null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshToken(
+  stored: FeishuToken,
+): Promise<{ access_token: string; refresh_token: string } | null> {
   const appId = process.env.FEISHU_APP_ID ?? "";
   const appSecret = process.env.FEISHU_APP_SECRET ?? "";
   if (!appId || !appSecret) {
@@ -38,18 +55,24 @@ async function refreshToken(stored: FeishuToken): Promise<string | null> {
   }
 
   try {
-    // Try OIDC endpoint first
-    const creds = Buffer.from(`${appId}:${appSecret}`).toString("base64");
-    const res = await fetch(`${FEISHU_BASE}/authen/v1/oidc/refresh_access_token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Basic ${creds}` },
-      body: JSON.stringify({ grant_type: "refresh_token", refresh_token: stored.refresh_token }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    const d = (await res.json()) as Record<string, unknown>;
-    if (d.code === 0) {
-      const data = d.data as Record<string, unknown>;
-      return (data.access_token as string) ?? null;
+    // OIDC endpoint — requires app_access_token Bearer auth
+    const appToken = await getAppAccessToken(appId, appSecret);
+    if (appToken) {
+      const res = await fetch(`${FEISHU_BASE}/authen/v1/oidc/refresh_access_token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${appToken}` },
+        body: JSON.stringify({ grant_type: "refresh_token", refresh_token: stored.refresh_token }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const d = (await res.json()) as Record<string, unknown>;
+      if (d.code === 0) {
+        const data = d.data as Record<string, unknown>;
+        const at = data.access_token as string | undefined;
+        const rt = data.refresh_token as string | undefined;
+        if (at) {
+          return { access_token: at, refresh_token: rt ?? stored.refresh_token };
+        }
+      }
     }
     // Fallback: legacy endpoint
     const res2 = await fetch(`${FEISHU_BASE}/authen/v1/refresh_access_token`, {
@@ -65,7 +88,9 @@ async function refreshToken(stored: FeishuToken): Promise<string | null> {
     });
     const d2 = (await res2.json()) as Record<string, unknown>;
     const d2data = d2?.data as Record<string, unknown> | undefined;
-    return (d2data?.access_token as string) ?? null;
+    const at2 = d2data?.access_token as string | undefined;
+    const rt2 = d2data?.refresh_token as string | undefined;
+    return at2 ? { access_token: at2, refresh_token: rt2 ?? stored.refresh_token } : null;
   } catch {
     return null;
   }
@@ -81,11 +106,12 @@ async function getValidToken(): Promise<{ token: string; calendarId: string } | 
   const isExpired = ageSeconds > stored.expires_in - 120;
 
   if (isExpired) {
-    const newToken = await refreshToken(stored);
-    if (!newToken) {
+    const refreshed = await refreshToken(stored);
+    if (!refreshed) {
       return null;
     }
-    stored.access_token = newToken;
+    stored.access_token = refreshed.access_token;
+    stored.refresh_token = refreshed.refresh_token;
     stored.obtained_at = new Date().toISOString();
     await saveToken(stored);
   }
