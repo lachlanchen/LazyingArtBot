@@ -376,6 +376,59 @@ journalctl --user -u kairo.service -f
 
 ---
 
+---
+
+## 可选：AI 辅助开发配置（Cursor · Claude Code · ChatGPT）
+
+如果你打算修改或扩展 Kairo，以下配置让 AI 编程工具立刻理解项目架构，无需重复解释。
+
+### 自动生效（零配置）
+
+克隆仓库后，以下工具**打开项目即自动加载**上下文：
+
+| 工具               | 配置文件                          | 效果                                   |
+| ------------------ | --------------------------------- | -------------------------------------- |
+| **Claude Code**    | `CLAUDE.md`                       | 架构、关键文件路径、常见任务、重要约定 |
+| **Cursor**         | `.cursorrules`                    | 目录结构、编码约定、禁忌操作           |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | 精简版项目指引                         |
+
+打开 Cursor 后，左下角应显示 `.cursorrules` 已加载；Claude Code 启动时自动读取 `CLAUDE.md`。
+
+### ChatGPT / 其他大模型
+
+手动粘贴 `CLAUDE.md` 的内容作为对话开头或系统 prompt，即可让任意 LLM 快速了解 Kairo 的架构。
+
+```bash
+cat CLAUDE.md   # 复制输出内容，粘贴到 ChatGPT 对话框
+```
+
+### 常见开发问答
+
+**Q：加一个新的 LLM 工具（如飞书日历、发邮件）？**
+
+1. 在 `src/agents/tools/` 新建文件，导出 `createXxxTool()`
+2. 在 `src/agents/openclaw-tools.ts` import 并加入数组
+3. 重建：`sudo rm dist/.buildstamp && openclaw-restart`
+
+> ⚠️ 不要加到 `moltbot-tools.ts`——那是测试文件，不影响生产。
+
+**Q：修改代码后如何重新部署？**
+
+```bash
+# 强制重建（修改了 src/ 下的文件）
+sudo rm /opt/LazyingArtBot/dist/.buildstamp
+openclaw-restart          # 自动重建 + 重启 + 清理僵尸进程
+
+# 仅重启（改了配置文件，无需重建）
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
+```
+
+**Q：如何确认新功能已编译进去？**
+
+```bash
+grep -l "your_function_name" /opt/LazyingArtBot/dist/*.js
+```
+
 ## 下一步
 
 - 查看 [README](./README.md) 了解完整功能说明
