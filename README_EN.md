@@ -516,36 +516,25 @@ Kairo-KenVersion/
 
 > **"Every AI tool is something you use. Kairo's direction is to become infrastructure you depend on."**
 
-What's the difference? **A phone is a tool** — it only works when you dial. **The power grid is infrastructure** — it runs whether you're there or not.
+What's the difference? When you use a tool, it's off when you're not using it. When you depend on infrastructure, it keeps running for you whether you're there or not.
 
-Every existing AI — ChatGPT, Claude, Notion AI, every agent framework — is fundamentally a phone: no matter how smart, it only has value when you actively dial in. Kairo aims to be the power grid: a personal AI coordination layer running persistently on your server. It processes email digests while you sleep, tracks deadlines while you're in meetings, reminds you of that thing you forgot three days ago while you're distracted.
+**A phone is a tool. The power grid is infrastructure.**
 
----
+Every existing AI — ChatGPT, Claude, Notion AI, every agent framework — is fundamentally a phone: you dial, someone answers; you hang up, the connection drops. No matter how smart, it only has value when you actively call.
 
-### System Design Philosophy
-
-Six capability layers, each with a biological analogy and observable I/O:
-
-| Layer                     | Analogy              | Kairo Component                                                                                                   | Status |
-| ------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- | :----: |
-| **Capture**               | Sensory organs       | Capture Agent — 10 intent types; confidence ≥ 85% silent card creation, below threshold shows confirmation menu   |   ✅   |
-| **Memory**                | Hippocampal encoding | Hub Context — 9 sources, 5,600-char limit, injected into every conversation                                       |   ✅   |
-| **Active Scheduling**     | Prefrontal planning  | Heartbeat Engine + CronService — event-triggered + timed scheduling: briefing / deadline reminders / overdue scan |   ✅   |
-| **Reasoning & Execution** | Cortical processing  | LLM agent turn — full Hub Context carried, 5-minute timeout protection, atomic writes prevent data corruption     |   ✅   |
-| **Self-Monitoring**       | Immune system        | Watchdog — silent failure detection: cron not running / token expired / Heartbeat timeout → push alert            |   🔄   |
-| **Self-Evolution**        | Synaptic plasticity  | Accuracy Log — intent classification ✅/❌ monthly tracking, accuracy curve written to Git, immutable             |   ⬜   |
+Kairo aims to be the power grid: **a personal AI coordination layer running persistently on your server**. It processes email digests while you sleep, tracks deadlines while you're in meetings, and reminds you of that thing you forgot three days ago when you're distracted.
 
 ---
 
 ### Verified Core Assumptions
 
-Kairo v0.9 is running in Ken's production environment. Three critical things have been verified in real conditions:
+Kairo v0.9 is running in Ken's production environment. Three key things have been verified:
 
 1. **Proactive delivery works** — The 07:10 morning briefing arrives reliably to Telegram every day. Ken does nothing.
-2. **Complete loop works** — Say something → card created → scheduled → proactively reminded at the right time → LLM auto-updates status. Zero manual intervention throughout.
-3. **Persistent context works** — Every conversation injects 9 information sources (5,600 chars). Kairo already knows today's calendar, open tasks, and relevant contacts without you re-introducing yourself.
+2. **Complete loop works** — Say something → card auto-created → auto-scheduled → proactively reminded at the right time → LLM auto-updates status. Zero manual intervention throughout.
+3. **Persistent context works** — Every conversation, Kairo already knows today's calendar, open tasks, and relevant contacts — without you re-introducing yourself.
 
-Together, these mean: **an AI secretary that comes to you already exists and is running.**
+Together these mean: **an AI secretary that comes to you already exists and is running.**
 
 The question now isn't "can this be done?" — it's "how far can it go?"
 
@@ -557,7 +546,7 @@ Each Phase is not "adding a feature" — it's a crossing point: **previously imp
 
 ```
 Phase 0 ✅  You don't need to remember to check  → AI proactively finds you for the first time
-Phase 1 🔄  Information comes to you             → You no longer manage information flow
+Phase 1 🔄  Information comes to you             → Researchers no longer manage information flow
 Phase 2     Your context is everywhere           → Every AI tool knows who you are
 Phase 3     Entire tasks can be delegated        → You become the approver, not the executor
 Phase 4     Anyone can have this                 → Private AI secretary is no longer a tech privilege
@@ -568,85 +557,84 @@ Phase 5     It starts improving itself           → A partner that knows you be
 
 #### ✅ Phase 0 — You Don't Need to Remember to Check
 
-**Problem**: Every tool waits for you to open it. If you forget, nothing happens.
+**Problem**: Todo apps wait for you to open them. Calendars wait for you to check. Emails wait for you to refresh. Every tool is waiting. If you forget to open it, nothing happens.
 
 **Breakthrough Moment**: The first time you receive the right information at the right time without actively checking anything.
 
 **Completed**:
 
-- **Capture Agent** — natural language → 10 intent types; confidence ≥ 85% silently creates card + writes to `tasks/`; below threshold shows confirmation menu; `type=timeline/action` + future due date → auto-creates cron job, deduplicated by `capture id:{id}`
-- **Heartbeat Engine** — 07:10 briefing / deadline reminders / 20:30 overdue scan; 5-minute LLM timeout protection; `HEARTBEAT_OK` sentinel prevents meaningless empty deliveries
-- **Hub Context** — 9 context segments injected per conversation: today's calendar / email digest / open tasks (8 lines) / watching / roadmap / monthly digest / contact cards (3) / behavioral patterns / decision wisdom (7 thinkers); 5,600-char total limit
-- **Feishu Calendar LLM tool** — `create_event / list_events`; mutex prevents concurrent writes; user token auto-rolls every 30 days; write failures atomically roll back
-- **Multi-mailbox integration** — Gmail (Pub/Sub webhook) + Feishu Calendar (OAuth) + Outlook/163/QQ/iCloud (IMAP, auto-detect domain); `hub-context.ts` dynamically scans all `*-mail.md` — adding a mailbox requires no code change
-
-**Current Gaps (🔴 Blocking Public Deployment)**:
-
-- **`$KAIRO_HOME` configurable** — paths currently hardcoded to `/opt/LazyingArtBot/`; external users cannot deploy
-- **Watchdog alerts** — silent failures go unnotified; cron not running / Heartbeat timeout / token expiry all need active detection + push alerts
+- Heartbeat proactive delivery (07:10 morning briefing / deadline reminders / 20:30 overdue scan)
+- Capture Agent: 10 intent types auto-classified into cards, confidence ≥ 85% silent processing
+- Complete task loop: say something → card → schedule → remind → auto-update status, fully automatic
+- Hub Context: 9 information sources injected every conversation (calendar / email / tasks / contacts / decision wisdom)
+- Gmail + Feishu Calendar auto-sync, silent daily update at 07:00
 
 ---
 
 #### 🔄 Phase 1 — Information Comes to You
 
-**Problem**: Knowledge workers spend enormous time managing information flow — actively searching arXiv, organizing experiment results, tracking field developments. These actions consume attention without creating any thinking value.
+**Problem**: Knowledge workers spend enormous time "managing information flow" — actively searching arXiv, organizing experiment results, tracking field developments. These actions create no thinking value, yet consume massive attention.
 
 **Breakthrough Moment**:
 
 > At 7:15 AM, today's relevant new papers appear in your Telegram — already translated, already annotated with their relevance to your research. You searched for nothing.
 >
-> 47 hours until a deadline, Kairo switches from normal to emergency mode and reports progress gaps every 4 hours.
+> You say "deep-research Video World Models for me" — a complete report is written to your knowledge base 3 minutes later.
+>
+> After running experiments, Kairo automatically compares all historical results and tells you "Exp-C is 2.3% better than Exp-A, possible reason: ..."
 
 **Core Capabilities**:
 
-- **arXiv daily monitoring** — reads `research_topics.md` keyword list, pulls papers submitted in the past 24 hours, LLM selects ≤ 5 most relevant and annotates their connection to current research; push + write `arxiv-digest.md`; 07:15 cron
-- **`research_deep` LLM tool** — trigger: one natural-language sentence describing the research direction; execution: web search + arXiv API + PDF parsing → structured report written to `research_notes/{topic}-{date}.md`; hub-context auto-injects latest 3 reports; native TypeScript, no external service dependency
-- **`experiment_log` / `experiment_compare` LLM tools** — `log`: record experiment params + metrics → `experiments/{id}.md`; `compare`: auto-generate comparison table, annotate current best; morning briefing proactively diffs previous day's results
-- **Deadline emergency mode** — trigger: any deadline ≤ 48 hours away; behavior: Heartbeat frequency switches from daily to every 4 hours, morning briefing becomes "X hours until deadline, what's still missing"; auto-revert to normal cadence after deadline passes
-- **Docker one-click deployment** — `docker compose up`; mount `~/.kairo:/data`; `restart: unless-stopped`; lower the initial deployment barrier
+| Capability                                                         | World after completion                                                                |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| arXiv daily monitoring + LLM-curated push                          | New field developments appear in front of you — you just decide what's worth reading  |
+| `research_deep` LLM tool (native TypeScript, no external services) | One sentence triggers deep research, report written to `04_knowledge/research_notes/` |
+| Experiment tracking (`experiment_log` / `experiment_compare`)      | Every experiment auto-logged, anomalies auto-flagged, trends proactively reported     |
+| Docker one-click deploy                                            | `docker compose up`, lower the barrier to getting started                             |
 
 ---
 
 #### Phase 2 — Your Context Is Everywhere
 
-**Problem**: You use 5 AI tools and none of them know you. Your deadlines are in Kairo, but Claude Desktop doesn't know. Your contact cards are here, but GPT-4 doesn't know. **You're the employer of 5 strangers who need a full introduction every single conversation.**
+**Problem**: You use 5 AI tools and none of them know you. Your deadlines are in Kairo but Claude Desktop doesn't know; your research direction is here but GPT-4 doesn't know. **You're the employer of 5 strangers who need a full re-introduction every single conversation.**
 
 **Breakthrough Moment**:
 
-> Open Claude Desktop — it already knows your tasks, deadlines, and what you're tracking. You didn't tell it. Kairo is in the background, using MCP protocol to make your context ubiquitous.
+> Open Claude Desktop — it already knows your tasks, deadlines, and what you're tracking. You didn't tell it — Kairo is in the background, using MCP protocol to make your context ubiquitous.
 
 **Core Capabilities**:
 
-- **Kairo MCP Server** — exposes Tools: `get_tasks(status?)`, `create_task(title, due, type)`, `get_calendar(days=7)`, `get_waiting()`, `get_person(name)`; exposes Resources: `roadmap://current`, `daily_log://today`; any MCP client (Claude Desktop / Cursor / ChatGPT) connects directly, no additional authorization
-- **MCP Client** — Kairo as client connects to external MCP servers: `server-filesystem` (replace existing file tools), `server-github` (PR / issue / commit reads), Brave Search MCP (real-time search); no reinventing existing wheels
-- **Accuracy Log + Self-Improving** — every intent classification result written to `self_review/accuracy.jsonl`; user ✅/❌ confirmation triggers annotation; monthly: compute accuracy + most common misclassifications + improvement suggestions; results written to `self_review/YYYY-MM.md`, **permanently in Git, immutable**; accuracy curve visible over time — numbers proving the system is improving
+| Capability       | World after completion                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| Kairo MCP Server | Your calendar / tasks / people become a standard interface any AI tool can read                               |
+| MCP Client       | Kairo calls community MCP servers (GitHub / web search), no reinventing the wheel                             |
+| Self-Improving   | Weekly analysis of own judgment errors → auto-update behavioral patterns, system gets more accurate over time |
 
 ---
 
 #### Phase 3 — Entire Tasks Can Be Delegated
 
-**Problem**: The best result today is "AI helps with one step." Every time it's linear addition, not multiplication.
+**Problem**: The best result today is "AI helps you with one step." Help you research, you still have to synthesize; help you write a draft, you still have to feed content; help you analyze, you still have to conclude. Every time it's linear, not multiplicative.
 
 **Breakthrough Moment**:
 
-> "Help me prepare a literature review for this week's group meeting — topic: latest advances in Video Understanding."
+> You say: "Prepare this week's group meeting slides — topic: latest advances in Video Understanding."
 >
-> Three hours later, a fully structured draft is delivered to your Telegram. **Your job is 15 minutes of final review and edits — not the 3 hours of research and organizing that came before it.**
->
-> _Note: Phase 3 output quality is bounded by how complete Phase 1 (research tools) and Phase 2 (personal context) are._
+> Three hours later, a ready-to-use slide draft is delivered to your Telegram. You did nothing — just said one sentence.
 
 **Core Capabilities**:
 
-- **Swarm orchestration layer** — Kairo as orchestrator: parses intent + decomposes subtasks; specialist workers: Research (arXiv + `research_deep`) / Code (experiment scripts) / Writing (draft generation) / Email (draft & send); built on OpenAI Agents SDK; each worker has independent system prompt + tool scope + token budget
-- **Bounded Autonomy** — high-risk operations whitelist (send external email / delete files / commit code / modify cron config) → must be confirmed by user before execution; all other actions proceed autonomously; confirmation requests push to Telegram, auto-suspend after 30 minutes with no response
-- **Audit Trail** — all agent actions written to `audit.jsonl`: `{ts, agent, action, input_summary, output_summary, status}`; visualized in Control UI; full replayability at any time
-- **Graceful degradation** — any worker failure → orchestrator logs reason + pushes alert, never silently drops; supports single-worker retry without rerunning the entire task
+| Capability                                                   | World after completion                                                                                               |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Swarm orchestration layer (OpenAI Agents SDK / agency-swarm) | Kairo as orchestrator, decomposes and delegates to Research / Code / Writing specialist agents                       |
+| Bounded Autonomy                                             | High-risk operations (send email / delete files / commit code) require your confirmation; everything else autonomous |
+| Audit Trail                                                  | All agent actions written to `audit.jsonl`, full replayability at any time                                           |
 
 ---
 
 #### Phase 4 — Anyone Can Have This
 
-**Problem**: Data directory is hardcoded, requires root access. **A private AI secretary has become a technical privilege.**
+**Problem**: Data directory currently hardcoded to `/opt/LazyingArtBot/`, requires root access. **No technical background means no deployment. Private AI secretary has become a tech privilege.**
 
 **Breakthrough Moment**:
 
@@ -654,9 +642,9 @@ Phase 5     It starts improving itself           → A partner that knows you be
 
 **Core Capabilities**:
 
-- **`$KAIRO_HOME` configurable** — all paths replaced with `process.env.KAIRO_HOME ?? path.join(os.homedir(), '.kairo')`; systemd service runs as normal user; `~/.openclaw/` → `$KAIRO_HOME/data/` migration script
-- **`install.sh`** — interactive 5-step setup: check deps (Node 22+) → choose channel → enter token → choose model → generate config + start service; optional: Gmail OAuth / Feishu Calendar / Feishu channel
-- **GitHub Release v1.0** — `openclaw.example.json` complete template + QUICKSTART.md 7-step guide + Docker image published
+- Remove root dependency, `$KAIRO_HOME` configurable (**current top priority, blocking public release**)
+- `install.sh` + AI-guided interactive setup
+- `openclaw.example.json` complete template + GitHub Release v1.0
 
 ```
 ./install.sh
@@ -667,7 +655,7 @@ Phase 5     It starts improving itself           → A partner that knows you be
 [4/5] Choose model: OpenAI / Anthropic / Local Ollama? > OpenAI
 [5/5] Generating config + starting service... ✅
 
-Send your bot a message: "Remind me tomorrow morning to reply to Jason"
+Send @YourBot a message: "Remind me tomorrow morning to reply to Jason"
 ```
 
 ---
@@ -676,11 +664,11 @@ Send your bot a message: "Remind me tomorrow morning to reply to Jason"
 
 > **At this point, Kairo is not "a tool I use" — it's "a partner that knows me better over time."**
 
-- **Self-Improving (deepened from Phase 2)** — every improvement has explicit before/after accuracy comparison; changes written to `IDENTITY.md` / `HEARTBEAT.md` playbook — numbers proving it's getting better
-- **Computer Use** — integrates Anthropic Computer Use API or browser-use; isolated Chromium instance; screenshot logs retained; high-risk actions still require confirmation
-- **Relationship Graph** — `people/` cards upgrade to directed graph; automatically infers potential connections (shared topics / shared projects); Obsidian Graph View compatible format
-- **Long-term Memory** — monthly compression → annual highlights; vector index enables natural language queries over 60-day knowledge window
-- **Cross-device Context** — `/api/context` endpoint returns current Hub Context snapshot; combined with MCP Server (Phase 2), any device connects to the same Kairo context
+- **Self-Improving** (deepened from Phase 2): weekly analysis of judgment errors → update rules → more accurate next time
+- **Computer Use**: not just text suggestions — directly operates browser to complete tasks (fill forms, download reports, web interactions)
+- **Relationship Graph**: contact cards upgrade to network graph, automatically discovers "Jason and Tom are both in AI education — worth introducing"
+- **Long-term Memory**: monthly compression → annual highlights, every thought you accumulate never fades with memory
+- **Cross-device Context**: phone / laptop / server, same Kairo context everywhere
 
 ---
 
