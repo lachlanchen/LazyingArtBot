@@ -1,6 +1,7 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 
+
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -14,17 +15,17 @@
 [![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](../i18n)
 [![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](../docs)
 
-> 🌍 **i18n-Status:** `i18n/` ist vorhanden und enthält derzeit lokalisierte README-Dateien für Arabisch, Deutsch, Spanisch, Französisch, Japanisch, Koreanisch, Russisch, Vietnamesisch, vereinfachtes und traditionelles Chinesisch. Diese englische Fassung bleibt die kanonische Quelle für inkrementelle Updates.
+> 🌍 **i18n-Status:** `i18n/` ist vorhanden und enthält derzeit lokalisierte README-Dateien für Arabisch, Deutsch, Spanisch, Französisch, Japanisch, Koreanisch, Russisch, Vietnamesisch, vereinfachtes und traditionelles Chinesisch. Diese englische Fassung bleibt die kanonische Referenz für inkrementelle Updates.
 
 **LazyingArtBot** ist mein persönlicher KI-Assistenten-Stack für **lazying.art**.
-Er basiert auf OpenClaw und ist für meinen täglichen Workflow angepasst: multi-channel Chat, local-first Steuerung sowie E-Mail- zu Kalender-/Erinnerungs-/Notiz-Automatisierung.
+Es basiert auf OpenClaw und ist für meinen täglichen Workflow adaptiert: Multi-Channel-Chat, lokale Erstkontrolle und E-Mail-zu-Kalender-/Erinnerungs-/Notiz-Automatisierung.
 
-| 🔗 Link | URL |
-| --- | --- |
-| 🌐 Webseite | https://lazying.art |
-| 🤖 Bot-Domain | https://lazying.art |
-| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw |
-| 📦 Dieses Repo | https://github.com/lachlanchen/LazyingArtBot |
+| 🔗 Link | URL | Fokus |
+| --- | --- | --- |
+| 🌐 Website | https://lazying.art | Primäre Domain und Status-Dashboard |
+| 🤖 Bot-Domain | https://lazying.art | Einstiegspunkt für Chat und Assistent |
+| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw | OpenClaw-Plattform |
+| 📦 Dieses Repo | https://github.com/lachlanchen/LazyingArtBot | LAB-spezifische Anpassungen |
 
 ---
 
@@ -209,7 +210,7 @@ Typischer Ablauf:
 
 ```bash
 cp .env.example .env
-# set at minimum: OPENCLAW_GATEWAY_TOKEN and your model provider key(s)
+# mindestens: OPENCLAW_GATEWAY_TOKEN und deinen Modellanbieter-Schlüssel setzen
 docker compose up -d
 ```
 
@@ -227,17 +228,17 @@ Typischerweise erforderliche Compose-Variablen:
 Häufige Befehle:
 
 ```bash
-# Onboard and install user daemon
+# Onboarding durchführen und Benutzer-Daemon installieren
 openclaw onboard --install-daemon
 
-# Run gateway in foreground
+# Gateway im Vordergrund starten
 openclaw gateway run --bind loopback --port 18789 --verbose
 
-# Send a direct message via configured channels
+# Direkte Nachricht über konfigurierte Kanäle senden
 openclaw message send --to +1234567890 --message "Hello from LAB"
 
-# Ask the agent directly
-openclaw agent --message "Create today checklist" --thinking high
+# Agenten direkt anfragen
+openclaw agent --message "Erstelle eine Prioritätenliste für heutige Aufgaben" --thinking high
 ```
 
 Entwicklungs-Loop (Watch-Modus):
@@ -287,7 +288,7 @@ Sicherheitskritische Baseline vor Internet-Zugriff:
 - Behandle jede eingehende Nachricht/jedes E-Mail als untrusted input.
 - Mit minimalen Rechten laufen lassen und Logs regelmäßig prüfen.
 
-Wenn du das Gateway ins Internet exposed, dann erfordere Token-/Passwort-Authentifizierung und vertrauenswürdige Proxy-Konfiguration.
+Wenn du das Gateway ins Internet freigibst, aktiviere zwingend Token-/Passwort-Authentifizierung und eine vertrauenswürdige Proxy-Konfiguration.
 
 ---
 
@@ -333,27 +334,27 @@ Komplexe Ziele in deterministische Ausführung + fokussierte Prompt-Tool-Ketten 
   Planung, Triage, Kontextsynthese und Entscheidungsfindung unter Unsicherheit.
 - Jede Stufe erzeugt wiederverwendbare Artefakte, sodass nachgelagerte Tools stärkere finale Notizen/E-Mails ohne Neuaufbau schreiben können.
 
-Core Orchestrierungsketten:
+Wichtige Orchestrierungsketten:
 
-- Unternehmenschains:
-  Unternehmenskontext-Ingestion -> Markt/Funding/Akademisch/Legal Intelligence -> konkrete Wachstumsmaßnahmen.
-- Auto-Mail-Chain:
-  Eingangsmail-Triage -> konservative Skip-Policy für niedrigwertige Mails -> strukturierte Notes/Reminders/Calendar-Aktionen.
-- Web-Such-Chain:
-  Ergebnisseiten-Erfassung -> gezielte Deep Reads mit Screenshot-/Content-Extraktion -> evidenzgestützte Synthese.
+- Unternehmerketten:
+  Unternehmenskontext-Aufnahme -> Markt-/Finanzierungs-/wissenschaftliche/rechtliche Intelligence -> konkrete Wachstumsmaßnahmen.
+- AutoMail-Kette:
+  Eingangsmail-Triage -> konservative Auslassungsregeln für Niedrigwertiges -> strukturierte Notes-/Reminders-/Calendar-Aktionen.
+- Webrecherche-Kette:
+  Erfassung von Ergebnisseiten -> gezielte Tiefenauswertung mit Screenshot-/Text-Extraktion -> evidenzgestützte Synthese.
 
 ---
 
 ## Prompt-Tools in LAB
 
-Prompt-Tools sind modular, kombinierbar und orchestration-first.
-Sie können unabhängig laufen oder als verkettete Stufen in größeren Workflows arbeiten.
+Prompt-Tools sind modular, kombinierbar und orchestrierungszentriert.
+Sie können eigenständig laufen oder als verkettete Stufen in größeren Workflows arbeiten.
 
-- Read/Save-Operationen:
-  Erstellung und Aktualisierung von Notes-, Reminders- und Calendar-Ausgaben für AutoLife-Operationen.
-- Screenshot/Read-Operationen:
+- Lese-/Speicher-Operationen:
+  Erstellung und Aktualisierung von Notes-, Reminders- und Calendar-Ausgaben für AutoLife-Workflows.
+- Screenshot-/Lese-Operationen:
   Suchseiten und verlinkte Seiten erfassen, anschließend strukturierten Text für Folgeanalysen extrahieren.
-- Tool-Connection-Operationen:
+- Tool-Verbindungs-Operationen:
   Deterministische Skripte aufrufen, Artefakte zwischen Stufen austauschen und Kontextkontinuität halten.
 
 Primärer Ort:
@@ -373,10 +374,10 @@ openclaw gateway run --bind loopback --port 18789 --verbose
 ### Beispiel: Agenten bitten, die Tagesplanung zu verarbeiten
 
 ```bash
-openclaw agent --message "Review today inbox and build a prioritized task plan" --thinking high
+openclaw agent --message "Überprüfe den heutigen Posteingang und erstelle einen priorisierten Aufgabenplan" --thinking high
 ```
 
-### Beispiel: Source Build + Watch Loop
+### Beispiel: Quellcode-Build + Watch-Schleife
 
 ```bash
 pnpm install
@@ -399,7 +400,7 @@ docker compose logs -f openclaw-gateway
 
 - Runtime-Basis: Node `>=22.12.0`.
 - Paketmanager-Basis: `pnpm@10.23.0` (`packageManager` Feld).
-- Übliche Quality Gates:
+- Übliche Qualitätsprüfungen:
 
 ```bash
 pnpm check          # format + ts checks + lint
@@ -421,7 +422,7 @@ pnpm test:docker:all
 pnpm test:ui
 ```
 
-Weitere Dev-Hilfen:
+Weitere Hilfen:
 
 ```bash
 pnpm docs:dev
@@ -458,9 +459,9 @@ Prüfe auf Portkollisionen und Daemon-Konflikte. Bei Docker verifiziere gemappte
 - Neu bauen mit `pnpm ui:build && pnpm build`.
 - Wenn optionale native Peers fehlen, prüfe Installationslogs auf Kompatibilität von `@napi-rs/canvas` / `node-llama-cpp`.
 
-### Allgemeine Health Checks
+### Allgemeine Gesundheitsprüfungen
 
-Nutze `openclaw doctor`, um Migrations-/Security-/Konfigurationsdrift zu erkennen.
+Nutze `openclaw doctor`, um Migrations-/Sicherheits-/Konfigurationsdrift zu erkennen.
 
 ### Nützliche Diagnostik
 
@@ -483,11 +484,11 @@ Profil:
 Integrierte Repositories:
 
 - `VoidAbyss` (隙遊之淵)
-- `AutoNovelWriter` (automatic novel writing)
-- `AutoAppDev` (automatic app development)
-- `OrganoidAgent` (organoid research platform with foundation vision models + LLMs)
-- `LazyEdit` (AI-assisted video editing: captions/transcription/highlights/metadata/subtitles)
-- `AutoPublish` (automatic publication pipeline)
+- `AutoNovelWriter` (automatisches Schreiben von Romanen)
+- `AutoAppDev` (automatische App-Entwicklung)
+- `OrganoidAgent` (Organoid-Forschungsplattform mit Foundation-Vision-Modellen + LLMs)
+- `LazyEdit` (KI-gestützte Videobearbeitung: Untertitel, Transkription, Highlights, Metadaten)
+- `AutoPublish` (automatische Veröffentlichungspipeline)
 
 Praktische LAB-Integrationsziele:
 
@@ -511,7 +512,7 @@ pnpm build
 pnpm openclaw onboard --install-daemon
 ```
 
-Entwicklungsloop:
+Entwicklungsschleife:
 
 ```bash
 pnpm gateway:watch
@@ -543,14 +544,6 @@ Falls Verhalten auf LAB-spezifische Aspekte unklar sind, bestehendes Verhalten b
 
 ---
 
-## ❤️ Support
-
-| Donate | PayPal | Stripe |
-|---|---|---|
-| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
-
----
-
 ## Danksagung
 
 LazyingArtBot basiert auf **OpenClaw**:
@@ -565,3 +558,10 @@ Danke an die OpenClaw-Maintainer und die Community für die Kernplattform.
 ## Lizenz
 
 MIT (soweit im Upstream passend). Siehe `LICENSE`.
+
+
+## ❤️ Support
+
+| Donate | PayPal | Stripe |
+| --- | --- | --- |
+| [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |

@@ -1,6 +1,7 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 
+
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -13,24 +14,27 @@
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
 [![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](i18n)
 [![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](docs)
+[![GitHub stars](https://img.shields.io/badge/GitHub-stars-0ea5e9?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
+[![GitHub issues](https://img.shields.io/badge/GitHub-issues-ef4444?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/issues)
 
 
-**LazyingArtBot** هي حزمة مساعدي الشخصي للذكاء الاصطناعي الخاصة بـ **lazying.art**.
-تم بناؤها فوق OpenClaw وتكييفها لسير عملي اليومي: محادثة متعددة القنوات، وتحكم local-first، وأتمتة البريد الإلكتروني -> التقويم/التذكيرات/الملاحظات.
+**LazyingArtBot** هو ستاك المساعد الذكي الشخصي الخاص بي لموقع **lazying.art**:
 
-| 🔗 الرابط | URL |
-| --- | --- |
-| 🌐 الموقع | https://lazying.art |
-| 🤖 نطاق البوت | https://lazying.art |
-| 🧱 القاعدة الأساسية (Upstream) | https://github.com/openclaw/openclaw |
-| 📦 هذا المستودع | https://github.com/lachlanchen/LazyingArtBot |
+**LazyingArtBot** مبني فوق OpenClaw ومُعدّل ليتوافق مع سير عملي اليومي: دردشة متعددة القنوات، وتحكم local-first، وأتمتة البريد الإلكتروني إلى تقويم/تذكيرات/ملاحظات.
+
+| 🔗 الرابط | URL | التركيز |
+| --- | --- | --- |
+| 🌐 الموقع | https://lazying.art | النطاق الأساسي ولوحة حالة الخدمة |
+| 🤖 نطاق البوت | https://lazying.art | نقطة دخول المحادثة والمساعد |
+| 🧱 القاعدة الأساسية | https://github.com/openclaw/openclaw | أساس منصة OpenClaw |
+| 📦 هذا المستودع | https://github.com/lachlanchen/LazyingArtBot | تخصيصات LAB |
 
 ---
 
-## جدول المحتويات
+## فهرس المحتويات
 
 - [نظرة عامة](#نظرة-عامة)
-- [لمحة سريعة](#لمحة-سريعة)
+- [نظرة سريعة](#لمحة-سريعة)
 - [الميزات](#الميزات)
 - [القدرات الأساسية](#القدرات-الأساسية)
 - [هيكل المشروع](#هيكل-المشروع)
@@ -48,7 +52,7 @@
 - [استكشاف الأخطاء وإصلاحها](#استكشاف-الأخطاء-وإصلاحها)
 - [تكاملات منظومة LAB](#تكاملات-منظومة-lab)
 - [التثبيت من المصدر (مرجع سريع)](#التثبيت-من-المصدر-مرجع-سريع)
-- [خارطة الطريق](#خارطة-الطريق)
+- [خطة الطريق](#خطة-الطريق)
 - [المساهمة](#المساهمة)
 - [❤️ Support](#-support)
 - [الشكر والتقدير](#الشكر-والتقدير)
@@ -58,64 +62,64 @@
 
 ## نظرة عامة
 
-يركّز LAB على إنتاجية شخصية عملية:
+يركز LAB على إنتاجية عملية للحياة اليومية:
 
-- ✅ تشغيل مساعد واحد عبر قنوات المحادثة التي تستخدمها بالفعل.
-- 🔐 إبقاء البيانات والتحكم على جهازك/خادمك.
-- 📬 تحويل البريد الوارد إلى إجراءات منظّمة (Calendar, Reminders, Notes).
-- 🛡️ إضافة حواجز أمان تجعل الأتمتة مفيدة لكنها آمنة.
+- ✅ تشغيل مساعد واحد عبر قنوات الدردشة التي تستخدمها بالفعل.
+- 🔐 الحفاظ على البيانات والتحكم على جهازك أو خادمك.
+- 📬 تحويل البريد الوارد إلى إجراءات منظمة (Calendar, Reminders, Notes).
+- 🛡️ إضافة قيود أمان تجعل الأتمتة مفيدة لكن آمنة.
 
-باختصار: أعمال روتينية أقل، وتنفيذ أفضل.
+باختصار: أعمال مكتبية أقل، وتنفيذ أفضل.
 
 ---
 
 ## لمحة سريعة
 
-| المجال | الخط الأساسي الحالي في هذا المستودع |
+| المجال | الحالة المرجعية في هذا المستودع |
 | --- | --- |
-| بيئة التشغيل | Node.js `>=22.12.0` |
+| وقت التشغيل | Node.js `>=22.12.0` |
 | مدير الحزم | `pnpm@10.23.0` |
 | CLI الأساسي | `openclaw` |
 | البوابة المحلية الافتراضية | `127.0.0.1:18789` |
 | منفذ الجسر الافتراضي | `127.0.0.1:18790` |
 | الوثائق الأساسية | `docs/` (Mintlify) |
-| تنسيق LAB الرئيسي | `orchestral/` + `scripts/prompt_tools/` |
+| تنسيق LAB الأساسي | `orchestral/` + `scripts/prompt_tools/` |
 | موقع README متعدد اللغات | `i18n/README.*.md` |
 
 ---
 
 ## الميزات
 
-- 🌐 بيئة تشغيل مساعد متعددة القنوات مع بوابة محلية.
-- 🖥️ لوحة تحكم/محادثة عبر المتصفح للعمليات المحلية.
-- 🧰 خط أتمتة مدعوم بالأدوات (scripts + prompt-tools).
-- 📨 فرز البريد وتحويله إلى إجراءات Notes وReminders وCalendar.
-- 🧩 منظومة plugins/extensions (`extensions/*`) للقنوات/المزودات/التكاملات.
+- 🌐 وقت تشغيل مساعد متعدد القنوات مع بوابة محلية.
+- 🖥️ سطح تشغيل/دردشة للعمليات المحلية عبر المتصفح.
+- 🧰 خط أتمتة مُفعّل بالأدوات (scripts + prompt-tools).
+- 📨 فرز وتحويل البريد الإلكتروني إلى إجراءات في Notes وReminders وCalendar.
+- 🧩 نظام إضافات (`extensions/*`) للقنوات/المزودات/التكاملات.
 - 📱 واجهات متعددة المنصات داخل المستودع (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
 
 ---
 
 ## القدرات الأساسية
 
-| القدرة | معناها عمليًا |
+| القدرة | ما يعنيه ذلك عملياً |
 | --- | --- |
-| بيئة تشغيل مساعد متعددة القنوات | جلسات Gateway + agent عبر القنوات التي تفعّلها |
-| لوحة ويب / محادثة | واجهة تحكم عبر المتصفح للعمليات المحلية |
-| سير عمل مدعوم بالأدوات | سلاسل تنفيذ shell + file + automation script |
-| خط أتمتة البريد الإلكتروني | تحليل البريد، تصنيف نوع الإجراء، توجيهه إلى Notes/Reminders/Calendar، وتسجيل الإجراءات للمراجعة/تصحيح الأخطاء |
+| وقت تشغيل مساعد متعدد القنوات | بوابة + جلسات agent عبر القنوات التي تفعلها |
+| لوحة الويب/الدردشة | واجهة تحكم بالعمليات المحلية عبر المتصفح |
+| سير عمل بالأدوات | سلسلة تنفيذ shell + file + سكربتات أتمتة |
+| خط أتمتة البريد الإلكتروني | تحليل الرسائل، تصنيف نوع الإجراء، توجيهها إلى Notes/Reminders/Calendar، وتسجيل الإجراءات للمراجعة/التصحيح |
 
-خطوات الخط المحفوظة من سير العمل الحالي:
+خطوات خط المعالجة المحفوظة من سير العمل الحالي:
 
-- parse inbound mail
-- classify action type
-- save to Notes / Reminders / Calendar
-- log every action for review and debugging
+- تحليل البريد الوارد
+- تصنيف نوع الإجراء
+- الحفظ إلى Notes / Reminders / Calendar
+- تسجيل كل إجراء للمراجعة والتصحيح
 
 ---
 
 ## هيكل المشروع
 
-تخطيط المستودع على مستوى عالٍ:
+تخطيط المستودع على مستوى عالي:
 
 ```text
 .
@@ -137,23 +141,23 @@
 
 ملاحظات:
 
-- يشير `scripts/prompt_tools` إلى تنفيذ أدوات prompt ضمن orchestral.
-- يحتوي جذر `i18n/` على نسخ README المترجمة.
-- يوجد `.github/workflows.disabled/` في هذه اللقطة؛ يجب التحقق من سلوك CI الفعلي قبل الاعتماد على افتراضات سير العمل.
+- `scripts/prompt_tools` يشير إلى تنفيذ أدوات orchestral prompt.
+- يوجد في الجذر `i18n/` ملفات README مترجمة.
+- `‪.github/workflows.disabled/` موجود في هذه اللحظة؛ تأكد من حالة CI النشطة قبل الاعتماد على افتراضات سير العمل.
 
 ---
 
 ## المتطلبات المسبقة
 
-خطوط الأساس الخاصة ببيئة التشغيل والأدوات في هذا المستودع:
+الأساسيات التشغيلية والأدوات في هذا المستودع:
 
 - Node.js `>=22.12.0`
-- خط أساس pnpm هو `10.23.0` (راجع `packageManager` في `package.json`)
-- مفتاح مزوّد نموذج واحد على الأقل (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, إلخ)
-- اختياري: Docker + Docker Compose لتشغيل gateway/CLI ضمن حاويات
-- اختياري لبناءات الموبايل/mac: سلاسل أدوات Apple/Android حسب المنصة المستهدفة
+- pnpm `10.23.0` كخط أساس (انظر `packageManager` في `package.json`)
+- مفتاح مزود نموذج واحد على الأقل (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, إلخ.)
+- اختياري: Docker + Docker Compose للبنية المعزولة للبوابة/CLI
+- اختياري لبناءات الجوال/mac: سلاسل أدوات Apple/Android بحسب منصة الهدف
 
-تثبيت CLI عالمي اختياري (يطابق تدفق البدء السريع):
+تثبيت CLI عالمي اختياري (مطابق لتدفق البدء السريع):
 
 ```bash
 npm install -g openclaw@latest
@@ -165,7 +169,7 @@ pnpm add -g openclaw@latest
 
 ## البدء السريع
 
-خط أساس بيئة التشغيل في هذا المستودع: **Node >= 22.12.0** (`package.json` engine).
+الأساس التشغيلي في هذا المستودع: **Node >= 22.12.0** (`package.json` engine).
 
 ```bash
 npm install -g openclaw@latest
@@ -176,11 +180,11 @@ openclaw onboard --install-daemon
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-ثم افتح لوحة التحكم المحلية والمحادثة:
+ثم افتح لوحة التحكم المحلية:
 
 - http://127.0.0.1:18789
 
-للوصول عن بُعد، عرّض البوابة المحلية عبر نفق آمن من اختيارك (مثل ngrok/Tailscale) مع إبقاء المصادقة مفعلة.
+للوصول عن بُعد، اعرض البوابة المحلية عبر نفق آمن (مثلاً ngrok/Tailscale) مع تمكين المصادقة.
 
 ---
 
@@ -199,12 +203,12 @@ pnpm openclaw onboard --install-daemon
 
 ### سير عمل Docker اختياري
 
-يتضمن `docker-compose.yml` ما يلي:
+يوجد ملف `docker-compose.yml` ويتضمن:
 
 - `openclaw-gateway`
 - `openclaw-cli`
 
-تدفق نموذجي:
+التدفق النموذجي:
 
 ```bash
 cp .env.example .env
@@ -212,7 +216,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-متغيرات Compose المطلوبة غالبًا:
+متغيرات Compose شائعة الاستخدام:
 
 - `OPENCLAW_CONFIG_DIR`
 - `OPENCLAW_WORKSPACE_DIR`
@@ -223,7 +227,7 @@ docker compose up -d
 
 ## الاستخدام
 
-أوامر شائعة:
+الأوامر الشائعة:
 
 ```bash
 # Onboard and install user daemon
@@ -239,19 +243,19 @@ openclaw message send --to +1234567890 --message "Hello from LAB"
 openclaw agent --message "Create today checklist" --thinking high
 ```
 
-حلقة التطوير (watch mode):
+حلقة تطوير (watch mode):
 
 ```bash
 pnpm gateway:watch
 ```
 
-تطوير الواجهة:
+تطوير واجهة المستخدم:
 
 ```bash
 pnpm ui:dev
 ```
 
-أوامر تشغيلية إضافية مفيدة:
+أوامر تشغيلية مفيدة إضافية:
 
 ```bash
 openclaw channels status --probe
@@ -266,54 +270,54 @@ openclaw doctor
 
 ## الإعداد
 
-مرجع البيئة والإعداد مقسّم بين `.env` و `~/.openclaw/openclaw.json`.
+مرجع الإعداد والبيئة مقسم بين `.env` و `~/.openclaw/openclaw.json`.
 
 1. ابدأ من `.env.example`.
-2. اضبط مصادقة البوابة (يوصى بـ `OPENCLAW_GATEWAY_TOKEN`).
+2. ضبط مصادقة البوابة (`OPENCLAW_GATEWAY_TOKEN` موصى به).
 3. اضبط مفتاح مزود نموذج واحد على الأقل (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, إلخ).
-4. اضبط بيانات اعتماد القنوات التي تفعّلها فقط.
+4. اجعل بيانات اعتماد القنوات موجودة فقط للقنوات التي تفعلها.
 
-ملاحظات مهمة من `.env.example` محفوظة من المستودع:
+ملاحظات `.env.example` المهمة والمحافظة عليها من المستودع:
 
-- أسبقية متغيرات البيئة: process env -> `./.env` -> `~/.openclaw/.env` -> config `env` block.
-- القيم غير الفارغة الموجودة مسبقًا في process env لا يتم تجاوزها.
-- مفاتيح الإعداد مثل `gateway.auth.token` يمكن أن تتقدم على بدائل env.
+- أولوية المتغيرات: process env -> `./.env` -> `~/.openclaw/.env` -> config `env` block.
+- القيم غير الفارغة الحالية في process env لا تُستبدل.
+- مفاتيح التكوين مثل `gateway.auth.token` يمكنها أن تتقدم على بدائل env.
 
-الخط الأساسي الأمني قبل التعرض للإنترنت:
+أساسيات أمنيّة قبل التعرض للإنترنت:
 
-- أبقِ مصادقة/اقتران البوابة مفعّلين.
-- اجعل قوائم السماح صارمة للقنوات الواردة.
-- تعامل مع كل رسالة/بريد وارد على أنه إدخال غير موثوق.
-- شغّل بأقل صلاحيات ممكنة وراجع السجلات بانتظام.
+- احتفظ بمصادقة/اقتران البوابة مفعّلة.
+- اجعل allowlists صارمة للقنوات الواردة.
+- تعامل مع كل رسالة/بريد وارد كمدخل غير موثوق.
+- شغّل بأقل صلاحيات وراجع السجلات بانتظام.
 
-إذا عرّضت البوابة للإنترنت، فاشترط مصادقة token/password وإعداد trusted proxy.
+إذا عرضت البوابة على الإنترنت، اشترط token/password auth وتكوين proxy موثوق به.
 
 ---
 
 ## أنماط النشر
 
-| النمط | الأنسب لـ | أمر نموذجي |
+| النمط | الأفضل لـ | الأمر المعتاد |
 | --- | --- | --- |
-| Local foreground | التطوير وتصحيح الأخطاء | `openclaw gateway run --bind loopback --port 18789 --verbose` |
-| Local daemon | الاستخدام الشخصي اليومي | `openclaw onboard --install-daemon` |
-| Docker | بيئة تشغيل معزولة ونشر قابل للتكرار | `docker compose up -d` |
-| Remote host + tunnel | الوصول من خارج الشبكة المنزلية | تشغيل gateway + نفق آمن، مع إبقاء المصادقة مفعلة |
+| التشغيل في الواجهة الأمامية محليًا | التطوير والتصحيح | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| daemon محلي | الاستخدام الشخصي اليومي | `openclaw onboard --install-daemon` |
+| Docker | تشغيل معزول ونشر قابل للتكرار | `docker compose up -d` |
+| مضيف بعيد + نفق | الوصول من خارج شبكة المنزل | شغّل البوابة + نفقًا آمنًا مع إبقاء المصادقة مفعّلة |
 
-افتراض: تقوية reverse-proxy على مستوى الإنتاج، وتدوير الأسرار، وسياسات النسخ الاحتياطي تعتمد على بيئة النشر ويجب تعريفها لكل بيئة.
+الافتراض: تقوية reverse-proxy على مستوى الإنتاج، تدوير الأسرار، وسياسة النسخ الاحتياطي أمور خاصة بكل بيئة وينبغي تعريفها حسب البيئة.
 
 ---
 
 ## تركيز سير عمل LazyingArt
 
-هذا التفرع يركز على تدفقي الشخصي في **lazying.art**:
+هذا الفرع يركز على تدفقي الشخصي في **lazying.art**:
 
-- 🎨 هوية مخصصة (LAB / panda theme)
-- 📱 تجربة لوحة تحكم/محادثة صديقة للموبايل
-- 📨 تنويعات خط automail (rule-triggered, codex-assisted save modes)
-- 🧹 سكربتات تنظيف شخصية وتصنيف المرسلين
-- 🗂️ توجيه Notes/Reminders/Calendar مضبوط للاستخدام اليومي الفعلي
+- 🎨 هوية مخصصة (LAB / ثيم الباندا)
+- 📱 تجربة لوحة تحكم ودردشة مناسبة للجوال
+- 📨 نسخ مختلفة من automail (rule-triggered, codex-assisted save modes)
+- 🧹 سكربتات تنظيف شخصي وتصنيف المرسلين
+- 🗂️ توجيه Notes/Reminders/Calendar مضبوط لاستخدام يومي فعلي
 
-مساحة عمل الأتمتة (محليًا):
+فضاء العمل الأوتوماتيكي (محلي):
 
 - `~/.openclaw/workspace/automation/`
 - مراجع السكربتات في المستودع: `references/lab-scripts-and-philosophy.md`
@@ -323,16 +327,16 @@ openclaw doctor
 
 ## فلسفة Orchestral
 
-يتبع تنسيق LAB قاعدة تصميم واحدة:
-تقسيم الأهداف الصعبة إلى تنفيذ حتمي + سلاسل prompt-tool مركزة.
+تنسيق LAB يتبع قاعدة تصميم واحدة:
+تقسيم الأهداف المعقدة إلى تنفيذ حتمي وسلاسل prompt-tool مركزة.
 
-- تتولى السكربتات الحتمية الأعمال الموثوقة:
-  الجدولة، وتوجيه الملفات، وأدلة التشغيل، وإعادة المحاولة، وتسليم المخرجات.
-- تتولى أدوات prompt الذكاء التكيفي:
-  التخطيط، والفرز، وتوليف السياق، واتخاذ القرار تحت عدم اليقين.
-- كل مرحلة تُنتج artifacts قابلة لإعادة الاستخدام لكي تبني المراحل اللاحقة مخرجات أقوى دون البدء من الصفر.
+- السكربتات الحتمية تتولى الأنابيب الموثوقة:
+  جدولة، توجيه ملفات، تشغيل الأدلة، إعادة المحاولات، وتسليم المخرجات.
+- أدوات prompt تتولى الذكاء التكيفي:
+  التخطيط، الفرز، تركيب السياق، واتخاذ القرار تحت عدم اليقين.
+- كل مرحلة تنتج artifacts قابلة لإعادة الاستخدام بحيث تبني الأدوات اللاحقة مخرجات أقوى بدون البدء من الصفر.
 
-السلاسل الأساسية في orchestral:
+سلاسل orchestral الأساسية:
 
 - Company entrepreneurship chain:
   company context ingestion -> market/funding/academic/legal intelligence -> concrete growth actions.
@@ -345,17 +349,17 @@ openclaw doctor
 
 ## أدوات Prompt في LAB
 
-أدوات Prompt معيارية، قابلة للتركيب، وتبدأ من مبدأ orchestration-first.
-يمكن تشغيلها بشكل مستقل أو كمراحل مترابطة داخل سير عمل أكبر.
+أدوات Prompt معيارية وقابلة للتركيب وتركيزها orchestration-first.
+يمكن تشغيلها بشكل مستقل أو كسلاسل مرتبطة في تدفق عمل أكبر.
 
 - عمليات القراءة/الحفظ:
   إنشاء وتحديث مخرجات Notes وReminders وCalendar لعمليات AutoLife.
 - عمليات لقطة الشاشة/القراءة:
   التقاط صفحات نتائج البحث والصفحات المرتبطة ثم استخراج نص منظم للتحليل اللاحق.
 - عمليات ربط الأدوات:
-  استدعاء السكربتات الحتمية، وتبادل artifacts بين المراحل، والحفاظ على استمرارية السياق.
+  استدعاء سكربتات حتمية، تبادل artifacts بين المراحل، والحفاظ على استمرارية السياق.
 
-الموقع الرئيسي:
+الموقع الأساسي:
 
 - `scripts/prompt_tools/`
 
@@ -369,7 +373,7 @@ openclaw doctor
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-### مثال: اطلب من الوكيل معالجة التخطيط اليومي
+### مثال: اطلب من agent معالجة التخطيط اليومي
 
 ```bash
 openclaw agent --message "Review today inbox and build a prioritized task plan" --thinking high
@@ -396,9 +400,9 @@ docker compose logs -f openclaw-gateway
 
 ## ملاحظات التطوير
 
-- خط أساس بيئة التشغيل: Node `>=22.12.0`.
+- خط أساس التشغيل: Node `>=22.12.0`.
 - خط أساس مدير الحزم: `pnpm@10.23.0` (حقل `packageManager`).
-- بوابات الجودة الشائعة:
+- بوابات جودة شائعة:
 
 ```bash
 pnpm check          # format + ts checks + lint
@@ -407,11 +411,11 @@ pnpm test           # test suite
 pnpm test:coverage  # coverage run
 ```
 
-- CLI أثناء التطوير: `pnpm openclaw ...`
+- CLI في طور التطوير: `pnpm openclaw ...`
 - حلقة تشغيل TS: `pnpm dev`
-- أوامر حزمة الواجهة ممررة عبر سكربتات الجذر (`pnpm ui:build`, `pnpm ui:dev`).
+- أوامر حزمة الواجهة تُمرَّر عبر سكربتات الجذر (`pnpm ui:build`, `pnpm ui:dev`).
 
-أوامر اختبار موسعة شائعة في هذا المستودع:
+أوامر الاختبار الموسعة الشائعة في هذا المستودع:
 
 ```bash
 pnpm test:e2e
@@ -431,37 +435,37 @@ pnpm tsgo:test
 
 ملاحظة افتراض:
 
-- توجد أوامر بناء/تشغيل تطبيقات الموبايل/macOS في `package.json` (`ios:*`, `android:*`, `mac:*`)، لكن متطلبات التوقيع/provisioning خاصة بالبيئة وليست موثقة بالكامل في هذا README.
+- توجد أوامر بناء/تشغيل تطبيقات الجوال/macOS في `package.json` (`ios:*`, `android:*`, `mac:*`) لكن متطلبات التوقيع/الـ provisioning خاصة بالبيئة وليست موثقة بالكامل في هذا README.
 
 ---
 
 ## استكشاف الأخطاء وإصلاحها
 
-### لا يمكن الوصول إلى Gateway على `127.0.0.1:18789`
+### البوابة غير قابلة للوصول على `127.0.0.1:18789`
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-تحقق من تعارض المنافذ وتعارضات daemon. إذا كنت تستخدم Docker، فتأكد من منفذ الاستضافة المربوط وصحة الخدمة.
+تحقق من تصادم المنافذ وتعارض الـ daemon. إذا كنت تستخدم Docker، تحقق من منفذ host المرتبط وصحة الخدمة.
 
-### مشكلات المصادقة أو إعداد القنوات
+### مشاكل المصادقة أو إعداد القنوات
 
-- أعد فحص قيم `.env` مقارنةً بـ `.env.example`.
-- تأكد من إعداد مفتاح نموذج واحد على الأقل.
-- تحقق من tokens القنوات للقنوات التي فعّلتها بالفعل فقط.
+- أعد فحص قيم `.env` مقابل `.env.example`.
+- تأكد من أن مفتاح نموذج واحد على الأقل مكوّن.
+- تحقق من tokens القناة فقط للقنوات التي فعّلتها فعلاً.
 
-### مشكلات البناء أو التثبيت
+### مشاكل البناء أو التثبيت
 
-- أعد تشغيل `pnpm install` مع Node `>=22.12.0`.
+- أعد تشغيل `pnpm install` باستخدام Node `>=22.12.0`.
 - أعد البناء باستخدام `pnpm ui:build && pnpm build`.
-- إذا كانت peer dependencies الأصلية الاختيارية مفقودة، فراجع سجلات التثبيت لتوافق `@napi-rs/canvas` / `node-llama-cpp`.
+- إذا كانت peer dependencies اختيارية مفقودة، راجع سجلات التثبيت لتوافق `@napi-rs/canvas` / `node-llama-cpp`.
 
 ### فحوصات الصحة العامة
 
-استخدم `openclaw doctor` لاكتشاف مشكلات الانحراف المرتبطة بالترحيل/الأمان/الإعداد.
+استخدم `openclaw doctor` لاكتشاف مشكلات الانحراف في الترحيل/الأمن/الإعداد.
 
-### أدوات تشخيص مفيدة
+### تشخيصات مفيدة
 
 ```bash
 openclaw channels status --probe
@@ -473,7 +477,7 @@ openclaw status --deep
 
 ## تكاملات منظومة LAB
 
-يدمج LAB مستودعات منتجاتي وأبحاثي الأوسع في طبقة تشغيل واحدة للإنتاج والنمو والأتمتة.
+يمزج LAB بين مستودعات منتجاتي وأبحاثي الأوسع في طبقة تشغيل واحدة للإنتاج والنمو والأتمتة.
 
 الملف الشخصي:
 
@@ -482,19 +486,19 @@ openclaw status --deep
 المستودعات المدمجة:
 
 - `VoidAbyss` (隙遊之淵)
-- `AutoNovelWriter` (كتابة روايات تلقائية)
+- `AutoNovelWriter` (كتابة روايات تلقائيًا)
 - `AutoAppDev` (تطوير تطبيقات تلقائي)
-- `OrganoidAgent` (منصة أبحاث العضيّات بنماذج رؤية تأسيسية + LLMs)
-- `LazyEdit` (تحرير فيديو بمساعدة الذكاء الاصطناعي: captions/transcription/highlights/metadata/subtitles)
+- `OrganoidAgent` (منصة أبحاث organoids برؤية أساسية + LLMs)
+- `LazyEdit` (تحرير فيديو بمساعدة AI: captions/transcription/highlights/metadata/subtitles)
 - `AutoPublish` (مسار نشر تلقائي)
 
-أهداف التكامل العملية في LAB:
+أهداف التكامل العملي في LAB:
 
 - كتابة الروايات تلقائيًا
 - تطوير التطبيقات تلقائيًا
 - تحرير الفيديو تلقائيًا
 - نشر المخرجات تلقائيًا
-- تحليل العضيّات تلقائيًا
+- تحليل organoids تلقائيًا
 - معالجة عمليات البريد الإلكتروني تلقائيًا
 
 ---
@@ -518,49 +522,48 @@ pnpm gateway:watch
 
 ---
 
-## خارطة الطريق
+## خطة الطريق
 
-الاتجاهات المخطط لها لهذا التفرع من LAB (خارطة عمل):
+اتجاهات خارطة هذا الفرع (قيد العمل):
 
 - توسيع موثوقية automail عبر تصنيف أكثر صرامة للمرسل/القواعد.
 - تحسين قابلية تركيب مراحل orchestral وإمكانية تتبع artifacts.
-- تعزيز تجربة العمليات mobile-first وإدارة البوابة عن بُعد.
-- تعميق التكاملات مع مستودعات منظومة LAB للإنتاج المؤتمت من البداية للنهاية.
-- الاستمرار في تقوية إعدادات الأمان الافتراضية والرصد للأتمتة غير المراقبة.
+- تقوية تجربة التشغيل mobile-first وإدارة البوابة عن بعد.
+- تعميق التكاملات مع مستودعات منظومة LAB لإنتاج مؤتمت من طرف إلى طرف.
+- مواصلة تعزيز إعدادات الأمان الافتراضية والمراقبة للأتمتة غير المراقَبة.
 
 ---
 
 ## المساهمة
 
-يتتبع هذا المستودع أولويات LAB الشخصية مع وراثة البنية المعمارية الأساسية من OpenClaw.
+يتبع هذا المستودع أولويات LAB الشخصية مع الاعتماد على البنية الأساسية من OpenClaw.
 
 - اقرأ [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- راجع وثائق المنبع: https://docs.openclaw.ai
+- راجع وثائق المصدر: https://docs.openclaw.ai
 - لمشكلات الأمان، راجع [`SECURITY.md`](SECURITY.md)
 
-إذا لم تكن متأكدًا من سلوك LAB الخاص، فحافظ على السلوك الحالي ووثّق الافتراضات في ملاحظات PR.
-
----
-
-## ❤️ Support
-
-| Donate | PayPal | Stripe |
-|---|---|---|
-| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
+إذا لم تكن متأكدًا من سلوك LAB الخاص، حافظ على السلوك القائم ودوّن الافتراضات في ملاحظات PR.
 
 ---
 
 ## الشكر والتقدير
 
-يعتمد LazyingArtBot على **OpenClaw**:
+LazyingArtBot مبني على **OpenClaw**:
 
 - https://github.com/openclaw/openclaw
 - https://docs.openclaw.ai
 
-شكرًا لفريق OpenClaw والمجتمع على المنصة الأساسية.
+شكرًا لمحترفي OpenClaw والمجتمع على المنصة الأساسية.
 
 ---
 
 ## الترخيص
 
-MIT (مثل المنبع حيث ينطبق). راجع `LICENSE`.
+MIT (كما هو الحال في المنبع عند الاقتضاء). راجع `LICENSE`.
+
+
+## ❤️ Support
+
+| Donate | PayPal | Stripe |
+| --- | --- | --- |
+| [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |

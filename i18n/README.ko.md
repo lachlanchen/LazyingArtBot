@@ -1,6 +1,7 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 
+
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -19,12 +20,12 @@
 **LazyingArtBot**은 **lazying.art**를 위한 제 개인 AI 어시스턴트 스택입니다.  
 OpenClaw를 기반으로 하며, 멀티채널 채팅, 로컬 우선 제어, 이메일 -> 캘린더/리마인더/노트 자동화 같은 일상 워크플로우에 맞게 조정되어 있습니다.
 
-| 🔗 링크 | URL |
-| --- | --- |
-| 🌐 웹사이트 | https://lazying.art |
-| 🤖 봇 도메인 | https://lazying.art |
-| 🧱 업스트림 기반 | https://github.com/openclaw/openclaw |
-| 📦 이 저장소 | https://github.com/lachlanchen/LazyingArtBot |
+| 🔗 링크 | URL | 포커스 |
+| --- | --- | --- |
+| 🌐 Website | https://lazying.art | 주요 도메인 및 상태 대시보드 |
+| 🤖 Bot domain | https://lazying.art | 채팅/어시스턴트 진입점 |
+| 🧱 Upstream base | https://github.com/openclaw/openclaw | OpenClaw 플랫폼 기반 |
+| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot | LAB 전용 커스터마이징 |
 
 ---
 
@@ -107,10 +108,10 @@ LAB는 실용적인 개인 생산성에 집중합니다.
 
 현재 워크플로우의 파이프라인 단계:
 
-- parse inbound mail
-- classify action type
-- save to Notes / Reminders / Calendar
-- log every action for review and debugging
+- 수신 메일 파싱
+- 액션 유형 분류
+- Notes/Reminders/Calendar에 저장
+- 검토 및 디버깅을 위해 모든 액션 로그를 기록
 
 ---
 
@@ -227,16 +228,16 @@ docker compose up -d
 자주 쓰는 명령:
 
 ```bash
-# Onboard and install user daemon
+# 사용자 데몬 온보딩/설치
 openclaw onboard --install-daemon
 
-# Run gateway in foreground
+# 게이트웨이를 포그라운드로 실행
 openclaw gateway run --bind loopback --port 18789 --verbose
 
-# Send a direct message via configured channels
+# 설정한 채널로 직접 메시지 전송
 openclaw message send --to +1234567890 --message "Hello from LAB"
 
-# Ask the agent directly
+# 에이전트에게 직접 질의
 openclaw agent --message "Create today checklist" --thinking high
 ```
 
@@ -349,12 +350,12 @@ LAB 오케스트레이션은 하나의 설계 원칙을 따릅니다:
 프롬프트 도구는 모듈식이며 조합 가능하고 orchestration-first로 설계되었습니다.  
 독립 실행도 가능하고, 더 큰 워크플로우 안에서 연결된 단계로도 실행할 수 있습니다.
 
-- Read/save operations:
+- 읽기/저장 작업:
   AutoLife 운영을 위해 Notes, Reminders, Calendar 결과를 생성하고 업데이트합니다.
-- Screenshot/read operations:
-  검색 결과 페이지와 링크 페이지를 캡처하고, 하위 분석용 구조화 텍스트를 추출합니다.
-- Tool-connection operations:
-  결정론적 스크립트를 호출하고, 단계 간 아티팩트를 교환하며, 컨텍스트 연속성을 유지합니다.
+- 스크린샷/조회 작업:
+  검색 결과 페이지와 링크 페이지를 캡처한 뒤, 하위 분석용 구조화 텍스트를 추출합니다.
+- 도구 연계 작업:
+  결정론적 스크립트를 호출하고, 단계 간 아티팩트를 교환하며 컨텍스트 연속성을 유지합니다.
 
 주요 위치:
 
@@ -476,27 +477,27 @@ openclaw status --deep
 
 LAB는 제 AI 제품/리서치 저장소를 하나의 운영 레이어로 통합해 제작, 성장, 자동화를 연결합니다.
 
-Profile:
+프로필:
 
 - https://github.com/lachlanchen?tab=repositories
 
-Integrated repos:
+연동 저장소:
 
 - `VoidAbyss` (隙遊之淵)
-- `AutoNovelWriter` (automatic novel writing)
-- `AutoAppDev` (automatic app development)
-- `OrganoidAgent` (organoid research platform with foundation vision models + LLMs)
-- `LazyEdit` (AI-assisted video editing: captions/transcription/highlights/metadata/subtitles)
-- `AutoPublish` (automatic publication pipeline)
+- `AutoNovelWriter` (자동 소설 작성)
+- `AutoAppDev` (자동 앱 개발)
+- `OrganoidAgent` (오가노이드 연구 플랫폼으로, 기초 비전 모델 + LLM 조합)
+- `LazyEdit` (AI 보조 영상 편집: 캡션/자막 추출/하이라이트/메타데이터)
+- `AutoPublish` (자동 출판 파이프라인)
 
-Practical LAB integration goals:
+실무형 LAB 통합 목표:
 
-- Auto write novels
-- Auto develop apps
-- Auto edit videos
-- Auto publish outputs
-- Auto analyze organoids
-- Auto handle email operations
+- 소설 자동 작성
+- 앱 자동 개발
+- 영상 자동 편집
+- 결과물 자동 발행
+- 오가노이드 자동 분석
+- 이메일 자동 처리
 
 ---
 
@@ -543,14 +544,6 @@ LAB 전용 동작이 불확실하면 기존 동작을 유지하고 PR 노트에 
 
 ---
 
-## ❤️ Support
-
-| Donate | PayPal | Stripe |
-|---|---|---|
-| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
-
----
-
 ## Acknowledgements
 
 LazyingArtBot은 **OpenClaw**를 기반으로 합니다:
@@ -561,6 +554,12 @@ LazyingArtBot은 **OpenClaw**를 기반으로 합니다:
 핵심 플랫폼을 만들어 준 OpenClaw 유지관리자와 커뮤니티에 감사드립니다.
 
 ---
+
+## ❤️ Support
+
+| Donate | PayPal | Stripe |
+| --- | --- | --- |
+| [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ## License
 

@@ -1,6 +1,7 @@
 [English](README.md) · [العربية](i18n/README.ar.md) · [Español](i18n/README.es.md) · [Français](i18n/README.fr.md) · [日本語](i18n/README.ja.md) · [한국어](i18n/README.ko.md) · [Tiếng Việt](i18n/README.vi.md) · [中文 (简体)](i18n/README.zh-Hans.md) · [中文（繁體）](i18n/README.zh-Hant.md) · [Deutsch](i18n/README.de.md) · [Русский](i18n/README.ru.md)
 
 
+
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -13,18 +14,21 @@
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
 [![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](i18n)
 [![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](docs)
+[![GitHub stars](https://img.shields.io/badge/GitHub-stars-0ea5e9?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
+[![GitHub issues](https://img.shields.io/badge/GitHub-issues-ef4444?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/issues)
 
 > 🌍 **i18n status:** `i18n/` exists and currently includes localized README files for Arabic, German, Spanish, French, Japanese, Korean, Russian, Vietnamese, Simplified Chinese, and Traditional Chinese. This English draft remains the canonical source for incremental updates.
 
-**LazyingArtBot** is my personal AI assistant stack for **lazying.art**.
-It is built on top of OpenClaw and adapted for my own daily workflows: multi-channel chat, local-first control, and email -> calendar/reminder/notes automation.
+**LazyingArtBot** is my personal AI assistant stack for **lazying.art**:
 
-| 🔗 Link | URL |
-| --- | --- |
-| 🌐 Website | https://lazying.art |
-| 🤖 Bot domain | https://lazying.art |
-| 🧱 Upstream base | https://github.com/openclaw/openclaw |
-| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot |
+**LazyingArtBot** is built on top of OpenClaw and adapted for my daily workflows: multi-channel chat, local-first control, and email → calendar/reminder/notes automation.
+
+| 🔗 Link | URL | Focus |
+| --- | --- | --- |
+| 🌐 Website | https://lazying.art | Primary domain and status dashboard |
+| 🤖 Bot domain | https://lazying.art | Chat and assistant entrypoint |
+| 🧱 Upstream base | https://github.com/openclaw/openclaw | OpenClaw platform foundation |
+| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot | LAB-specific adaptations |
 
 ---
 
@@ -51,8 +55,8 @@ It is built on top of OpenClaw and adapted for my own daily workflows: multi-cha
 - [Install from source (quick reference)](#install-from-source-quick-reference)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
-- [❤️ Support](#-support)
 - [Acknowledgements](#acknowledgements)
+- [❤️ Support](#-support)
 - [License](#license)
 
 ---
@@ -543,14 +547,6 @@ If uncertain about LAB-specific behavior, preserve existing behavior and documen
 
 ---
 
-## ❤️ Support
-
-| Donate | PayPal | Stripe |
-|---|---|---|
-| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
-
----
-
 ## Acknowledgements
 
 LazyingArtBot is based on **OpenClaw**:
@@ -561,6 +557,12 @@ LazyingArtBot is based on **OpenClaw**:
 Thanks to the OpenClaw maintainers and community for the core platform.
 
 ---
+
+## ❤️ Support
+
+| Donate | PayPal | Stripe |
+| --- | --- | --- |
+| [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ## License
 
