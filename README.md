@@ -588,6 +588,298 @@ Kairo-KenVersion/
 
 ---
 
+### 功能细节
+
+<details>
+<summary><b>P0 — 解锁开源部署</b></summary>
+
+#### 去除 root 依赖 + `$KAIRO_HOME` 可配置
+
+**问题**：现在 Kairo 写死运行在 `/opt/LazyingArtBot/`，依赖 root 权限，任何其他人都无法部署。
+
+**改动**：
+
+- 所有路径引用替换为 `process.env.KAIRO_HOME ?? path.join(os.homedir(), '.kairo')`
+- systemd service 改为以普通用户身份运行（`User=%i`）
+- `~/.openclaw/` → `$KAIRO_HOME/data/`（向后兼容迁移脚本）
+
+**完成后**：任何人 `export KAIRO_HOME=~/my-kairo` 即可自定义数据目录，无需 root。
+
+---
+
+#### `install.sh` + AI 引导式 setup
+
+**问题**：现在部署需要手动写 JSON、配 systemd、做 OAuth——对非技术用户门槛极高。
+
+**方案**：一个交互式脚本 + 一份 `SETUP.md`（AI 可直接读取执行）：
+
+```
+./install.sh
+
+[1/5] 检查依赖（Node 22+、pnpm）... ✅
+[2/5] 选择频道：Telegram / 飞书 / 两者？> Telegram
+[3/5] 粘贴 Bot Token：> 1234567890:ABC...
+[4/5] 选择模型：OpenAI / Anthropic / 本地 Ollama？> OpenAI
+[5/5] 生成配置 + 设置 systemd... ✅
+
+🎉 启动成功！向 @YourBot 发一条消息试试。
+```
+
+可选步骤：飞书日历 OAuth、Gmail webhook、Feishu 频道。
+
+</details>
+
+---
+
+<details>
+<summary><b>P1 — 研究夥伴能力</b></summary>
+
+#### arXiv 每日监控
+
+**是什么**：每天早上自动抓取用户关注方向的最新论文，精选后推送，写入知识库。
+
+**工作方式**：
+
+- 读取 `04_knowledge/research_topics.md` 中的关键词列表（用户自维护，也可让 Kairo 自动更新）
+- 调用 arXiv API，拉取过去 24 小时提交的论文
+- LLM 筛选最相关的 5 篇，生成中文摘要
+- 推送到 Telegram + 写入 `02_work/arxiv-digest.md`（hub-context 自动注入）
+- Cron：每日 07:15
+
+**用户体验**：
+
+```
+[Kairo 07:15]
+📚 今日 arXiv 精选（多模态方向，3 篇）
+
+1. "VideoAgent-X" — 用 agent 自动标注视频训练数据，比人工快 40x
+2. "EfficientVLM-v3" — 视觉语言模型压缩新方法，在你关注的 benchmark 上 SOTA
+3. ...
+
+→ 完整摘要：02_work/arxiv-digest.md
+```
+
+---
+
+#### gpt-researcher 集成
+
+**是什么**：把 [gpt-researcher](https://github.com/assafelovic/gpt-researcher) 封装为 Kairo LLM tool，一句话触发深度调研。
+
+**工作方式**：
+
+- 新增 LLM tool `research_deep(topic, depth: "quick"|"deep")`
+- 内部调用 gpt-researcher（支持 web search + arXiv + PDF），生成结构化报告
+- 报告写入 `04_knowledge/research_notes/{topic}-{date}.md`
+- hub-context 自动注入最新 3 篇 research notes
+
+**用户体验**：
+
+```
+Ken：帮我调研一下 "video understanding with world models" 这个方向
+
+Kairo：好的，我来做深度调研，大概需要 3 分钟...
+      [3 分钟后]
+      ✅ 调研完成！
+      - 主要方法：Dreamer / RSSM / Genie 2 三条路线
+      - 最新进展：...
+      - 与你当前研究的关联：...
+      → 完整报告：04_knowledge/research_notes/video-world-models-2026-02.md
+```
+
+---
+
+#### 实验结果追踪
+
+**是什么**：结构化记录每次实验的参数与结果，支持自动对比。
+
+**工作方式**：
+
+- LLM tool `experiment_log(name, params, metrics, notes)` — 写入 `02_work/experiments/`
+- LLM tool `experiment_compare(names[])` — 自动生成对比 Markdown 表格
+- Kairo 在晨报中主动提示：「你昨天跑了 3 个实验，Exp-C 的 mAP 比 Exp-A 高 2.3%，需要我分析原因吗？」
+
+**用户体验**：
+
+```
+Ken：记录一下刚才的实验，batch_size=64, lr=1e-4, mAP=72.3
+
+Kairo：已记录 Exp-007。
+      当前最好结果：Exp-005（mAP=73.1, batch=32, lr=3e-4）
+      差距：-0.8%。要我对比一下两组参数的差异吗？
+```
+
+---
+
+#### Docker 一键启动
+
+**是什么**：把 Kairo 打包为 Docker 镜像，`docker compose up` 即可运行，不依赖本机 Node 环境。
+
+```yaml
+# docker-compose.yml
+services:
+  kairo:
+    image: kairo:latest
+    volumes:
+      - ~/.kairo:/data # 所有数据挂载到本机
+    env_file: .env # BOT_TOKEN, OPENAI_API_KEY 等
+    restart: unless-stopped
+    ports:
+      - "18789:18789" # 控制台 UI
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>P2 — 架构演进</b></summary>
+
+#### Kairo MCP Server
+
+**是什么**：把 Kairo 的个人数据暴露为标准 MCP（Model Context Protocol）接口，让任何 AI 工具都能「认识」你。
+
+**工作方式**：
+
+- `src/mcp/server.ts` — 实现 MCP server
+- 暴露的 **Tools**：`get_tasks()`、`create_task()`、`get_calendar(days)`、`get_waiting()`、`get_person(name)`
+- 暴露的 **Resources**：`roadmap://current`、`daily_log://today`、`heartbeat://status`
+- Claude Desktop / ChatGPT / 任意 MCP client 直接连接，无需重新授权
+
+**用户体验**：
+
+```
+# Claude Desktop 配置后：
+用户：我今天有哪些待办？
+
+Claude Desktop（通过 Kairo MCP）：
+你今天有 3 项待办：
+1. [逾期 2 天] 回复 Jason 的合同邮件
+2. [今日截止] 提交实验报告初稿
+3. [今日] 跟 Tom 确认比赛规则
+```
+
+---
+
+#### MCP Client
+
+**是什么**：Kairo 自己作为 MCP client，调用社区已有的 MCP server，获得文件系统、GitHub、网络搜索等能力，而不用自己实现。
+
+**接入的外部 MCP server**：
+
+- `@modelcontextprotocol/server-filesystem` — 读写本机文件（替换现有 file LLM tools）
+- `@modelcontextprotocol/server-github` — 读取 PR、issue、commit
+- Brave Search MCP — 实时网络搜索
+
+---
+
+#### Swarm 调度层
+
+**是什么**：Kairo 从单一 agent 进化为 orchestrator，把复杂任务拆解分派给专职 worker agent，结果汇总后交给 Ken 确认。
+
+**架构**：
+
+```
+Ken："帮我准备这周组会的 slides，主题是 Video Understanding 最新进展"
+      ↓
+Kairo Orchestrator（理解意图 + 拆解任务）
+      ├── Research Agent → 调用 arXiv + gpt-researcher，整理最新 5 篇论文
+      ├── Code Agent     → 运行对比实验，生成结果图表
+      └── Writing Agent  → 整合内容，生成 Markdown slides 草稿
+      ↓
+Kairo："草稿已生成，请确认后我发给你"
+```
+
+**实现**：基于 [agency-swarm](https://github.com/VRSEN/agency-swarm) 或 OpenAI Agents SDK，每个 worker 有独立的 system prompt + tool set + scope 限制。
+
+---
+
+#### Bounded Autonomy + Audit Trail
+
+**是什么**：为 swarm 的每个 agent 定义清晰的「不可逾越边界」，并记录所有行动供回溯。
+
+**高风险操作（必须 Ken 确认）**：
+
+- 对外发送邮件 / 消息
+- 删除文件
+- 提交代码 / PR
+- 修改 cron jobs 或 config
+
+**Audit Trail**：所有 agent 行动写入 `~/.kairo/audit.jsonl`
+
+```json
+{"ts":"2026-03-01T09:00:00Z","agent":"email","action":"draft","to":"jason@...","subject":"合同确认","status":"pending_approval"}
+{"ts":"2026-03-01T09:01:00Z","agent":"email","action":"send","approved_by":"ken","status":"sent"}
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>P3 — 长期愿景</b></summary>
+
+#### Computer Use Agent
+
+**是什么**：Kairo 不只给文字建议，而是直接操作浏览器和桌面完成任务。
+
+**能做什么**：
+
+- 填写网页表单（比赛报名、会议注册）
+- 截图确认操作结果
+- 自动化重复性电脑操作（下载报告、整理文件）
+
+**实现**：集成 Anthropic Computer Use API 或 [browser-use](https://github.com/browser-use/browser-use)，在隔离 Chromium 实例中执行，截图日志保留供审计。
+
+---
+
+#### Self-Improving
+
+**是什么**：Kairo 每周分析自己的错误，更新自身的行为模式和身份描述，下次更准。
+
+**工作方式**：
+
+- 每周一分析：heartbeat failures、用户主动纠正的回复、未完成的任务
+- 生成改进建议，更新 `IDENTITY.md` / `SOUL.md` / `HEARTBEAT.md` playbook
+- 记录在 `04_knowledge/self_review/YYYY-WW.md`
+
+**例子**：
+
+```
+[自我分析 Week 08]
+- 本周 3 次把「了解一下」误识别为 watch 类型，实际是 idea
+- 调整：置信度阈值在「了解」词语时提高至 90%
+- 用户本周最常跟进的话题：论文实验结果
+- 调整：晨报中优先展示 experiment 状态
+```
+
+---
+
+#### 关系图谱
+
+**是什么**：`people/` 目录的联系人卡片升级为关系网络，自动发现潜在连接。
+
+**能做什么**：
+
+- 可视化 Ken 的人脉网络（Obsidian Graph View 兼容格式）
+- 自动发现：「Jason 和 Tom 都在做 AI 教育，且都在你的 waiting 里，可能值得互相介绍」
+- 在对话中主动提示相关联系人：「你提到这个方向，王教授 3 个月前聊过类似的，要我找到那次对话记录吗？」
+
+---
+
+#### 跨设备 Context Sync
+
+**是什么**：无论 Ken 在手机、笔记本还是服务器，访问的是同一个 Kairo 上下文。
+
+**实现**：
+
+- 手机：已实现（Telegram Bot 本身就是跨设备的）
+- 笔记本 Claude Desktop：通过 Kairo MCP Server 同步（P2 完成后自然解锁）
+- 轻量 API endpoint `/api/context`，返回当前 hub-context 快照，任何 client 可查询
+
+</details>
+
+---
+
 ## 社区与团队
 
 ### 关于 Kairo
