@@ -96,7 +96,12 @@ async function refreshToken(
   }
 }
 
+// Mutex: at most one refresh API call in flight at a time.
+// Concurrent callers wait for the same promise instead of each firing their own request.
+let _activeRefresh: Promise<{ access_token: string; refresh_token: string } | null> | null = null;
+
 async function getValidToken(): Promise<{ token: string; calendarId: string } | null> {
+  // Always re-read from disk so we pick up tokens saved by a concurrent refresh
   const stored = await loadToken();
   if (!stored?.access_token || !stored?.calendar_id) {
     return null;
@@ -106,14 +111,30 @@ async function getValidToken(): Promise<{ token: string; calendarId: string } | 
   const isExpired = ageSeconds > stored.expires_in - 120;
 
   if (isExpired) {
-    const refreshed = await refreshToken(stored);
+    // Coalesce concurrent refresh calls into one
+    if (!_activeRefresh) {
+      _activeRefresh = refreshToken(stored).finally(() => {
+        _activeRefresh = null;
+      });
+    }
+    const refreshed = await _activeRefresh;
     if (!refreshed) {
       return null;
     }
-    stored.access_token = refreshed.access_token;
-    stored.refresh_token = refreshed.refresh_token;
-    stored.obtained_at = new Date().toISOString();
-    await saveToken(stored);
+    // Only write if we are the first to resolve (avoid double-write race)
+    const current = await loadToken();
+    if (current && current.obtained_at === stored.obtained_at) {
+      current.access_token = refreshed.access_token;
+      current.refresh_token = refreshed.refresh_token;
+      current.obtained_at = new Date().toISOString();
+      await saveToken(current);
+    }
+    // Re-read so we return the latest saved value regardless of who wrote it
+    const latest = await loadToken();
+    if (!latest?.access_token) {
+      return null;
+    }
+    return { token: latest.access_token, calendarId: latest.calendar_id };
   }
 
   return { token: stored.access_token, calendarId: stored.calendar_id };

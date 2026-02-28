@@ -39,37 +39,60 @@ async function saveToken(data: TokenData): Promise<void> {
   await fs.writeFile(TOKEN_FILE, JSON.stringify(data, null, 2));
 }
 
+async function getAppAccessToken(appId: string, appSecret: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${FEISHU_BASE}/auth/v3/app_access_token/internal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app_id: appId, app_secret: appSecret }),
+    });
+    const d = (await res.json()) as Record<string, unknown>;
+    return d.code === 0 ? (d.app_access_token as string) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function refreshAccessToken(
   appId: string,
   appSecret: string,
   refreshToken: string,
-): Promise<string | null> {
+): Promise<{ access_token: string; refresh_token: string } | null> {
   try {
-    const res = await fetch(`${FEISHU_BASE}/authen/v1/oidc/refresh_access_token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Basic " + Buffer.from(`${appId}:${appSecret}`).toString("base64"),
-      },
-      body: JSON.stringify({ grant_type: "refresh_token", refresh_token: refreshToken }),
-    });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (data.code !== 0) {
-      // Fallback: older endpoint
-      const res2 = await fetch(`${FEISHU_BASE}/authen/v1/refresh_access_token`, {
+    // OIDC endpoint — requires app_access_token Bearer auth
+    const appToken = await getAppAccessToken(appId, appSecret);
+    if (appToken) {
+      const res = await fetch(`${FEISHU_BASE}/authen/v1/oidc/refresh_access_token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          app_id: appId,
-          app_secret: appSecret,
-          grant_type: "refresh_token",
-          refresh_token: refreshToken,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${appToken}` },
+        body: JSON.stringify({ grant_type: "refresh_token", refresh_token: refreshToken }),
       });
-      const d2 = (await res2.json()) as Record<string, unknown>;
-      return ((d2?.data as Record<string, unknown>)?.access_token as string) ?? null;
+      const data = (await res.json()) as Record<string, unknown>;
+      if (data.code === 0) {
+        const d = data.data as Record<string, unknown>;
+        const at = d.access_token as string | undefined;
+        const rt = d.refresh_token as string | undefined;
+        if (at) {
+          return { access_token: at, refresh_token: rt ?? refreshToken };
+        }
+      }
     }
-    return ((data?.data as Record<string, unknown>)?.access_token as string) ?? null;
+    // Fallback: legacy endpoint
+    const res2 = await fetch(`${FEISHU_BASE}/authen/v1/refresh_access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        app_id: appId,
+        app_secret: appSecret,
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+    });
+    const d2 = (await res2.json()) as Record<string, unknown>;
+    const d2data = d2?.data as Record<string, unknown> | undefined;
+    const at2 = d2data?.access_token as string | undefined;
+    const rt2 = d2data?.refresh_token as string | undefined;
+    return at2 ? { access_token: at2, refresh_token: rt2 ?? refreshToken } : null;
   } catch (err) {
     console.error("[feishu-calendar] refresh error:", String(err));
     return null;
@@ -92,12 +115,13 @@ async function getValidToken(
 
   if (isExpired) {
     console.log("[feishu-calendar] access_token expired, refreshing...");
-    const newToken = await refreshAccessToken(appId, appSecret, stored.refresh_token);
-    if (!newToken) {
+    const refreshed = await refreshAccessToken(appId, appSecret, stored.refresh_token);
+    if (!refreshed) {
       console.error("[feishu-calendar] Token refresh failed. Re-run OAuth setup.");
       return null;
     }
-    stored.access_token = newToken;
+    stored.access_token = refreshed.access_token;
+    stored.refresh_token = refreshed.refresh_token;
     stored.obtained_at = new Date().toISOString();
     await saveToken(stored);
     console.log("[feishu-calendar] token refreshed OK");
