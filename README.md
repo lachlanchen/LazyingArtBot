@@ -544,339 +544,173 @@ Kairo-KenVersion/
 
 ## 路线图
 
-> **核心命题**：所有现有 AI 工具都是 **Pull** 模式——你问，它答；你不问，它沉默。
-> Kairo 的方向是 **Push**：在你开口之前行动，在你遗忘之前提醒，在你分心之前闭环。
+> **"所有 AI 工具都是你使用的东西。Kairo 的方向是成为你依赖的基础设施。"**
 
-### 当前状态（v0.9，生产运行中）
+区别在哪里？你使用工具，意味着不用的时候它是关机状态。你依赖基础设施，意味着不论你在不在，它都在为你运作。
 
-核心功能已稳定运行，正在向易用性与 agent 协作能力演进：
+**电话是工具。电网是基础设施。**
 
-| 模块                                      |   状态    | 说明                                        |
-| ----------------------------------------- | :-------: | ------------------------------------------- |
-| 多频道网关（Telegram / 飞书）             |  ✅ 稳定  | WebSocket，无需公网 IP                      |
-| 意图识别 + 自动建卡（10 种类型）          |  ✅ 稳定  | 置信度 ≥ 85% 自动静默建卡                   |
-| Heartbeat 主动推送                        |  ✅ 稳定  | 定时扫描 + 事件触发，5 分钟超时保护         |
-| 完整任务闭环（捕捉 → 排程 → 提醒 → 更新） |  ✅ 稳定  | LLM 自主完成全流程，无需 Ken 手动标记       |
-| Hub Context（9 个信息源注入）             |  ✅ 稳定  | 每次对话已感知日历 / 邮件 / 任务 / 人脈全局 |
-| Gmail + 飞书日历 + Outlook IMAP           |  ✅ 稳定  | 飞书 token 30 天自动滚动刷新，无需手动续期  |
-| 联系人记忆卡片 + 决策智慧框架             |  ✅ 稳定  | 7 位思想家原则，每次对话注入                |
-| 飞书日历写入（LLM tool）                  |  ✅ 稳定  | create_event / list_events，含并发 mutex    |
-| 系统稳定性（原子写入 / 超时 / 错误日志）  | ✅ 已完成 | 2026-02 专项修复                            |
-| 去除 root 依赖 + `$KAIRO_HOME` 可配置     | 🔲 未开始 | **当前 hardcoded 路径，阻塞其他用户部署**   |
+现有的所有 AI——ChatGPT、Claude、Notion AI、各种 Agent 框架——本质上都是电话：你拨出去，有人接；你挂掉，连接断开。再聪明的电话，也只有你主动拨打才有价值。
 
-### 开发优先级
-
-> **P0** 阻塞他人使用 · **P1** 高价值近期 · **P2** 架构演进 · **P3** 长期愿景
-
-| 优先级 | 功能                                                                                      |   分类   | 说明                                                                                |
-| :----: | ----------------------------------------------------------------------------------------- | :------: | ----------------------------------------------------------------------------------- |
-| **P0** | 去除 root 依赖，`$KAIRO_HOME` 可配置                                                      | 基础设施 | 现在 hardcoded `/opt/LazyingArtBot/`，其他人无法部署                                |
-| **P0** | `install.sh` + AI 引导式 setup                                                            | 基础设施 | 非技术用户 5 分钟上手，解锁开源受众                                                 |
-| **P1** | arXiv 每日监控 → 推送 + 写入知识库                                                        |   研究   | 每天自动推送相关方向新论文，秘书主动喂信息                                          |
-| **P1** | [gpt-researcher](https://github.com/assafelovic/gpt-researcher) 集成为 LLM tool           |   研究   | 一句话触发深度文献调研，结果写入 `research_notes/`                                  |
-| **P1** | 实验结果追踪工具                                                                          |   研究   | `experiments/` 目录 + LLM tool，自动对比多轮结果、标注异常                          |
-| **P1** | Docker 一键启动                                                                           | 基础设施 | 大幅降低部署门槛，`docker compose up` 即可运行                                      |
-| **P2** | Kairo MCP Server                                                                          |   架构   | calendar / tasks / people 暴露为标准 MCP resource，任何 agent 可直接调用 Ken 的数据 |
-| **P2** | MCP Client                                                                                |   架构   | Kairo 调用外部 MCP server（filesystem、github、web-search），不重造轮子             |
-| **P2** | Swarm 调度层（[agency-swarm](https://github.com/VRSEN/agency-swarm) / OpenAI Agents SDK） |   架构   | Kairo 作为 orchestrator，复杂任务分派给 Research / Code / Email 等专职 worker agent |
-| **P2** | [AgentLaboratory](https://github.com/SamuelSchmidgall/AgentLaboratory) 写作集成           |   研究   | 文献 → 实验 → 初稿三段式，Kairo 统一入口                                            |
-| **P2** | Bounded autonomy + Audit trail                                                            |   架构   | 高风险操作（对外发信 / 删文件）必须 Ken 确认；所有 agent 行动可回溯                 |
-| **P3** | Computer use agent                                                                        |   愿景   | 不只出建议，Kairo 直接操作浏览器与桌面完成任务                                      |
-| **P3** | Self-improving                                                                            |   愿景   | 每周分析自身错误 → 更新行为模式，下次更准                                           |
-| **P3** | 关系图谱                                                                                  |   愿景   | `people/` 卡片升级为网络图，自动发现潜在协作机会                                    |
-| **P3** | 跨设备 context sync                                                                       |   愿景   | phone / laptop / server 共享同一个 Kairo 上下文                                     |
+Kairo 要做的是电网：一套**持续运行在你服务器上的个人 AI 协调层**。它在你睡觉时处理邮件摘要，在你开会时追踪到期任务，在你分心时提醒你三天前遗忘的那件事。
 
 ---
 
-### 功能细节
+### 已验证的核心假设
 
-<details>
-<summary><b>P0 — 解锁开源部署</b></summary>
+Kairo v0.9 正在 Ken 的服务器上生产运行，已验证三件关键的事：
 
-#### 去除 root 依赖 + `$KAIRO_HOME` 可配置
+1. **主动推送可行** — 每天 07:10 晨报准时推到 Telegram，Ken 不需要做任何事
+2. **完整闭环可行** — 说一件事 → 自动建卡 → 自动排程 → 到时间主动提醒 → LLM 自动更新状态，全程无需人工干预
+3. **持久上下文可行** — 每次对话 Kairo 已感知今天的日历、未完成任务、相关人脉，不需要你重复介绍自己
 
-**问题**：现在 Kairo 写死运行在 `/opt/LazyingArtBot/`，依赖 root 权限，任何其他人都无法部署。
+这三件事合在一起意味着：**一个不需要你去找的 AI 秘书已经存在，且正在运行。**
 
-**改动**：
-
-- 所有路径引用替换为 `process.env.KAIRO_HOME ?? path.join(os.homedir(), '.kairo')`
-- systemd service 改为以普通用户身份运行（`User=%i`）
-- `~/.openclaw/` → `$KAIRO_HOME/data/`（向后兼容迁移脚本）
-
-**完成后**：任何人 `export KAIRO_HOME=~/my-kairo` 即可自定义数据目录，无需 root。
+接下来的问题，不是「能不能做到」，而是「能走多远」。
 
 ---
 
-#### `install.sh` + AI 引导式 setup
+### 变革路径
 
-**问题**：现在部署需要手动写 JSON、配 systemd、做 OAuth——对非技术用户门槛极高。
+每一个 Phase 不是「增加功能」，而是一个**之前不可能、之后变成理所当然**的跨越：
 
-**方案**：一个交互式脚本 + 一份 `SETUP.md`（AI 可直接读取执行）：
+```
+Phase 0 ✅  你不需要记得去查         → AI 第一次主动找到你
+Phase 1 🔄  信息主动找到你           → 研究者不再需要管理信息流
+Phase 2     你的上下文无处不在       → 任何 AI 工具都认识你
+Phase 3     整件事可以委派           → 你从执行者变成审批者
+Phase 4     任何人都能拥有           → 私有 AI 秘书不再是技术特权
+Phase 5     它开始改进自己           → 越来越了解你的伙伴，而不是工具
+```
+
+---
+
+#### ✅ Phase 0 — 你不需要记得去查
+
+**问题**：待办 App 靠你去打开。日历靠你去翻。邮件靠你去刷新。所有工具都在等你。如果你忘了打开，什么都不会发生。
+
+**跨越时刻**：第一次在没有主动去查的情况下，你在正确的时间收到了正确的信息。
+
+**已完成**：
+
+- Heartbeat 主动推送（晨报 07:10 / 截止提醒 / 逾期扫描 20:30）
+- Capture Agent：10 种意图自动分类建卡，置信度 ≥ 85% 静默处理
+- 完整任务闭环：说一件事 → 建卡 → 排程 → 提醒 → 自动更新状态，全自动
+- Hub Context：每次对话注入 9 个信息源（日历 / 邮件 / 任务 / 人脉 / 决策智慧）
+- Gmail + 飞书日历自动接入，每日 07:00 静默同步
+
+---
+
+#### 🔄 Phase 1 — 信息主动找到你
+
+**问题**：知识工作者花大量时间在「管理信息流」——主动去 arXiv 搜论文、整理实验结果、跟踪领域动态。这些动作没有创造任何思考价值，却消耗大量注意力。
+
+**跨越时刻**：
+
+> 早上 7:15，今日相关领域新论文出现在你的 Telegram，已翻译、已标注与你研究的关联。你不需要搜索任何东西。
+>
+> 你说「帮我深度调研 Video World Models 这个方向」，3 分钟后完整报告写入知识库。
+>
+> 你跑完实验，Kairo 自动比对所有历史结果，告诉你「Exp-C 比 Exp-A 高 2.3%，可能原因是...」
+
+**核心能力**：
+
+| 能力                                                        | 完成后的世界                                                |
+| ----------------------------------------------------------- | ----------------------------------------------------------- |
+| arXiv 每日监控 + LLM 精选推送                               | 领域新进展主动出现在你面前，你只需判断值不值得深读          |
+| `research_deep` LLM tool（原生 TypeScript，不依赖外部服务） | 一句话触发深度调研，报告写入 `04_knowledge/research_notes/` |
+| 实验追踪工具（`experiment_log` / `experiment_compare`）     | 每次实验自动记录，异常自动标注，趋势主动汇报                |
+| Docker 一键部署                                             | `docker compose up`，降低初始门槛                           |
+
+---
+
+#### Phase 2 — 你的上下文无处不在
+
+**问题**：你用了 5 个 AI 工具，每一个都不认识你。你的截止日在 Kairo，但 Claude Desktop 不知道；你的研究方向在这里，但 GPT-4 不知道。**你是 5 个陌生人的雇主，每次对话都要重新介绍自己。**
+
+**跨越时刻**：
+
+> 打开 Claude Desktop，它已经知道你今天的任务、截止日、正在追踪的事项。不是你告诉它的——是 Kairo 在后台，通过 MCP 协议，让你的上下文无处不在。
+
+**核心能力**：
+
+| 能力             | 完成后的世界                                                    |
+| ---------------- | --------------------------------------------------------------- |
+| Kairo MCP Server | 你的 calendar / tasks / people 成为任何 AI 工具可读取的标准接口 |
+| MCP Client       | Kairo 调用社区 MCP server（GitHub / 网络搜索），不重造轮子      |
+| Self-Improving   | 每周分析自身判断错误 → 自动更新行为模式，系统随时间越来越准     |
+
+---
+
+#### Phase 3 — 整件事可以委派
+
+**问题**：现在最好的结果是「AI 帮你做一步」。帮你调研，你还要整合；帮你写草稿，你还要喂内容；帮你分析，你还要下结论。每次都是线性的，不是乘法。
+
+**跨越时刻**：
+
+> 你说：「帮我准备这周组会的 slides，主题是 Video Understanding 最新进展。」
+>
+> 三小时后，一份可以直接使用的 slides 草稿推到你的 Telegram。你什么都没做，只是说了一句话。
+
+**核心能力**：
+
+| 能力                                             | 完成后的世界                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Swarm 调度层（OpenAI Agents SDK / agency-swarm） | Kairo 作为 orchestrator，把任务拆解分派给 Research / Code / Writing 专职 agent |
+| Bounded Autonomy                                 | 高风险操作（发邮件 / 删文件 / 提交代码）必须你确认；其他自主完成               |
+| Audit Trail                                      | 所有 agent 行动写入 `audit.jsonl`，任何时刻可回溯                              |
+
+---
+
+#### Phase 4 — 任何人都可以拥有
+
+**问题**：目前 Kairo 数据目录写死在 `/opt/LazyingArtBot/`，依赖 root 权限。**没有技术背景的人无法部署。私有 AI 秘书变成了技术人员的专属特权。**
+
+**跨越时刻**：
+
+> 一个不会写代码的人运行 `./install.sh`，在 5 分钟内拥有一个运行在自己机器上、数据完全私有、零订阅费的个人 AI 秘书。
+
+**核心能力**：
+
+- 去除 root 依赖，`$KAIRO_HOME` 可配置（**当前最高优先级，阻塞公开发布**）
+- `install.sh` + AI 引导式交互 setup
+- `openclaw.example.json` 完整模板 + GitHub Release v1.0
 
 ```
 ./install.sh
 
-[1/5] 检查依赖（Node 22+、pnpm）... ✅
+[1/5] 检查依赖（Node 22+）... ✅
 [2/5] 选择频道：Telegram / 飞书 / 两者？> Telegram
 [3/5] 粘贴 Bot Token：> 1234567890:ABC...
 [4/5] 选择模型：OpenAI / Anthropic / 本地 Ollama？> OpenAI
-[5/5] 生成配置 + 设置 systemd... ✅
+[5/5] 生成配置 + 启动服务... ✅
 
-🎉 启动成功！向 @YourBot 发一条消息试试。
-```
-
-可选步骤：飞书日历 OAuth、Gmail webhook、Feishu 频道。
-
-</details>
-
----
-
-<details>
-<summary><b>P1 — 研究夥伴能力</b></summary>
-
-#### arXiv 每日监控
-
-**是什么**：每天早上自动抓取用户关注方向的最新论文，精选后推送，写入知识库。
-
-**工作方式**：
-
-- 读取 `04_knowledge/research_topics.md` 中的关键词列表（用户自维护，也可让 Kairo 自动更新）
-- 调用 arXiv API，拉取过去 24 小时提交的论文
-- LLM 筛选最相关的 5 篇，生成中文摘要
-- 推送到 Telegram + 写入 `02_work/arxiv-digest.md`（hub-context 自动注入）
-- Cron：每日 07:15
-
-**用户体验**：
-
-```
-[Kairo 07:15]
-📚 今日 arXiv 精选（多模态方向，3 篇）
-
-1. "VideoAgent-X" — 用 agent 自动标注视频训练数据，比人工快 40x
-2. "EfficientVLM-v3" — 视觉语言模型压缩新方法，在你关注的 benchmark 上 SOTA
-3. ...
-
-→ 完整摘要：02_work/arxiv-digest.md
+向 @YourBot 发一条消息，试试说「提醒我明天早上回复 Jason」。
 ```
 
 ---
 
-#### gpt-researcher 集成
+#### Phase 5 — 它开始改进自己（长期愿景）
 
-**是什么**：把 [gpt-researcher](https://github.com/assafelovic/gpt-researcher) 封装为 Kairo LLM tool，一句话触发深度调研。
+> **到达这里，Kairo 不是「我使用的工具」，而是「一个随时间越来越了解我的伙伴」。**
 
-**工作方式**：
-
-- 新增 LLM tool `research_deep(topic, depth: "quick"|"deep")`
-- 内部调用 gpt-researcher（支持 web search + arXiv + PDF），生成结构化报告
-- 报告写入 `04_knowledge/research_notes/{topic}-{date}.md`
-- hub-context 自动注入最新 3 篇 research notes
-
-**用户体验**：
-
-```
-Ken：帮我调研一下 "video understanding with world models" 这个方向
-
-Kairo：好的，我来做深度调研，大概需要 3 分钟...
-      [3 分钟后]
-      ✅ 调研完成！
-      - 主要方法：Dreamer / RSSM / Genie 2 三条路线
-      - 最新进展：...
-      - 与你当前研究的关联：...
-      → 完整报告：04_knowledge/research_notes/video-world-models-2026-02.md
-```
+- **Self-Improving**（从 Phase 2 延续深化）：每周分析判断错误 → 更新规则 → 下次更准
+- **Computer Use**：不只给文字建议，直接操作浏览器完成任务（填表报名、下载报告、网页操作）
+- **关系图谱**：人脉卡片升级为网络图，自动发现「Jason 和 Tom 都在做 AI 教育，可能值得互相介绍」
+- **长期记忆**：月度压缩 → 年度精华，你积累的每一个想法永不随记忆消退
+- **跨设备 Context**：phone / laptop / server，同一个 Kairo 上下文
 
 ---
 
-#### 实验结果追踪
-
-**是什么**：结构化记录每次实验的参数与结果，支持自动对比。
-
-**工作方式**：
-
-- LLM tool `experiment_log(name, params, metrics, notes)` — 写入 `02_work/experiments/`
-- LLM tool `experiment_compare(names[])` — 自动生成对比 Markdown 表格
-- Kairo 在晨报中主动提示：「你昨天跑了 3 个实验，Exp-C 的 mAP 比 Exp-A 高 2.3%，需要我分析原因吗？」
-
-**用户体验**：
-
-```
-Ken：记录一下刚才的实验，batch_size=64, lr=1e-4, mAP=72.3
-
-Kairo：已记录 Exp-007。
-      当前最好结果：Exp-005（mAP=73.1, batch=32, lr=3e-4）
-      差距：-0.8%。要我对比一下两组参数的差异吗？
-```
-
----
-
-#### Docker 一键启动
-
-**是什么**：把 Kairo 打包为 Docker 镜像，`docker compose up` 即可运行，不依赖本机 Node 环境。
-
-```yaml
-# docker-compose.yml
-services:
-  kairo:
-    image: kairo:latest
-    volumes:
-      - ~/.kairo:/data # 所有数据挂载到本机
-    env_file: .env # BOT_TOKEN, OPENAI_API_KEY 等
-    restart: unless-stopped
-    ports:
-      - "18789:18789" # 控制台 UI
-```
-
-</details>
-
----
-
-<details>
-<summary><b>P2 — 架构演进</b></summary>
-
-#### Kairo MCP Server
-
-**是什么**：把 Kairo 的个人数据暴露为标准 MCP（Model Context Protocol）接口，让任何 AI 工具都能「认识」你。
-
-**工作方式**：
-
-- `src/mcp/server.ts` — 实现 MCP server
-- 暴露的 **Tools**：`get_tasks()`、`create_task()`、`get_calendar(days)`、`get_waiting()`、`get_person(name)`
-- 暴露的 **Resources**：`roadmap://current`、`daily_log://today`、`heartbeat://status`
-- Claude Desktop / ChatGPT / 任意 MCP client 直接连接，无需重新授权
-
-**用户体验**：
-
-```
-# Claude Desktop 配置后：
-用户：我今天有哪些待办？
-
-Claude Desktop（通过 Kairo MCP）：
-你今天有 3 项待办：
-1. [逾期 2 天] 回复 Jason 的合同邮件
-2. [今日截止] 提交实验报告初稿
-3. [今日] 跟 Tom 确认比赛规则
-```
-
----
-
-#### MCP Client
-
-**是什么**：Kairo 自己作为 MCP client，调用社区已有的 MCP server，获得文件系统、GitHub、网络搜索等能力，而不用自己实现。
-
-**接入的外部 MCP server**：
-
-- `@modelcontextprotocol/server-filesystem` — 读写本机文件（替换现有 file LLM tools）
-- `@modelcontextprotocol/server-github` — 读取 PR、issue、commit
-- Brave Search MCP — 实时网络搜索
-
----
-
-#### Swarm 调度层
-
-**是什么**：Kairo 从单一 agent 进化为 orchestrator，把复杂任务拆解分派给专职 worker agent，结果汇总后交给 Ken 确认。
-
-**架构**：
-
-```
-Ken："帮我准备这周组会的 slides，主题是 Video Understanding 最新进展"
-      ↓
-Kairo Orchestrator（理解意图 + 拆解任务）
-      ├── Research Agent → 调用 arXiv + gpt-researcher，整理最新 5 篇论文
-      ├── Code Agent     → 运行对比实验，生成结果图表
-      └── Writing Agent  → 整合内容，生成 Markdown slides 草稿
-      ↓
-Kairo："草稿已生成，请确认后我发给你"
-```
-
-**实现**：基于 [agency-swarm](https://github.com/VRSEN/agency-swarm) 或 OpenAI Agents SDK，每个 worker 有独立的 system prompt + tool set + scope 限制。
-
----
-
-#### Bounded Autonomy + Audit Trail
-
-**是什么**：为 swarm 的每个 agent 定义清晰的「不可逾越边界」，并记录所有行动供回溯。
-
-**高风险操作（必须 Ken 确认）**：
-
-- 对外发送邮件 / 消息
-- 删除文件
-- 提交代码 / PR
-- 修改 cron jobs 或 config
-
-**Audit Trail**：所有 agent 行动写入 `~/.kairo/audit.jsonl`
-
-```json
-{"ts":"2026-03-01T09:00:00Z","agent":"email","action":"draft","to":"jason@...","subject":"合同确认","status":"pending_approval"}
-{"ts":"2026-03-01T09:01:00Z","agent":"email","action":"send","approved_by":"ken","status":"sent"}
-```
-
-</details>
-
----
-
-<details>
-<summary><b>P3 — 长期愿景</b></summary>
-
-#### Computer Use Agent
-
-**是什么**：Kairo 不只给文字建议，而是直接操作浏览器和桌面完成任务。
-
-**能做什么**：
-
-- 填写网页表单（比赛报名、会议注册）
-- 截图确认操作结果
-- 自动化重复性电脑操作（下载报告、整理文件）
-
-**实现**：集成 Anthropic Computer Use API 或 [browser-use](https://github.com/browser-use/browser-use)，在隔离 Chromium 实例中执行，截图日志保留供审计。
-
----
-
-#### Self-Improving
-
-**是什么**：Kairo 每周分析自己的错误，更新自身的行为模式和身份描述，下次更准。
-
-**工作方式**：
-
-- 每周一分析：heartbeat failures、用户主动纠正的回复、未完成的任务
-- 生成改进建议，更新 `IDENTITY.md` / `SOUL.md` / `HEARTBEAT.md` playbook
-- 记录在 `04_knowledge/self_review/YYYY-WW.md`
-
-**例子**：
-
-```
-[自我分析 Week 08]
-- 本周 3 次把「了解一下」误识别为 watch 类型，实际是 idea
-- 调整：置信度阈值在「了解」词语时提高至 90%
-- 用户本周最常跟进的话题：论文实验结果
-- 调整：晨报中优先展示 experiment 状态
-```
-
----
-
-#### 关系图谱
-
-**是什么**：`people/` 目录的联系人卡片升级为关系网络，自动发现潜在连接。
-
-**能做什么**：
-
-- 可视化 Ken 的人脉网络（Obsidian Graph View 兼容格式）
-- 自动发现：「Jason 和 Tom 都在做 AI 教育，且都在你的 waiting 里，可能值得互相介绍」
-- 在对话中主动提示相关联系人：「你提到这个方向，王教授 3 个月前聊过类似的，要我找到那次对话记录吗？」
-
----
-
-#### 跨设备 Context Sync
-
-**是什么**：无论 Ken 在手机、笔记本还是服务器，访问的是同一个 Kairo 上下文。
-
-**实现**：
-
-- 手机：已实现（Telegram Bot 本身就是跨设备的）
-- 笔记本 Claude Desktop：通过 Kairo MCP Server 同步（P2 完成后自然解锁）
-- 轻量 API endpoint `/api/context`，返回当前 hub-context 快照，任何 client 可查询
-
-</details>
+### 可整合的社区项目
+
+| 项目                                                                                    | 用途                     | Phase |
+| --------------------------------------------------------------------------------------- | ------------------------ | :---: |
+| [SakanaAI/AI-Scientist-v2](https://github.com/SakanaAI/AI-Scientist-v2)                 | 自主论文生成流程参考     |   1   |
+| [SamuelSchmidgall/AgentLaboratory](https://github.com/SamuelSchmidgall/AgentLaboratory) | 文献 → 实验 → 写作三段式 |   1   |
+| [openai/openai-agents-python](https://github.com/openai/openai-agents-python)           | Swarm 官方后继框架       |   3   |
+| [VRSEN/agency-swarm](https://github.com/VRSEN/agency-swarm)                             | multi-agent 执行层备选   |   3   |
+| [browser-use/browser-use](https://github.com/browser-use/browser-use)                   | 浏览器操作能力           |   5   |
 
 ---
 
