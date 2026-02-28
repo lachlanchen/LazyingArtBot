@@ -2,6 +2,7 @@
 
 
 
+
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -20,11 +21,11 @@
 
 **LazyingArtBot** 是我为 **lazying.art** 打造的个人 AI 助手体系：
 
-**LazyingArtBot** 基于 OpenClaw，并且针对我的日常工作流做了定制：多渠道聊天、local-first 控制，以及 email → 日历/提醒/笔记自动化。
+**LazyingArtBot** 基于 OpenClaw 构建，并针对我的日常工作流做了定制：多渠道聊天、local-first 控制，以及 email → 日历/提醒/笔记自动化。
 
 | 🔗 链接 | URL | 关注点 |
 | --- | --- | --- |
-| 🌐 官网 | https://lazying.art | 主域名与状态看板 |
+| 🌐 网站 | https://lazying.art | 主域名与状态看板 |
 | 🤖 Bot 域名 | https://lazying.art | 聊天与助手入口 |
 | 🧱 上游基座 | https://github.com/openclaw/openclaw | OpenClaw 平台基础 |
 | 📦 本仓库 | https://github.com/lachlanchen/LazyingArtBot | LAB 专属适配 |
@@ -55,8 +56,9 @@
 - [路线图](#roadmap)
 - [贡献方式](#contributing)
 - [鸣谢](#acknowledgements)
-- [❤️ 支持](#-support)
-- [许可证](#license)
+- [❤️ Support](#-support)
+- [Contact](#contact)
+- [License](#license)
 
 ---
 
@@ -69,7 +71,7 @@ LAB 主要关注的是务实的个人生产力：
 - 📬 将入站邮件转换为结构化动作（Calendar、Reminders、Notes）。
 - 🛡️ 在保持自动化有用性的同时加入安全护栏。
 
-一句话总结：减少杂务，更好执行。
+一句话总结：减少杂务，更高效执行。
 
 ---
 
@@ -110,10 +112,10 @@ LAB 主要关注的是务实的个人生产力：
 
 当前仓库中的流水线步骤：
 
-- parse inbound mail
-- classify action type
-- save to Notes / Reminders / Calendar
-- log every action for review and debugging
+- 解析入站邮件
+- 分类动作类型
+- 保存到 Notes / Reminders / Calendar
+- 记录每次动作以便复核和调试
 
 ---
 
@@ -139,7 +141,7 @@ LAB 主要关注的是务实的个人生产力：
 └─ README.md            # this LAB-focused README
 ```
 
-说明：
+补充说明：
 
 - `scripts/prompt_tools` 指向 orchestral 的 prompt-tool 实现。
 - 根目录下 `i18n/` 存放本地化 README 变体。
@@ -169,9 +171,7 @@ pnpm add -g openclaw@latest
 
 ## Quick start
 
-本仓库运行时基线：
-
-- Node `>=22.12.0`（见 `package.json` 的引擎声明）。
+本仓库运行时基线：**Node >= 22.12.0**（见 `package.json` 的引擎）。
 
 ```bash
 npm install -g openclaw@latest
@@ -232,16 +232,16 @@ Compose 中常见变量：
 常用命令：
 
 ```bash
-# Onboard and install user daemon
+# 注册并安装用户守护进程
 openclaw onboard --install-daemon
 
-# Run gateway in foreground
+# 以前台方式运行网关
 openclaw gateway run --bind loopback --port 18789 --verbose
 
-# Send a direct message via configured channels
+# 通过已配置渠道发送直达消息
 openclaw message send --to +1234567890 --message "Hello from LAB"
 
-# Ask the agent directly
+# 直接向智能体提问
 openclaw agent --message "Create today checklist" --thinking high
 ```
 
@@ -257,7 +257,7 @@ UI 开发：
 pnpm ui:dev
 ```
 
-常用运维命令：
+补充常用运维命令：
 
 ```bash
 openclaw channels status --probe
@@ -272,7 +272,7 @@ openclaw doctor
 
 ## Configuration
 
-配置参考分散在 `.env` 与 `~/.openclaw/openclaw.json` 两处。
+配置参考分散在 `.env` 与 `~/.openclaw/openclaw.json` 中。
 
 1. 先从 `.env.example` 开始。
 2. 配置网关鉴权（推荐 `OPENCLAW_GATEWAY_TOKEN`）。
@@ -311,7 +311,7 @@ openclaw doctor
 
 ## LazyingArt workflow focus
 
-此分支围绕 **lazying.art** 的个人流程进行优化：
+该分支围绕 **lazying.art** 的个人流程进行优化：
 
 - 🎨 自定义品牌（LAB / 熊猫主题）
 - 📱 移动端友好的仪表盘与聊天体验
@@ -330,7 +330,7 @@ openclaw doctor
 ## Orchestral philosophy
 
 LAB 编排遵循一条核心规则：
-将复杂目标拆解为“确定性执行 + 聚焦 prompt-tool 链”。
+把复杂目标拆解为“确定性执行 + 聚焦 prompt-tool 链”。
 
 - 确定性脚本负责可靠的底层能力：
   调度、文件路由、运行目录、重试与输出交接。
@@ -455,7 +455,7 @@ openclaw gateway run --bind loopback --port 18789 --verbose
 
 - 按 `.env.example` 复核 `.env` 配置。
 - 确保至少配置了一个模型 Key。
-- 只为你实际启用的渠道配置 token。
+- 只为实际启用的渠道配置 token。
 
 ### 构建或安装问题
 
@@ -562,6 +562,15 @@ LazyingArtBot 基于 **OpenClaw**：
 | Donate | PayPal | Stripe |
 | --- | --- | --- |
 | [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
+
+## Contact
+
+- Website: https://lazying.art
+- Repository: https://github.com/lachlanchen/LazyingArtBot
+- Issue tracker: https://github.com/lachlanchen/LazyingArtBot/issues
+- Security or safety concerns: https://github.com/lachlanchen/LazyingArtBot/blob/main/SECURITY.md
+
+---
 
 ## License
 

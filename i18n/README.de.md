@@ -14,27 +14,30 @@
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](../package.json)
 [![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](../i18n)
 [![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](../docs)
+[![GitHub stars](https://img.shields.io/badge/GitHub-stars-0ea5e9?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
+[![GitHub issues](https://img.shields.io/badge/GitHub-issues-ef4444?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/issues)
 
-> 🌍 **i18n-Status:** `i18n/` ist vorhanden und enthält derzeit lokalisierte README-Dateien für Arabisch, Deutsch, Spanisch, Französisch, Japanisch, Koreanisch, Russisch, Vietnamesisch, vereinfachtes und traditionelles Chinesisch. Diese englische Fassung bleibt die kanonische Referenz für inkrementelle Updates.
+> 🌍 **i18n-Status:** `i18n/` exists and currently includes localized README files for Arabic, German, Spanish, French, Japanese, Korean, Russian, Vietnamese, Simplified Chinese, and Traditional Chinese. This English draft remains the canonical source for incremental updates.
 
-**LazyingArtBot** ist mein persönlicher KI-Assistenten-Stack für **lazying.art**.
-Es basiert auf OpenClaw und ist für meinen täglichen Workflow adaptiert: Multi-Channel-Chat, lokale Erstkontrolle und E-Mail-zu-Kalender-/Erinnerungs-/Notiz-Automatisierung.
+**LazyingArtBot** ist mein persönlicher KI-Assistenten-Stack für **lazying.art**:
+
+**LazyingArtBot** ist auf OpenClaw aufgebaut und für meinen täglichen Workflow angepasst: Multi-Channel-Chat, lokale-first-Kontrolle und E-Mail → Kalender/Erinnerungs-/Notizautomatisierung.
 
 | 🔗 Link | URL | Fokus |
 | --- | --- | --- |
 | 🌐 Website | https://lazying.art | Primäre Domain und Status-Dashboard |
-| 🤖 Bot-Domain | https://lazying.art | Einstiegspunkt für Chat und Assistent |
-| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw | OpenClaw-Plattform |
+| 🤖 Bot-Domain | https://lazying.art | Chat- und Assistent-Einstiegspunkt |
+| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw | OpenClaw-Plattform-Basis |
 | 📦 Dieses Repo | https://github.com/lachlanchen/LazyingArtBot | LAB-spezifische Anpassungen |
 
 ---
 
 ## Inhaltsverzeichnis
 
-- [Überblick](#überblick)
+- [Uebersicht](#uebersicht)
 - [Auf einen Blick](#auf-einen-blick)
 - [Funktionen](#funktionen)
-- [Kernfunktionen](#kernfunktionen)
+- [Kernkompetenzen](#kernkompetenzen)
 - [Projektstruktur](#projektstruktur)
 - [Voraussetzungen](#voraussetzungen)
 - [Schnellstart](#schnellstart)
@@ -43,29 +46,30 @@ Es basiert auf OpenClaw und ist für meinen täglichen Workflow adaptiert: Multi
 - [Konfiguration](#konfiguration)
 - [Bereitstellungsmodi](#bereitstellungsmodi)
 - [LazyingArt-Workflow-Fokus](#lazyingart-workflow-fokus)
-- [Orchestrationsphilosophie](#orchestrationsphilosophie)
+- [Orchestrierungsphilosophie](#orchestrierungsphilosophie)
 - [Prompt-Tools in LAB](#prompt-tools-in-lab)
 - [Beispiele](#beispiele)
-- [Entwicklungshinweise](#entwicklungshinweise)
+- [Entwicklungsnotizen](#entwicklungsnotizen)
 - [Fehlerbehebung](#fehlerbehebung)
-- [LAB-Ekosystem-Integrationen](#lab-ökosystem-integrationen)
-- [Installation aus dem Quellcode (Kurzanleitung)](#installation-aus-dem-quellcode-kurzanleitung)
+- [LAB-Ecosystem-Integrationen](#lab-ecosystem-integrationen)
+- [Installation aus dem Quellcode (Kurzreferenz)](#installation-aus-dem-quellcode-kurzreferenz)
 - [Roadmap](#roadmap)
 - [Mitwirken](#mitwirken)
-- [❤️ Support](#-support)
 - [Danksagung](#danksagung)
+- [❤️ Support](#-support)
+- [Kontakt](#kontakt)
 - [Lizenz](#lizenz)
 
 ---
 
-## Überblick
+## Uebersicht
 
-LAB konzentriert sich auf praktische persönliche Produktivität:
+LAB fokussiert sich auf praktische persönliche Produktivität:
 
-- ✅ Einen Assistenten in Chatkanälen betreiben, die du bereits nutzt.
+- ✅ Einen Assistenten in den Chat-Kanälen betreiben, die du bereits nutzt.
 - 🔐 Daten und Kontrolle auf deinem eigenen Rechner/deinem eigenen Server behalten.
 - 📬 Eingehende E-Mails in strukturierte Aktionen umwandeln (Calendar, Reminders, Notes).
-- 🛡️ Guardrails hinzufügen, damit Automatisierung nützlich, aber trotzdem sicher bleibt.
+- 🛡️ Schutzmechanismen hinzufügen, damit Automatisierung nützlich, aber weiterhin sicher bleibt.
 
 Kurz gesagt: weniger Routinearbeit, bessere Ausführung.
 
@@ -78,11 +82,11 @@ Kurz gesagt: weniger Routinearbeit, bessere Ausführung.
 | Runtime | Node.js `>=22.12.0` |
 | Paketmanager | `pnpm@10.23.0` |
 | Kern-CLI | `openclaw` |
-| Standard-Gateway lokal | `127.0.0.1:18789` |
+| Standard-Lokales Gateway | `127.0.0.1:18789` |
 | Standard-Bridge-Port | `127.0.0.1:18790` |
-| Primäre Dokumentation | `docs/` (Mintlify) |
+| Primäre Docs | `docs/` (Mintlify) |
 | Primäre LAB-Orchestrierung | `orchestral/` + `scripts/prompt_tools/` |
-| Standort der i18n-README | `i18n/README.*.md` |
+| Ort der i18n-README | `i18n/README.*.md` |
 
 ---
 
@@ -90,25 +94,25 @@ Kurz gesagt: weniger Routinearbeit, bessere Ausführung.
 
 - 🌐 Multi-Channel-Assistenten-Runtime mit lokalem Gateway.
 - 🖥️ Browser-Dashboard/Chat-Oberfläche für lokale Operationen.
-- 🧰 Tool-fähige Automatisierungspipeline (Skripte + Prompt-Tools).
+- 🧰 Tool-gestützte Automatisierungspipeline (Scripts + Prompt-Tools).
 - 📨 E-Mail-Triage und Umwandlung in Notes-, Reminders- und Calendar-Aktionen.
-- 🧩 Plugin-/Erweiterungsökosystem (`extensions/*`) für Kanäle/Provider/Integrationen.
-- 📱 Multi-Platform-Schnittstellen im Repo (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
+- 🧩 Plugin-/Extension-Ökosystem (`extensions/*`) für Kanäle/Provider/Integrationen.
+- 📱 Multi-Plattform-Schnittstellen im Repo (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
 
 ---
 
-## Kernfunktionen
+## Kernkompetenzen
 
 | Fähigkeit | Bedeutung in der Praxis |
 | --- | --- |
-| Multi-Channel-Assistenten-Runtime | Gateway + Agent-Sessions über die Kanäle, die du aktivierst |
-| Web-Dashboard / Chat | Browser-basierte Steueroberfläche für lokale Operationen |
-| Tool-gestützte Workflows | Ketten aus Shell-, Datei- und Automatisierungs-Skripten |
-| E-Mail-Automatisierungspipeline | E-Mails parsen, Aktionstyp klassifizieren, zu Notes/Reminders/Calendar routen und Aktionen zur Prüfung/Fehlersuche protokollieren |
+| Multi-Channel-Assistenten-Runtime | Gateway + Agent-Sitzungen über die von dir aktivierten Kanäle |
+| Web-Dashboard / Chat | Browser-basierte Kontrolloberfläche für lokale Operationen |
+| Tool-gestützte Workflows | Shell-, Dateisystem- und Automatisierungsskript-Ketten |
+| E-Mail-Automatisierungspipeline | Parse Mail, klassifiziere Aktionstypen, route zu Notes/Reminders/Calendar und protokolliere Aktionen zur Prüfung/Fehlersuche |
 
 Pipeline-Schritte aus dem aktuellen Workflow:
 
-- eingehende E-Mail parsen
+- eingehende Mail parsen
 - Aktionstyp klassifizieren
 - in Notes / Reminders / Calendar speichern
 - jede Aktion zur Prüfung und Fehlersuche protokollieren
@@ -117,31 +121,31 @@ Pipeline-Schritte aus dem aktuellen Workflow:
 
 ## Projektstruktur
 
-Übersichtliches Repository-Layout:
+High-level repository layout:
 
 ```text
 .
 ├─ src/                 # core runtime, gateway, channels, CLI, infra
-├─ extensions/          # optionale Kanal-/Provider-/Auth-Plugins
-├─ orchestral/          # LAB-Orchestrierungs-Pipelines + Prompt-Tools
-├─ scripts/             # build/dev/test/release Hilfen
+├─ extensions/          # optional channel/provider/auth plugins
+├─ orchestral/          # LAB orchestration pipelines + prompt tools
+├─ scripts/             # build/dev/test/release helpers
 ├─ ui/                  # web dashboard UI package
 ├─ apps/                # macOS / iOS / Android apps
 ├─ docs/                # Mintlify documentation
 ├─ references/          # LAB references and operating notes
 ├─ test/                # test suites
-├─ i18n/                # lokalisierte README-Dateien
+├─ i18n/                # localized README files
 ├─ .env.example         # environment template
-├─ docker-compose.yml   # gateway + CLI container
-├─ README_OPENCLAW.md   # größere upstream-orientierte Referenz-README
-└─ README.md            # dieses LAB-orientierte README
+├─ docker-compose.yml   # gateway + CLI containers
+├─ README_OPENCLAW.md   # larger upstream-style reference README
+└─ README.md            # this LAB-focused README
 ```
 
 Hinweise:
 
-- `scripts/prompt_tools` verweist auf die Orchestrated-Prompt-Tool-Implementierung.
-- Das Root-`i18n/` enthält lokalisierte README-Varianten.
-- `.github/workflows.disabled/` ist in diesem Snapshot vorhanden; das aktive CI-Verhalten sollte vor Annahmen zu Workflows geprüft werden.
+- `scripts/prompt_tools` verweist auf die Orchestrations-Implementierung der Prompt-Tools.
+- Im Root-`i18n/` befinden sich die lokalisierten README-Varianten.
+- `.github/workflows.disabled/` ist in diesem Snapshot vorhanden; aktives CI-Verhalten sollte vor Nutzung von Workflow-Annahmen validiert werden.
 
 ---
 
@@ -150,12 +154,12 @@ Hinweise:
 Runtime- und Tooling-Baselines aus diesem Repository:
 
 - Node.js `>=22.12.0`
-- pnpm `10.23.0` als Baseline (siehe `packageManager` in `package.json`)
-- Ein konfigurierter Model-Provider-Key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` usw.)
+- pnpm `10.23.0` als Basis (siehe `packageManager` in `package.json`)
+- Ein konfigurierte Model-Provider-Key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` etc.)
 - Optional: Docker + Docker Compose für containerisiertes Gateway/CLI
-- Optional für mobile/macOS Builds: Apple/Android Toolchains je nach Zielplattform
+- Optional für mobile/mac-Builds: Apple/Android-Toolchains je nach Zielplattform
 
-Optionale globale CLI-Installation (entsprechender Quickstart-Fluss):
+Optionale globale CLI-Installation (entspricht dem Schnellstart-Fluss):
 
 ```bash
 npm install -g openclaw@latest
@@ -167,7 +171,7 @@ pnpm add -g openclaw@latest
 
 ## Schnellstart
 
-Runtime-Baseline in diesem Repo: **Node >= 22.12.0** (`package.json` engine).
+Runtime-Basis in diesem Repo: **Node >= 22.12.0** (`package.json` engine).
 
 ```bash
 npm install -g openclaw@latest
@@ -182,7 +186,7 @@ Danach lokales Dashboard und Chat öffnen:
 
 - http://127.0.0.1:18789
 
-Für Remote-Zugriff gib dein lokales Gateway über einen eigenen sicheren Tunnel frei (z. B. ngrok/Tailscale) und lasse die Authentifizierung aktiviert.
+Für entfernten Zugriff, gib dein lokales Gateway über einen sicheren eigenen Tunnel frei (z. B. ngrok/Tailscale) und halte die Authentifizierung eingeschaltet.
 
 ---
 
@@ -201,7 +205,7 @@ pnpm openclaw onboard --install-daemon
 
 ### Optionaler Docker-Workflow
 
-Eine `docker-compose.yml` ist enthalten mit:
+Ein `docker-compose.yml` ist enthalten mit:
 
 - `openclaw-gateway`
 - `openclaw-cli`
@@ -210,11 +214,11 @@ Typischer Ablauf:
 
 ```bash
 cp .env.example .env
-# mindestens: OPENCLAW_GATEWAY_TOKEN und deinen Modellanbieter-Schlüssel setzen
+# set at minimum: OPENCLAW_GATEWAY_TOKEN and your model provider key(s)
 docker compose up -d
 ```
 
-Typischerweise erforderliche Compose-Variablen:
+Häufig benötigte Compose-Variablen:
 
 - `OPENCLAW_CONFIG_DIR`
 - `OPENCLAW_WORKSPACE_DIR`
@@ -228,20 +232,20 @@ Typischerweise erforderliche Compose-Variablen:
 Häufige Befehle:
 
 ```bash
-# Onboarding durchführen und Benutzer-Daemon installieren
+# Onboard and install user daemon
 openclaw onboard --install-daemon
 
-# Gateway im Vordergrund starten
+# Run gateway in foreground
 openclaw gateway run --bind loopback --port 18789 --verbose
 
-# Direkte Nachricht über konfigurierte Kanäle senden
+# Send a direct message via configured channels
 openclaw message send --to +1234567890 --message "Hello from LAB"
 
-# Agenten direkt anfragen
-openclaw agent --message "Erstelle eine Prioritätenliste für heutige Aufgaben" --thinking high
+# Ask the agent directly
+openclaw agent --message "Create today checklist" --thinking high
 ```
 
-Entwicklungs-Loop (Watch-Modus):
+Dev loop (watch mode):
 
 ```bash
 pnpm gateway:watch
@@ -268,40 +272,40 @@ openclaw doctor
 
 ## Konfiguration
 
-Umgebungs- und Konfigurationsreferenz sind auf `.env` und `~/.openclaw/openclaw.json` aufgeteilt.
+Umgebungs- und Konfigurationsreferenz ist zwischen `.env` und `~/.openclaw/openclaw.json` aufgeteilt.
 
 1. Starte mit `.env.example`.
 2. Setze die Gateway-Authentifizierung (`OPENCLAW_GATEWAY_TOKEN` empfohlen).
-3. Setze mindestens einen Model-Provider-Key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` usw.).
-4. Setze nur Channel-Credentials für Kanäle, die du wirklich aktivierst.
+3. Setze mindestens einen Model-Provider-Key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.).
+4. Setze Channel-Zugangsinfos nur für Kanäle, die du aktivierst.
 
-Wichtige Hinweise aus `.env.example`, wie im Repo erhalten:
+Wichtige `.env.example`-Hinweise aus dem Repo:
 
-- Env-Prio: process env -> `./.env` -> `~/.openclaw/.env` -> config `env`-Block.
-- Bestehende, nicht leere Process-Env-Werte werden nicht überschrieben.
-- Konfigurationsschlüssel wie `gateway.auth.token` können Umgebungs-Fallbacks überlagern.
+- Env-Priorität: process env -> `./.env` -> `~/.openclaw/.env` -> config `env`-Block.
+- Bestehende nicht-leere Process-Env-Werte werden nicht überschrieben.
+- Konfigurationsschlüssel wie `gateway.auth.token` können Env-Fallbacks überschreiben.
 
-Sicherheitskritische Baseline vor Internet-Zugriff:
+Sicherheitskritische Basis vor Internet-Exposition:
 
-- Halte Gateway-Authentifizierung/Pairing aktiviert.
-- Halte Allowlisten für eingehende Channels strikt.
-- Behandle jede eingehende Nachricht/jedes E-Mail als untrusted input.
+- Gateway-Authentifizierung/Pairing aktiviert halten.
+- Strenge Allowlisten für eingehende Kanäle einhalten.
+- Jede eingehende Nachricht/jede eingehende E-Mail als untrusted input behandeln.
 - Mit minimalen Rechten laufen lassen und Logs regelmäßig prüfen.
 
-Wenn du das Gateway ins Internet freigibst, aktiviere zwingend Token-/Passwort-Authentifizierung und eine vertrauenswürdige Proxy-Konfiguration.
+Wenn du das Gateway ins Internet stellst, erfordere Token-/Passwort-Authentifizierung und vertrauenswürdige Proxy-Konfiguration.
 
 ---
 
 ## Bereitstellungsmodi
 
-| Modus | Geeignet für | Typischer Befehl |
+| Modus | Am besten geeignet für | Typischer Befehl |
 | --- | --- | --- |
 | Lokaler Vordergrundmodus | Entwicklung und Debugging | `openclaw gateway run --bind loopback --port 18789 --verbose` |
 | Lokaler Daemon | Tägliche Nutzung | `openclaw onboard --install-daemon` |
-| Docker | Isolierte Runtime und wiederholbare Deployments | `docker compose up -d` |
-| Remoter Host + Tunnel | Zugriff von außerhalb deines Heimnetzes | Gateway + sicheren Tunnel betreiben, Auth aktiviert lassen |
+| Docker | Isolierte Runtime und reproduzierbare Bereitstellungen | `docker compose up -d` |
+| Remote Host + Tunnel | Zugriff außerhalb des lokalen LAN | Gateway + sicheren Tunnel betreiben, Auth aktiviert lassen |
 
-Annahme: Produktionsreife Reverse-Proxy-Härtung, Secret-Rotation und Backup-Policy sind deploymentspezifisch und sollten pro Umgebung definiert werden.
+Annahme: produktionsreife Reverse-Proxy-Härtung, Secret-Rotation und Backup-Policy sind deploymentspezifisch und sollten pro Umgebung definiert werden.
 
 ---
 
@@ -309,53 +313,53 @@ Annahme: Produktionsreife Reverse-Proxy-Härtung, Secret-Rotation und Backup-Pol
 
 Dieser Fork priorisiert meinen persönlichen Flow auf **lazying.art**:
 
-- 🎨 Eigenes Branding (LAB / Panda-Thema)
+- 🎨 Eigenes Branding (LAB / Panda-Theme)
 - 📱 Mobile-freundliche Dashboard-/Chat-Erfahrung
-- 📨 AutoMail-Pipeline-Varianten (regelgetriebene und codex-unterstützte Speichermodi)
+- 📨 Automail-Pipeline-Varianten (regelgesteuerte, kodexgestützte Speicher-Modi)
 - 🧹 Persönliche Bereinigungs- und Senderklassifikationsskripte
 - 🗂️ Notes-/Reminders-/Calendar-Routing für echte tägliche Nutzung abgestimmt
 
-Automation Workspace (lokal):
+Automatisierungs-Arbeitsbereich (lokal):
 
 - `~/.openclaw/workspace/automation/`
-- Skriptbezüge im Repo: `references/lab-scripts-and-philosophy.md`
-- Dedizierte Codex Prompt-Tools: `scripts/prompt_tools/`
+- Skriptverweise im Repo: `references/lab-scripts-and-philosophy.md`
+- Spezielle Codex-Prompt-Tools: `scripts/prompt_tools/`
 
 ---
 
-## Orchestrationsphilosophie
+## Orchestrierungsphilosophie
 
 LAB-Orchestrierung folgt einer Design-Regel:
-Komplexe Ziele in deterministische Ausführung + fokussierte Prompt-Tool-Ketten zerlegen.
+Schwere Ziele in deterministische Ausführung + fokussierte Prompt-Tool-Ketten zerlegen.
 
-- Deterministische Skripte übernehmen zuverlässiges Plumbing:
-  Terminplanung, Dateirouting, Run-Verzeichnisse, Retries und Output-Handover.
+- Deterministische Skripte übernehmen verlässliche Abläufe:
+  Terminplanung, Dateirouting, Ausführungsordner, Retries und Ausgabeübergabe.
 - Prompt-Tools liefern adaptive Intelligenz:
   Planung, Triage, Kontextsynthese und Entscheidungsfindung unter Unsicherheit.
-- Jede Stufe erzeugt wiederverwendbare Artefakte, sodass nachgelagerte Tools stärkere finale Notizen/E-Mails ohne Neuaufbau schreiben können.
+- Jede Stufe erzeugt wiederverwendbare Artefakte, sodass nachgelagerte Tools stärkere Endnotizen/E-Mails erzeugen können, ohne von Null zu starten.
 
-Wichtige Orchestrierungsketten:
+Zentrale Orchestrierungs-Ketten:
 
-- Unternehmerketten:
-  Unternehmenskontext-Aufnahme -> Markt-/Finanzierungs-/wissenschaftliche/rechtliche Intelligence -> konkrete Wachstumsmaßnahmen.
-- AutoMail-Kette:
-  Eingangsmail-Triage -> konservative Auslassungsregeln für Niedrigwertiges -> strukturierte Notes-/Reminders-/Calendar-Aktionen.
-- Webrecherche-Kette:
-  Erfassung von Ergebnisseiten -> gezielte Tiefenauswertung mit Screenshot-/Text-Extraktion -> evidenzgestützte Synthese.
+- Unternehmenskette:
+  Aufnahme von Unternehmenskontext -> Markt-/Finanzierungs-/wissenschaftliche/rechtliche Intelligence -> konkrete Wachstumsmaßnahmen.
+- Auto-Mail-Kette:
+  Eingangsmail-Triage -> konservative Ausschlusslogik für geringe Relevanz -> strukturierte Notes-/Reminders-/Calendar-Aktionen.
+- Web-Suchkette:
+  Ergebnisseiten erfassen -> gezielte Deep Reads mit Screenshot-/Text-Extraktion -> evidenzbasierte Synthese.
 
 ---
 
 ## Prompt-Tools in LAB
 
-Prompt-Tools sind modular, kombinierbar und orchestrierungszentriert.
+Prompt-Tools sind modular, zusammensetzbar und orchestrationszentriert.
 Sie können eigenständig laufen oder als verkettete Stufen in größeren Workflows arbeiten.
 
 - Lese-/Speicher-Operationen:
-  Erstellung und Aktualisierung von Notes-, Reminders- und Calendar-Ausgaben für AutoLife-Workflows.
+  Erstelle und aktualisiere Notes-, Reminders- und Calendar-Ausgaben für AutoLife-Workflows.
 - Screenshot-/Lese-Operationen:
-  Suchseiten und verlinkte Seiten erfassen, anschließend strukturierten Text für Folgeanalysen extrahieren.
+  Suchseiten und verlinkte Seiten erfassen, dann strukturierten Text für Downstream-Analyse extrahieren.
 - Tool-Verbindungs-Operationen:
-  Deterministische Skripte aufrufen, Artefakte zwischen Stufen austauschen und Kontextkontinuität halten.
+  Rufe deterministische Skripte auf, tausche Artefakte zwischen Stufen aus und halte Kontext-Kontinuität.
 
 Primärer Ort:
 
@@ -374,10 +378,10 @@ openclaw gateway run --bind loopback --port 18789 --verbose
 ### Beispiel: Agenten bitten, die Tagesplanung zu verarbeiten
 
 ```bash
-openclaw agent --message "Überprüfe den heutigen Posteingang und erstelle einen priorisierten Aufgabenplan" --thinking high
+openclaw agent --message "Review today inbox and build a prioritized task plan" --thinking high
 ```
 
-### Beispiel: Quellcode-Build + Watch-Schleife
+### Beispiel: Build aus dem Quellcode + Watch-Schleife
 
 ```bash
 pnpm install
@@ -396,11 +400,11 @@ docker compose logs -f openclaw-gateway
 
 ---
 
-## Entwicklungshinweise
+## Entwicklungsnotizen
 
 - Runtime-Basis: Node `>=22.12.0`.
-- Paketmanager-Basis: `pnpm@10.23.0` (`packageManager` Feld).
-- Übliche Qualitätsprüfungen:
+- Paketmanager-Basis: `pnpm@10.23.0` (`packageManager`-Feld).
+- Typische Qualitätsgates:
 
 ```bash
 pnpm check          # format + ts checks + lint
@@ -410,10 +414,10 @@ pnpm test:coverage  # coverage run
 ```
 
 - CLI in der Entwicklung: `pnpm openclaw ...`
-- TS-Run-Loop: `pnpm dev`
-- UI-Paket-Befehle kommen über Root-Skripte (`pnpm ui:build`, `pnpm ui:dev`).
+- TS-Run-Schleife: `pnpm dev`
+- UI-Paketbefehle laufen über Root-Skripte (`pnpm ui:build`, `pnpm ui:dev`).
 
-Übliche erweiterte Testbefehle in diesem Repo:
+Typische erweiterte Testbefehle in diesem Repo:
 
 ```bash
 pnpm test:e2e
@@ -422,7 +426,7 @@ pnpm test:docker:all
 pnpm test:ui
 ```
 
-Weitere Hilfen:
+Zusätzliche Entwicklertools:
 
 ```bash
 pnpm docs:dev
@@ -431,35 +435,35 @@ pnpm lint
 pnpm tsgo:test
 ```
 
-Annahme:
+Hinweis:
 
-- Mobile/macOS Build- und Laufbefehle sind in `package.json` vorhanden (`ios:*`, `android:*`, `mac:*`), aber Plattform-Signing/Provisioning-Anforderungen sind umgebungsspezifisch und hier nicht vollständig dokumentiert.
+- Build- und Laufbefehle für Mobile/macOS-Apps existieren in `package.json` (`ios:*`, `android:*`, `mac:*`), aber Plattform-Signing-/Provisioning-Anforderungen sind umgebungsspezifisch und in diesem README nicht vollständig dokumentiert.
 
 ---
 
 ## Fehlerbehebung
 
-### Gateway nicht erreichbar unter `127.0.0.1:18789`
+### Gateway nicht erreichbar auf `127.0.0.1:18789`
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-Prüfe auf Portkollisionen und Daemon-Konflikte. Bei Docker verifiziere gemappten Host-Port und Service-Health.
+Auf Portkollisionen und Daemon-Konflikte prüfen. Bei Docker prüfe den zugeordneten Host-Port und den Gesundheitszustand des Services.
 
-### Auth- oder Channel-Konfigurationsprobleme
+### Auth- oder Kanal-Konfigurationsprobleme
 
 - Prüfe `.env`-Werte erneut gegen `.env.example`.
 - Stelle sicher, dass mindestens ein Modell-Key konfiguriert ist.
-- Verifiziere Channel-Tokens nur für Kanäle, die du wirklich aktivierst.
+- Prüfe Kanal-Tokens nur für Kanäle, die du tatsächlich aktivierst.
 
 ### Build- oder Installationsprobleme
 
-- `pnpm install` erneut mit Node `>=22.12.0` ausführen.
-- Neu bauen mit `pnpm ui:build && pnpm build`.
-- Wenn optionale native Peers fehlen, prüfe Installationslogs auf Kompatibilität von `@napi-rs/canvas` / `node-llama-cpp`.
+- Führe `pnpm install` erneut mit Node `>=22.12.0` aus.
+- Rebuild mit `pnpm ui:build && pnpm build`.
+- Falls optionale native Peers fehlen, prüfe Installationslogs auf Kompatibilität von `@napi-rs/canvas` / `node-llama-cpp`.
 
-### Allgemeine Gesundheitsprüfungen
+### Allgemeine Gesundheitschecks
 
 Nutze `openclaw doctor`, um Migrations-/Sicherheits-/Konfigurationsdrift zu erkennen.
 
@@ -473,35 +477,35 @@ openclaw status --deep
 
 ---
 
-## LAB-Ökosystem-Integrationen
+## LAB-Ecosystem-Integrationen
 
-LAB bündelt meine breiteren KI-Produkt- und Forschungs-Repos in eine gemeinsame Betriebsschicht für Erstellung, Wachstum und Automatisierung.
+LAB verbindet meine breiteren KI-Produkte und Forschung-Repos in eine gemeinsame Betriebsebene für Erstellung, Wachstum und Automatisierung.
 
 Profil:
 
 - https://github.com/lachlanchen?tab=repositories
 
-Integrierte Repositories:
+Integrierte Repos:
 
 - `VoidAbyss` (隙遊之淵)
 - `AutoNovelWriter` (automatisches Schreiben von Romanen)
 - `AutoAppDev` (automatische App-Entwicklung)
 - `OrganoidAgent` (Organoid-Forschungsplattform mit Foundation-Vision-Modellen + LLMs)
-- `LazyEdit` (KI-gestützte Videobearbeitung: Untertitel, Transkription, Highlights, Metadaten)
+- `LazyEdit` (KI-gestützte Videobearbeitung: Untertitel/Transkription/Highlights/Metadaten/Untertitel)
 - `AutoPublish` (automatische Veröffentlichungspipeline)
 
 Praktische LAB-Integrationsziele:
 
 - Romane automatisch schreiben
 - Apps automatisch entwickeln
-- Videos automatisch schneiden/bearbeiten
-- Inhalte automatisch veröffentlichen
+- Videos automatisch bearbeiten
+- Ergebnisse automatisch veröffentlichen
 - Organoide automatisch analysieren
-- E-Mail-Operationen automatisch verarbeiten
+- E-Mail-Operationen automatisch handhaben
 
 ---
 
-## Installation aus dem Quellcode (Kurzanleitung)
+## Installation aus dem Quellcode (Kurzreferenz)
 
 ```bash
 git clone https://github.com/lachlanchen/LazyingArtBot.git
@@ -512,7 +516,7 @@ pnpm build
 pnpm openclaw onboard --install-daemon
 ```
 
-Entwicklungsschleife:
+Dev loop:
 
 ```bash
 pnpm gateway:watch
@@ -524,23 +528,23 @@ pnpm gateway:watch
 
 Geplante Richtungen für diesen LAB-Fork (aktive Arbeits-Roadmap):
 
-- Ausbaus der AutoMail-Zuverlässigkeit mit strengerer Sender-/Regelklassifikation.
-- Verbessern der Komponierbarkeit von Orchestrationsstufen und Nachvollziehbarkeit von Artefakten.
-- Stärkung eines mobile-first Betriebs und der UX für Remote-Gateway-Management.
-- Vertiefung der Integration mit LAB-Ökosystem-Repositories für end-to-end automatisierte Produktion.
-- Weiteres Härten von Security-Defaults und Observability für unbeaufsichtigte Automatisierung.
+- Automail-Zuverlässigkeit mit strengerer Sender-/Regelklassifikation ausbauen.
+- Orchestrationsstufen-Komponierbarkeit und Artefakt-Nachvollziehbarkeit verbessern.
+- Mobile-first-Bedienbarkeit und Remote-Gateway-Verwaltungs-UX weiter stärken.
+- Integrationen mit LAB-Ecosystem-Repos für end-to-end automatisierte Produktion vertiefen.
+- Sicherheitsstandards und Observability für unbeaufsichtigte Automatisierung weiter härten.
 
 ---
 
 ## Mitwirken
 
-Dieses Repository folgt persönlichen LAB-Prioritäten und übernimmt gleichzeitig die Kernarchitektur von OpenClaw.
+Dieses Repository fokussiert persönliche LAB-Prioritäten und übernimmt zugleich die Kernarchitektur von OpenClaw.
 
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) lesen
-- Upstream-Doku prüfen: https://docs.openclaw.ai
-- Für Sicherheitsfragen siehe [`SECURITY.md`](../SECURITY.md)
+- Upstream-Dokumentation prüfen: https://docs.openclaw.ai
+- Bei Sicherheitsproblemen siehe [`SECURITY.md`](../SECURITY.md)
 
-Falls Verhalten auf LAB-spezifische Aspekte unklar sind, bestehendes Verhalten beibehalten und Annahmen in den PR-Notizen dokumentieren.
+Wenn du unsicher über LAB-spezifisches Verhalten bist, bestehendes Verhalten beibehalten und Annahmen in PR-Notizen dokumentieren.
 
 ---
 
@@ -553,11 +557,18 @@ LazyingArtBot basiert auf **OpenClaw**:
 
 Danke an die OpenClaw-Maintainer und die Community für die Kernplattform.
 
+## Kontakt
+
+- Website: https://lazying.art
+- Repository: https://github.com/lachlanchen/LazyingArtBot
+- Issue-Tracker: https://github.com/lachlanchen/LazyingArtBot/issues
+- Sicherheits- oder Schutzbedenken: https://github.com/lachlanchen/LazyingArtBot/blob/main/SECURITY.md
+
 ---
 
 ## Lizenz
 
-MIT (soweit im Upstream passend). Siehe `LICENSE`.
+MIT (wie bei Upstream, sofern zutreffend). Siehe `LICENSE`.
 
 
 ## ❤️ Support
