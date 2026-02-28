@@ -1,10 +1,7 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 
-
-<p align="center">
-  <img src="https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png" alt="LazyingArtBot banner" />
-</p>
+[![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
 
@@ -12,128 +9,158 @@
 [![Node >= 22.12.0](https://img.shields.io/badge/Node-%3E%3D22.12.0-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](pnpm-workspace.yaml)
 [![Upstream: openclaw/openclaw](https://img.shields.io/badge/upstream-openclaw%2Fopenclaw-111827?logo=github)](https://github.com/openclaw/openclaw)
-[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#-quick-start)
+[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#quick-start)
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
+[![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](i18n)
+[![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](docs)
 
->
-> Lưu ý: `i18n/` đã tồn tại và hiện có tiếng Ả Rập. Các biến thể README bản địa hóa bổ sung sẽ được xử lý từng ngôn ngữ một để giữ nội dung nhất quán với các bản cập nhật nguồn.
+> 🌍 **Trạng thái i18n:** `i18n/` hiện có và đang bao gồm các file README đã bản địa hóa bằng tiếng Ả Rập, tiếng Đức, tiếng Tây Ban Nha, tiếng Pháp, tiếng Nhật, tiếng Hàn, tiếng Việt, tiếng Trung giản thể và tiếng Trung phồn thể. Bản thảo tiếng Anh này vẫn là nguồn chính thống cho các cập nhật dần dần.
 
-**LazyingArtBot** là stack trợ lý AI cá nhân của tôi cho **lazying.art**.  
-Nó được xây dựng trên OpenClaw và tùy biến cho quy trình làm việc hằng ngày của tôi: chat đa kênh, điều khiển local-first, và tự động hóa email → lịch/nhắc việc/ghi chú.
+**LazyingArtBot** là bộ công cụ trợ lý AI cá nhân của tôi cho **lazying.art**.
+Nó được xây dựng trên OpenClaw và được điều chỉnh cho quy trình làm việc hằng ngày của riêng tôi: chat đa kênh, kiểm soát local-first và tự động hóa email -> calendar/reminder/notes.
 
-| Liên kết | URL |
+| 🔗 Liên kết | URL |
 | --- | --- |
-| Website | https://lazying.art |
-| Bot domain | https://lazying.art |
-| Upstream base | https://github.com/openclaw/openclaw |
-| Repo này | https://github.com/lachlanchen/LazyingArtBot |
+| 🌐 Website | https://lazying.art |
+| 🤖 Miền bot | https://lazying.art |
+| 🧱 Nguồn gốc nền tảng | https://github.com/openclaw/openclaw |
+| 📦 Repo này | https://github.com/lachlanchen/LazyingArtBot |
 
 ---
 
-## Table of contents
+## Mục lục
 
-- [🧭 Tổng quan](#-tổng-quan)
-- [⚡ Nhanh gọn](#-nhanh-gọn)
-- [⚙️ Năng lực cốt lõi](#️-năng-lực-cốt-lõi)
-- [🧱 Cấu trúc dự án](#-cấu-trúc-dự-án)
-- [📋 Điều kiện tiên quyết](#-điều-kiện-tiên-quyết)
-- [🚀 Bắt đầu nhanh](#-bắt-đầu-nhanh)
-- [🧱 Cài đặt](#-cài-đặt)
-- [🛠️ Sử dụng](#️-sử-dụng)
-- [🔐 Cấu hình](#-cấu-hình)
-- [🧩 Trọng tâm quy trình LazyingArt](#-trọng-tâm-quy-trình-lazyingart)
-- [🎼 Triết lý Orchestral](#-triết-lý-orchestral)
-- [🧰 Prompt tools trong LAB](#-prompt-tools-trong-lab)
-- [💡 Ví dụ](#-ví-dụ)
-- [🧪 Ghi chú phát triển](#-ghi-chú-phát-triển)
-- [🩺 Khắc phục sự cố](#-khắc-phục-sự-cố)
-- [🌐 Tích hợp hệ sinh thái LAB](#-tích-hợp-hệ-sinh-thái-lab)
-- [Cài đặt từ source](#cài-đặt-từ-source)
-- [🗺️ Lộ trình](#️-lộ-trình)
-- [🤝 Đóng góp](#-đóng-góp)
-- [❤️ Hỗ trợ / Tài trợ](#️-hỗ-trợ--tài-trợ)
-- [🙏 Lời cảm ơn](#-lời-cảm-ơn)
-- [📄 Giấy phép](#-giấy-phép)
-
----
-
-## 🧭 Tổng quan
-
-LAB tập trung vào năng suất cá nhân thực dụng:
-
-- Chạy một trợ lý trên các kênh chat bạn đã dùng sẵn.
-- Giữ dữ liệu và quyền kiểm soát trên máy chủ/máy tính của riêng bạn.
-- Chuyển email đến thành hành động có cấu trúc (Calendar, Reminders, Notes).
-- Thêm guardrail để tự động hóa hữu ích nhưng vẫn an toàn.
-
-Tóm lại: bớt việc vặt, thực thi tốt hơn.
+- [Tổng quan](#overview)
+- [Tóm tắt nhanh](#at-a-glance)
+- [Tính năng](#features)
+- [Khả năng cốt lõi](#core-capabilities)
+- [Cấu trúc dự án](#project-structure)
+- [Điều kiện tiên quyết](#prerequisites)
+- [Bắt đầu nhanh](#quick-start)
+- [Cài đặt](#installation)
+- [Sử dụng](#usage)
+- [Cấu hình](#configuration)
+- [Chế độ triển khai](#deployment-modes)
+- [Tập trung quy trình LazyingArt](#lazyingart-workflow-focus)
+- [Triết lý orchestral](#orchestral-philosophy)
+- [Prompt tools trong LAB](#prompt-tools-in-lab)
+- [Ví dụ](#examples)
+- [Ghi chú phát triển](#development-notes)
+- [Khắc phục sự cố](#troubleshooting)
+- [Tích hợp hệ sinh thái LAB](#lab-ecosystem-integrations)
+- [Cài đặt từ source (tham chiếu nhanh)](#install-from-source-quick-reference)
+- [Lộ trình](#roadmap)
+- [Đóng góp](#contributing)
+- [❤️ Support](#-support)
+- [Lời cảm ơn](#acknowledgements)
+- [Giấy phép](#license)
 
 ---
 
-## ⚡ Nhanh gọn
+<a id="overview"></a>
+## Tổng quan
 
-| Khu vực | Mốc cơ sở hiện tại trong repo này |
+LAB tập trung vào hiệu suất công việc cá nhân theo hướng thực dụng:
+
+- ✅ Chạy một trợ lý trên các kênh chat bạn đã sử dụng.
+- 🔐 Giữ dữ liệu và quyền kiểm soát trên máy/chủ riêng của bạn.
+- 📬 Chuyển email đến thành các hành động có cấu trúc (Calendar, Reminders, Notes).
+- 🛡️ Thêm các rào cản an toàn để tự động hóa vẫn hữu ích nhưng vẫn an toàn.
+
+Nói ngắn gọn: ít việc vặt hơn, thực thi tốt hơn.
+
+---
+
+<a id="at-a-glance"></a>
+## Tóm tắt nhanh
+
+| Khu vực | Trạng thái cơ sở hiện tại trong repo này |
 | --- | --- |
 | Runtime | Node.js `>=22.12.0` |
-| Trình quản lý gói | `pnpm@10.23.0` |
-| CLI cốt lõi | `openclaw` |
+| Package manager | `pnpm@10.23.0` |
+| Core CLI | `openclaw` |
 | Gateway local mặc định | `127.0.0.1:18789` |
+| Cổng bridge mặc định | `127.0.0.1:18790` |
 | Tài liệu chính | `docs/` (Mintlify) |
 | Điều phối LAB chính | `orchestral/` + `scripts/prompt_tools/` |
+| Vị trí README i18n | `i18n/README.*.md` |
 
 ---
 
-## ⚙️ Năng lực cốt lõi
+<a id="features"></a>
+## Tính năng
 
-- Runtime trợ lý đa kênh (Gateway + phiên agent).
-- Dashboard web / giao diện điều khiển web chat.
-- Quy trình agent có bật công cụ (shell, file, script tự động hóa).
-- Pipeline tự động hóa email cho vận hành cá nhân:
-  - phân tích email đến
-  - phân loại loại hành động
-  - lưu vào Notes / Reminders / Calendar
-  - ghi log mọi hành động để rà soát và debug
+- 🌐 Runtime trợ lý đa kênh với local gateway.
+- 🖥️ Bề mặt dashboard/chat trên trình duyệt cho vận hành local.
+- 🧰 Quy trình tự động hóa có công cụ hỗ trợ (scripts + prompt-tools).
+- 📨 Phân loại email và chuyển thành hành động Notes, Reminders, Calendar.
+- 🧩 Hệ sinh thái plugin/extension (`extensions/*`) cho các kênh/provider/integration.
+- 📱 Nhiều bề mặt đa nền tảng trong repo (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
 
 ---
 
-## 🧱 Cấu trúc dự án
+<a id="core-capabilities"></a>
+## Khả năng cốt lõi
+
+| Khả năng | Ý nghĩa thực tế |
+| --- | --- |
+| Runtime trợ lý đa kênh | Gateway + phiên làm việc agent trên các kênh bạn bật |
+| Dashboard/chat web | Bề mặt điều khiển dựa trên trình duyệt cho các thao tác local |
+| Quy trình dựa trên công cụ | Chuỗi thực thi shell + file + script tự động hóa |
+| Pipeline tự động hóa email | Phân tích mail, phân loại loại hành động, chuyển sang Notes/Reminders/Calendar, ghi log mọi hành động để xem xét/gỡ lỗi |
+
+Các bước pipeline giữ nguyên từ workflow hiện tại:
+
+- parse inbound mail
+- classify action type
+- save to Notes / Reminders / Calendar
+- log every action for review and debugging
+
+---
+
+<a id="project-structure"></a>
+## Cấu trúc dự án
 
 Bố cục cấp cao của repository:
 
 ```text
 .
-├─ src/                 # runtime lõi, gateway, channels, CLI, infra
-├─ extensions/          # plugin kênh/provider/auth tùy chọn
-├─ orchestral/          # pipeline điều phối LAB + prompt tools
-├─ scripts/             # trợ giúp build/dev/test/release
-├─ ui/                  # gói UI dashboard web
-├─ apps/                # ứng dụng macOS / iOS / Android
-├─ docs/                # tài liệu Mintlify
-├─ references/          # tài liệu tham chiếu và ghi chú vận hành LAB
-├─ test/                # bộ test
-├─ .env.example         # mẫu môi trường
-├─ docker-compose.yml   # container gateway + CLI
-├─ README_OPENCLAW.md   # README tham chiếu kiểu upstream đầy đủ hơn
-└─ README.md            # README tập trung LAB này
+├─ src/                 # core runtime, gateway, channels, CLI, infra
+├─ extensions/          # optional channel/provider/auth plugins
+├─ orchestral/          # LAB orchestration pipelines + prompt tools
+├─ scripts/             # build/dev/test/release helpers
+├─ ui/                  # web dashboard UI package
+├─ apps/                # macOS / iOS / Android apps
+├─ docs/                # Mintlify documentation
+├─ references/          # LAB references and operating notes
+├─ test/                # test suites
+├─ i18n/                # localized README files
+├─ .env.example         # environment template
+├─ docker-compose.yml   # gateway + CLI containers
+├─ README_OPENCLAW.md   # larger upstream-style reference README
+└─ README.md            # this LAB-focused README
 ```
 
 Ghi chú:
 
 - `scripts/prompt_tools` trỏ đến phần triển khai prompt-tool của orchestral.
-- Thư mục `i18n/` gốc đã tồn tại và hiện còn tối giản trong snapshot này; tài liệu bản địa hóa chủ yếu nằm dưới `docs/`.
+- Thư mục gốc `i18n/` chứa các biến thể README đã bản địa hóa.
+- `.github/workflows.disabled/` có trong snapshot này; hành vi CI đang hoạt động cần được xác minh trước khi phụ thuộc vào giả định về workflow.
 
 ---
 
-## 📋 Điều kiện tiên quyết
+<a id="prerequisites"></a>
+## Điều kiện tiên quyết
 
-Mốc runtime và công cụ từ repository này:
+Các nền tảng runtime và công cụ từ repo này:
 
 - Node.js `>=22.12.0`
-- Mốc pnpm `10.23.0` (xem `packageManager` trong `package.json`)
-- Khóa model provider đã cấu hình (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, v.v.)
-- Tùy chọn: Docker + Docker Compose cho gateway/CLI dạng container
+- pnpm `10.23.0` baseline (xem `packageManager` trong `package.json`)
+- Một khóa provider mô hình đã được cấu hình (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, ...)
+- Tùy chọn: Docker + Docker Compose cho gateway/CLI chạy container
+- Tùy chọn cho build mobile/mac: Apple/Android toolchains tùy theo nền tảng mục tiêu
 
-Cài CLI global tùy chọn (khớp với luồng quick-start):
+Cài đặt global CLI tùy chọn (phù hợp với luồng quick-start):
 
 ```bash
 npm install -g openclaw@latest
@@ -143,9 +170,10 @@ pnpm add -g openclaw@latest
 
 ---
 
-## 🚀 Bắt đầu nhanh
+<a id="quick-start"></a>
+## Bắt đầu nhanh
 
-Mốc runtime trong repo này: **Node >= 22.12.0** (`package.json` engine).
+Nền tảng runtime trong repo này: **Node >= 22.12.0** (`package.json` engine).
 
 ```bash
 npm install -g openclaw@latest
@@ -160,11 +188,12 @@ Sau đó mở dashboard local và chat:
 
 - http://127.0.0.1:18789
 
-Để truy cập từ xa, hãy public gateway local qua đường hầm bảo mật của riêng bạn (ví dụ ngrok/Tailscale) và luôn bật xác thực.
+Đối với truy cập từ xa, hãy expose local gateway qua secure tunnel riêng (ví dụ ngrok/Tailscale) và giữ xác thực bật.
 
 ---
 
-## 🧱 Cài đặt
+<a id="installation"></a>
+## Cài đặt
 
 ### Cài đặt từ source
 
@@ -177,9 +206,9 @@ pnpm build
 pnpm openclaw onboard --install-daemon
 ```
 
-### Luồng Docker tùy chọn
+### Workflow Docker tùy chọn
 
-Có `docker-compose.yml` đi kèm với:
+Repository có sẵn `docker-compose.yml` với:
 
 - `openclaw-gateway`
 - `openclaw-cli`
@@ -192,11 +221,17 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Lưu ý: mount path và port được điều khiển bởi các biến compose như `OPENCLAW_CONFIG_DIR`, `OPENCLAW_WORKSPACE_DIR`, `OPENCLAW_GATEWAY_PORT`, và `OPENCLAW_BRIDGE_PORT`.
+Các biến compose thường cần:
+
+- `OPENCLAW_CONFIG_DIR`
+- `OPENCLAW_WORKSPACE_DIR`
+- `OPENCLAW_GATEWAY_PORT`
+- `OPENCLAW_BRIDGE_PORT`
 
 ---
 
-## 🛠️ Sử dụng
+<a id="usage"></a>
+## Sử dụng
 
 Các lệnh thường dùng:
 
@@ -214,7 +249,7 @@ openclaw message send --to +1234567890 --message "Hello from LAB"
 openclaw agent --message "Create today checklist" --thinking high
 ```
 
-Vòng lặp dev (watch mode):
+Dev loop (watch mode):
 
 ```bash
 pnpm gateway:watch
@@ -226,85 +261,114 @@ Phát triển UI:
 pnpm ui:dev
 ```
 
+Các lệnh vận hành hữu ích khác:
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --all
+openclaw status --deep
+openclaw health
+openclaw doctor
+```
+
 ---
 
-## 🔐 Cấu hình
+<a id="configuration"></a>
+## Cấu hình
 
-Tham chiếu môi trường và cấu hình được tách giữa `.env` và `~/.openclaw/openclaw.json`.
+Tham chiếu environment và config được chia giữa `.env` và `~/.openclaw/openclaw.json`.
 
 1. Bắt đầu từ `.env.example`.
-2. Thiết lập auth gateway (`OPENCLAW_GATEWAY_TOKEN` được khuyến nghị).
-3. Thiết lập ít nhất một khóa model provider (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, v.v.).
+2. Đặt auth gateway (`OPENCLAW_GATEWAY_TOKEN` recommended).
+3. Đặt ít nhất một khóa model provider (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, ...).
 4. Chỉ đặt thông tin xác thực kênh cho các kênh bạn bật.
 
-Các lưu ý quan trọng từ `.env.example` được giữ nguyên từ repo:
+Lưu ý từ `.env.example` của repo cần giữ nguyên:
 
-- Thứ tự ưu tiên env: process env → `./.env` → `~/.openclaw/.env` → khối `env` trong config.
-- Giá trị process env hiện có và không rỗng sẽ không bị ghi đè.
-- Các khóa config như `gateway.auth.token` có thể được ưu tiên hơn env fallback.
+- Thứ tự ưu tiên env: process env -> `./.env` -> `~/.openclaw/.env` -> block config `env`.
+- Các giá trị process env hiện có mà không rỗng không bị ghi đè.
+- Các khóa cấu hình như `gateway.auth.token` có thể ưu tiên hơn fallback env.
 
-Mốc cơ sở bảo mật quan trọng trước khi public internet:
+Các yêu cầu an toàn trước khi mở rộng ra internet:
 
-- Giữ auth/pairing của gateway ở trạng thái bật.
-- Giữ allowlist chặt chẽ cho các kênh inbound.
-- Xem mọi tin nhắn/email inbound là dữ liệu không tin cậy.
-- Chạy với đặc quyền tối thiểu và rà soát log thường xuyên.
+- Giữ gateway auth/pairing bật.
+- Giữ allowlists chặt chẽ cho các kênh inbound.
+- Xử lý mọi tin nhắn/email inbound như dữ liệu đầu vào chưa tin cậy.
+- Chạy với nguyên tắc least privilege và kiểm tra log thường xuyên.
 
-Nếu bạn public gateway lên internet, bắt buộc dùng token/password auth và cấu hình trusted proxy.
+Nếu expose gateway ra internet, bắt buộc token/password auth và cấu hình trusted proxy.
 
 ---
 
-## 🧩 Trọng tâm quy trình LazyingArt
+<a id="deployment-modes"></a>
+## Chế độ triển khai
 
-Fork này ưu tiên luồng cá nhân của tôi tại **lazying.art**:
+| Chế độ | Phù hợp cho | Lệnh điển hình |
+| --- | --- | --- |
+| Chạy foreground local | Development và debugging | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| Daemon local | Sử dụng cá nhân hằng ngày | `openclaw onboard --install-daemon` |
+| Docker | Runtime cô lập và triển khai lặp lại | `docker compose up -d` |
+| Remote host + tunnel | Truy cập từ bên ngoài LAN | Chạy gateway + secure tunnel, giữ auth bật |
 
-- branding tùy chỉnh (LAB / chủ đề gấu trúc)
-- trải nghiệm dashboard/chat thân thiện di động
-- các biến thể pipeline automail (trigger theo rule, chế độ lưu có codex hỗ trợ)
-- script dọn dẹp cá nhân và phân loại người gửi
-- định tuyến notes/reminders/calendar được tinh chỉnh cho sử dụng hằng ngày thực tế
+Giả định: việc hardening reverse-proxy cấp production, quay vòng secret và chính sách backup phụ thuộc theo môi trường.
 
-Workspace tự động hóa (local):
+---
+
+<a id="lazyingart-workflow-focus"></a>
+## Tập trung quy trình LazyingArt
+
+Fork này ưu tiên quy trình cá nhân của tôi trên **lazying.art**:
+
+- 🎨 branding tùy chỉnh (chủ đề LAB / panda)
+- 📱 trải nghiệm dashboard/chat thân thiện trên mobile
+- 📨 các biến thể automail (các chế độ lưu theo rule-driven, chế độ hỗ trợ bởi codex)
+- 🧹 script dọn dẹp cá nhân và phân loại sender
+- 🗂️ định tuyến notes/reminders/calendar đã tinh chỉnh cho dùng hằng ngày thực tế
+
+Không gian làm việc tự động hóa (local):
 
 - `~/.openclaw/workspace/automation/`
 - Tham chiếu script trong repo: `references/lab-scripts-and-philosophy.md`
-- Prompt tools Codex chuyên dụng: `scripts/prompt_tools/`
+- Prompt tool dành riêng cho Codex: `scripts/prompt_tools/`
 
 ---
 
-## 🎼 Triết lý Orchestral
+<a id="orchestral-philosophy"></a>
+## Triết lý orchestral
 
-Điều phối LAB theo một quy tắc thiết kế:  
-chia mục tiêu khó thành thực thi tất định + chuỗi prompt-tool tập trung.
+Phương pháp thiết kế điều phối LAB tuân theo một nguyên tắc:
+chia các mục tiêu phức tạp thành thực thi deterministic + chuỗi prompt-tool tập trung.
 
-- Script tất định xử lý phần plumbing đáng tin cậy:
-  scheduling, định tuyến file, thư mục run, retry và bàn giao đầu ra.
+- Các script deterministic xử lý phần plumbing đáng tin cậy:
+  lập lịch, định tuyến file, run directories, retries, và bàn giao output.
 - Prompt tools xử lý trí tuệ thích ứng:
-  lập kế hoạch, phân loại ưu tiên, tổng hợp ngữ cảnh và ra quyết định trong điều kiện bất định.
-- Mỗi giai đoạn đều tạo artifact có thể tái sử dụng để công cụ downstream tổng hợp ghi chú/email cuối tốt hơn mà không phải bắt đầu từ con số 0.
+  lập kế hoạch, triage, tổng hợp bối cảnh, và ra quyết định khi không chắc chắn.
+- Mỗi giai đoạn tạo ra artifacts tái sử dụng để các công cụ hạ nguồn có thể phối hợp thành note/email đầu ra mạnh hơn mà không cần bắt đầu từ con số 0.
 
-Các chuỗi orchestral cốt lõi:
+Chuỗi orchestral chính:
 
-- Chuỗi khởi nghiệp doanh nghiệp:
-  nạp ngữ cảnh công ty → intelligence về thị trường/funding/học thuật/pháp lý → hành động tăng trưởng cụ thể.
-- Chuỗi auto mail:
-  phân loại email đến → chính sách skip bảo thủ cho email giá trị thấp → hành động Notes/Reminders/Calendar có cấu trúc.
-- Chuỗi web search:
-  chụp trang kết quả → đọc sâu có mục tiêu với trích xuất ảnh chụp/nội dung → tổng hợp dựa trên bằng chứng.
+- Công ty khởi nghiệp chain:
+  nạp ngữ cảnh công ty -> intelligence thị trường/đầu tư/học thuật/pháp lý -> hành động tăng trưởng cụ thể.
+- Auto mail chain:
+  triage email tới -> chính sách skip thận trọng cho mail giá trị thấp -> hành động có cấu trúc Notes/Reminders/Calendar.
+- Web search chain:
+  capture trang kết quả -> đọc sâu có mục tiêu với screenshot/content extraction -> tổng hợp có bằng chứng.
 
 ---
 
-## 🧰 Prompt tools trong LAB
+<a id="prompt-tools-in-lab"></a>
+## Prompt tools trong LAB
 
-Prompt tools có tính mô-đun, kết hợp được, và ưu tiên điều phối.  
-Chúng có thể chạy độc lập hoặc nối theo giai đoạn trong một workflow lớn hơn.
+Prompt tools là dạng mô-đun, có tính kết hợp, ưu tiên orchestration.
+Chúng có thể chạy độc lập hoặc là các giai đoạn liên kết trong workflow lớn hơn.
 
 - Thao tác đọc/lưu:
-  tạo và cập nhật đầu ra Notes, Reminders, và Calendar cho các tác vụ AutoLife.
+  tạo và cập nhật Notes, Reminders và Calendar cho các thao tác AutoLife.
 - Thao tác screenshot/read:
-  chụp trang tìm kiếm và các trang được liên kết, sau đó trích xuất văn bản có cấu trúc cho phân tích downstream.
-- Thao tác kết nối công cụ:
-  gọi script tất định, trao đổi artifact giữa các giai đoạn, và duy trì tính liên tục ngữ cảnh.
+  capture trang search và các trang liên kết, rồi trích xuất văn bản có cấu trúc cho phân tích downstream.
+- Thao tác tool-connection:
+  gọi scripts deterministic, trao đổi artifacts giữa các giai đoạn, và duy trì tính liên tục context.
 
 Vị trí chính:
 
@@ -312,21 +376,22 @@ Vị trí chính:
 
 ---
 
-## 💡 Ví dụ
+<a id="examples"></a>
+## Ví dụ
 
-### Ví dụ: gateway chỉ local
+### Ví dụ: local-only gateway
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-### Ví dụ: yêu cầu agent xử lý kế hoạch hằng ngày
+### Ví dụ: yêu cầu agent xử lý kế hoạch hàng ngày
 
 ```bash
 openclaw agent --message "Review today inbox and build a prioritized task plan" --thinking high
 ```
 
-### Ví dụ: build từ source + vòng lặp watch
+### Ví dụ: build source + watch loop
 
 ```bash
 pnpm install
@@ -335,13 +400,22 @@ pnpm build
 pnpm gateway:watch
 ```
 
+### Ví dụ: chạy bằng Docker
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose logs -f openclaw-gateway
+```
+
 ---
 
-## 🧪 Ghi chú phát triển
+<a id="development-notes"></a>
+## Ghi chú phát triển
 
-- Mốc runtime: Node `>=22.12.0`.
-- Mốc package manager: `pnpm@10.23.0` (trường `packageManager`).
-- Các cổng chất lượng thường dùng:
+- Runtime baseline: Node `>=22.12.0`.
+- Package manager baseline: `pnpm@10.23.0` (`packageManager` field).
+- Các cổng chất lượng phổ biến:
 
 ```bash
 pnpm check          # format + ts checks + lint
@@ -351,36 +425,74 @@ pnpm test:coverage  # coverage run
 ```
 
 - CLI trong dev: `pnpm openclaw ...`
-- Vòng lặp chạy TS: `pnpm dev`
-- Các lệnh gói UI được proxy qua script gốc (`pnpm ui:build`, `pnpm ui:dev`).
+- TS run loop: `pnpm dev`
+- Lệnh package UI được proxy qua root scripts (`pnpm ui:build`, `pnpm ui:dev`).
+
+Các lệnh test mở rộng trong repo:
+
+```bash
+pnpm test:e2e
+pnpm test:live
+pnpm test:docker:all
+pnpm test:ui
+```
+
+Các helper phát triển bổ sung:
+
+```bash
+pnpm docs:dev
+pnpm format:check
+pnpm lint
+pnpm tsgo:test
+```
+
+Ghi chú giả định:
+
+- Các lệnh build/run mobile/macOS nằm trong `package.json` (`ios:*`, `android:*`, `mac:*`) nhưng yêu cầu ký tên/nền tảng ký code phụ thuộc môi trường và chưa được mô tả đầy đủ trong README này.
 
 ---
 
-## 🩺 Khắc phục sự cố
+<a id="troubleshooting"></a>
+## Khắc phục sự cố
 
-### Không thể truy cập Gateway tại `127.0.0.1:18789`
+### Gateway không truy cập được trên `127.0.0.1:18789`
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-Kiểm tra xung đột cổng và xung đột daemon. Nếu dùng Docker, xác minh cổng host map và tình trạng service.
+Kiểm tra xung đột cổng và xung đột daemon. Nếu dùng Docker, xác minh cổng host đã map và trạng thái health của service.
 
-### Lỗi auth hoặc cấu hình kênh
+### Vấn đề xác thực hoặc cấu hình kênh
 
-- Kiểm tra lại giá trị `.env` so với `.env.example`.
-- Đảm bảo đã cấu hình ít nhất một model key.
-- Chỉ xác minh channel token cho các kênh bạn thực sự bật.
+- Kiểm tra lại giá trị `.env` với `.env.example`.
+- Đảm bảo có ít nhất một model key đã cấu hình.
+- Kiểm tra token kênh chỉ cho các kênh bạn đã bật thật sự.
 
-### Kiểm tra sức khỏe tổng quát
+### Vấn đề build hoặc cài đặt
 
-Dùng `openclaw doctor` để phát hiện các vấn đề migration/security/config drift.
+- Chạy lại `pnpm install` với Node `>=22.12.0`.
+- Build lại với `pnpm ui:build && pnpm build`.
+- Nếu thiếu native peer optional, kiểm tra logs cài đặt để xem tương thích `@napi-rs/canvas` / `node-llama-cpp`.
+
+### Kiểm tra health tổng quát
+
+Dùng `openclaw doctor` để phát hiện vấn đề migration/security/config drift.
+
+### Các chẩn đoán hữu ích
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --deep
+```
 
 ---
 
-## 🌐 Tích hợp hệ sinh thái LAB
+<a id="lab-ecosystem-integrations"></a>
+## Tích hợp hệ sinh thái LAB
 
-LAB tích hợp các repo sản phẩm và nghiên cứu AI rộng hơn của tôi vào một lớp vận hành duy nhất cho sáng tạo, tăng trưởng và tự động hóa.
+LAB tích hợp các repo AI sản phẩm và nghiên cứu rộng hơn của tôi vào một lớp vận hành chung cho tạo nội dung, tăng trưởng và automation.
 
 Hồ sơ:
 
@@ -391,7 +503,7 @@ Các repo tích hợp:
 - `VoidAbyss` (隙遊之淵)
 - `AutoNovelWriter` (automatic novel writing)
 - `AutoAppDev` (automatic app development)
-- `OrganoidAgent` (organoid research platform with foundation vision models + LLMs)
+- `OrganoidAgent` (nền tảng nghiên cứu organoid với foundation vision models + LLMs)
 - `LazyEdit` (AI-assisted video editing: captions/transcription/highlights/metadata/subtitles)
 - `AutoPublish` (automatic publication pipeline)
 
@@ -400,13 +512,14 @@ Mục tiêu tích hợp LAB thực tế:
 - Tự động viết tiểu thuyết
 - Tự động phát triển ứng dụng
 - Tự động chỉnh sửa video
-- Tự động xuất bản đầu ra
-- Tự động phân tích organoid
-- Tự động xử lý tác vụ email
+- Tự động xuất bản kết quả
+- Tự động phân tích organoids
+- Tự động xử lý email
 
 ---
 
-## Cài đặt từ source
+<a id="install-from-source-quick-reference"></a>
+## Cài đặt từ source (tham chiếu nhanh)
 
 ```bash
 git clone https://github.com/lachlanchen/LazyingArtBot.git
@@ -417,7 +530,7 @@ pnpm build
 pnpm openclaw onboard --install-daemon
 ```
 
-Vòng lặp dev:
+Dev loop:
 
 ```bash
 pnpm gateway:watch
@@ -425,51 +538,50 @@ pnpm gateway:watch
 
 ---
 
-## 🗺️ Lộ trình
+<a id="roadmap"></a>
+## Lộ trình
 
-Các hướng dự kiến cho fork LAB này (working roadmap):
+Hướng phát triển kế hoạch cho nhánh LAB này (roadmap đang làm việc):
 
-- Mở rộng độ tin cậy của automail với phân loại người gửi/rule chặt chẽ hơn.
-- Cải thiện khả năng kết hợp giữa các stage orchestral và khả năng truy vết artifact.
-- Tăng cường trải nghiệm vận hành mobile-first và UX quản lý gateway từ xa.
-- Làm sâu hơn tích hợp với các repo hệ sinh thái LAB để tự động hóa sản xuất end-to-end.
-- Tiếp tục tăng cường mặc định bảo mật và khả năng quan sát cho tự động hóa không giám sát.
+- Mở rộng độ tin cậy của automail với phân loại sender/rule nghiêm ngặt hơn.
+- Cải thiện khả năng compose lại orchestral stages và tính truy xuất artifact.
+- Tăng cường vận hành mobile-first và UX quản lý gateway từ xa.
+- Thấm nhuần hơn các tích hợp với repo trong hệ sinh thái LAB cho sản xuất tự động đầu-cuối.
+- Tiếp tục siết chặt mặc định bảo mật và observability cho automation không giám sát.
 
 ---
 
-## 🤝 Đóng góp
+<a id="contributing"></a>
+## Đóng góp
 
-Repository này bám theo ưu tiên LAB cá nhân, đồng thời kế thừa kiến trúc cốt lõi từ OpenClaw.
+Repo này theo dõi các ưu tiên LAB cá nhân trong khi kế thừa kiến trúc lõi từ OpenClaw.
 
 - Đọc [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Xem tài liệu upstream: https://docs.openclaw.ai
 - Với vấn đề bảo mật, xem [`SECURITY.md`](SECURITY.md)
 
-Nếu chưa chắc về hành vi đặc thù của LAB, hãy giữ nguyên hành vi hiện có và ghi rõ giả định trong ghi chú PR.
+Nếu chưa chắc về hành vi đặc thù LAB, hãy giữ nguyên hành vi hiện có và ghi lại giả định trong ghi chú PR.
+
+<a id="-support"></a>
+## ❤️ Support
+
+| Donate | PayPal | Stripe |
+|---|---|---|
+| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ---
 
-## ❤️ Hỗ trợ / Tài trợ
+<a id="acknowledgements"></a>
+## Lời cảm ơn
 
-Nếu LAB giúp ích cho workflow của bạn, hãy ủng hộ quá trình phát triển liên tục:
-
-- GitHub Sponsors: https://github.com/sponsors/lachlanchen
-- Trang donate: https://chat.lazying.art/donate
-- Website: https://lazying.art
-
----
-
-## 🙏 Lời cảm ơn
-
-LazyingArtBot được xây dựng dựa trên **OpenClaw**:
+LazyingArtBot dựa trên **OpenClaw**:
 
 - https://github.com/openclaw/openclaw
 - https://docs.openclaw.ai
 
-Cảm ơn các maintainer và cộng đồng OpenClaw cho nền tảng cốt lõi.
+Cảm ơn các maintainer OpenClaw và cộng đồng vì nền tảng lõi.
 
----
-
-## 📄 Giấy phép
+<a id="license"></a>
+## Giấy phép
 
 MIT (giống upstream khi áp dụng). Xem `LICENSE`.

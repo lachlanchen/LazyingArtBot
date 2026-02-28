@@ -1,9 +1,7 @@
 [English](README.md) · [العربية](i18n/README.ar.md) · [Español](i18n/README.es.md) · [Français](i18n/README.fr.md) · [日本語](i18n/README.ja.md) · [한국어](i18n/README.ko.md) · [Tiếng Việt](i18n/README.vi.md) · [中文 (简体)](i18n/README.zh-Hans.md) · [中文（繁體）](i18n/README.zh-Hant.md) · [Deutsch](i18n/README.de.md) · [Русский](i18n/README.ru.md)
 
 
-<p align="center">
-  <img src="https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png" alt="LazyingArtBot banner" />
-</p>
+[![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
 
@@ -11,65 +9,68 @@
 [![Node >= 22.12.0](https://img.shields.io/badge/Node-%3E%3D22.12.0-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](pnpm-workspace.yaml)
 [![Upstream: openclaw/openclaw](https://img.shields.io/badge/upstream-openclaw%2Fopenclaw-111827?logo=github)](https://github.com/openclaw/openclaw)
-[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#-quick-start)
+[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#quick-start)
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
+[![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](i18n)
+[![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](docs)
 
->
-> Note: `i18n/` exists and currently includes Arabic. Additional localized README variants are handled one-by-one to keep content consistent with source updates.
+> 🌍 **i18n status:** `i18n/` exists and currently includes localized README files for Arabic, German, Spanish, French, Japanese, Korean, Russian, Vietnamese, Simplified Chinese, and Traditional Chinese. This English draft remains the canonical source for incremental updates.
 
-**LazyingArtBot** is my personal AI assistant stack for **lazying.art**.  
-It is built on top of OpenClaw and adapted for my own daily workflows: multi-channel chat, local-first control, and email → calendar/reminder/notes automation.
+**LazyingArtBot** is my personal AI assistant stack for **lazying.art**.
+It is built on top of OpenClaw and adapted for my own daily workflows: multi-channel chat, local-first control, and email -> calendar/reminder/notes automation.
 
-| Link | URL |
+| 🔗 Link | URL |
 | --- | --- |
-| Website | https://lazying.art |
-| Bot domain | https://lazying.art |
-| Upstream base | https://github.com/openclaw/openclaw |
-| This repo | https://github.com/lachlanchen/LazyingArtBot |
+| 🌐 Website | https://lazying.art |
+| 🤖 Bot domain | https://lazying.art |
+| 🧱 Upstream base | https://github.com/openclaw/openclaw |
+| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot |
 
 ---
 
 ## Table of contents
 
-- [🧭 Overview](#-overview)
-- [⚡ At a glance](#-at-a-glance)
-- [⚙️ Core capabilities](#️-core-capabilities)
-- [🧱 Project structure](#-project-structure)
-- [📋 Prerequisites](#-prerequisites)
-- [🚀 Quick start](#-quick-start)
-- [🧱 Installation](#-installation)
-- [🛠️ Usage](#️-usage)
-- [🔐 Configuration](#-configuration)
-- [🧩 LazyingArt workflow focus](#-lazyingart-workflow-focus)
-- [🎼 Orchestral philosophy](#-orchestral-philosophy)
-- [🧰 Prompt tools in LAB](#-prompt-tools-in-lab)
-- [💡 Examples](#-examples)
-- [🧪 Development notes](#-development-notes)
-- [🩺 Troubleshooting](#-troubleshooting)
-- [🌐 LAB ecosystem integrations](#-lab-ecosystem-integrations)
-- [Install from source](#install-from-source)
-- [🗺️ Roadmap](#️-roadmap)
-- [🤝 Contributing](#-contributing)
-- [❤️ Support / Sponsor](#️-support--sponsor)
-- [🙏 Acknowledgements](#-acknowledgements)
-- [📄 License](#-license)
+- [Overview](#overview)
+- [At a glance](#at-a-glance)
+- [Features](#features)
+- [Core capabilities](#core-capabilities)
+- [Project structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Deployment modes](#deployment-modes)
+- [LazyingArt workflow focus](#lazyingart-workflow-focus)
+- [Orchestral philosophy](#orchestral-philosophy)
+- [Prompt tools in LAB](#prompt-tools-in-lab)
+- [Examples](#examples)
+- [Development notes](#development-notes)
+- [Troubleshooting](#troubleshooting)
+- [LAB ecosystem integrations](#lab-ecosystem-integrations)
+- [Install from source (quick reference)](#install-from-source-quick-reference)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [❤️ Support](#-support)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ---
 
-## 🧭 Overview
+## Overview
 
 LAB focuses on practical personal productivity:
 
-- Run one assistant across chat channels you already use.
-- Keep data and control on your own machine/server.
-- Convert incoming email into structured actions (Calendar, Reminders, Notes).
-- Add guardrails so automation is useful but still safe.
+- ✅ Run one assistant across chat channels you already use.
+- 🔐 Keep data and control on your own machine/server.
+- 📬 Convert incoming email into structured actions (Calendar, Reminders, Notes).
+- 🛡️ Add guardrails so automation is useful but still safe.
 
 In short: less busywork, better execution.
 
 ---
 
-## ⚡ At a glance
+## At a glance
 
 | Area | Current baseline in this repo |
 | --- | --- |
@@ -77,25 +78,43 @@ In short: less busywork, better execution.
 | Package manager | `pnpm@10.23.0` |
 | Core CLI | `openclaw` |
 | Default local gateway | `127.0.0.1:18789` |
+| Default bridge port | `127.0.0.1:18790` |
 | Primary docs | `docs/` (Mintlify) |
 | Primary LAB orchestration | `orchestral/` + `scripts/prompt_tools/` |
+| README i18n location | `i18n/README.*.md` |
 
 ---
 
-## ⚙️ Core capabilities
+## Features
 
-- Multi-channel assistant runtime (Gateway + agent sessions).
-- Web dashboard / web chat control surface.
-- Tool-enabled agent workflows (shell, files, automation scripts).
-- Email automation pipeline for personal operations:
-  - parse inbound mail
-  - classify action type
-  - save to Notes / Reminders / Calendar
-  - log every action for review and debugging
+- 🌐 Multi-channel assistant runtime with a local gateway.
+- 🖥️ Browser dashboard/chat surface for local operations.
+- 🧰 Tool-enabled automation pipeline (scripts + prompt-tools).
+- 📨 Email triage and conversion into Notes, Reminders, and Calendar actions.
+- 🧩 Plugin/extension ecosystem (`extensions/*`) for channels/providers/integrations.
+- 📱 Multi-platform surfaces in-repo (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
 
 ---
 
-## 🧱 Project structure
+## Core capabilities
+
+| Capability | What it means in practice |
+| --- | --- |
+| Multi-channel assistant runtime | Gateway + agent sessions across channels you enable |
+| Web dashboard / chat | Browser-based control surface for local operations |
+| Tool-enabled workflows | Shell + file + automation script execution chains |
+| Email automation pipeline | Parse mail, classify action type, route to Notes/Reminders/Calendar, log actions for review/debugging |
+
+Pipeline steps preserved from current workflow:
+
+- parse inbound mail
+- classify action type
+- save to Notes / Reminders / Calendar
+- log every action for review and debugging
+
+---
+
+## Project structure
 
 High-level repository layout:
 
@@ -110,6 +129,7 @@ High-level repository layout:
 ├─ docs/                # Mintlify documentation
 ├─ references/          # LAB references and operating notes
 ├─ test/                # test suites
+├─ i18n/                # localized README files
 ├─ .env.example         # environment template
 ├─ docker-compose.yml   # gateway + CLI containers
 ├─ README_OPENCLAW.md   # larger upstream-style reference README
@@ -119,11 +139,12 @@ High-level repository layout:
 Notes:
 
 - `scripts/prompt_tools` points to orchestral prompt-tool implementation.
-- Root `i18n/` exists and is currently minimal in this snapshot; localized docs primarily live under `docs/`.
+- Root `i18n/` contains localized README variants.
+- `.github/workflows.disabled/` is present in this snapshot; active CI behavior should be verified before relying on workflow assumptions.
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 Runtime and tooling baselines from this repository:
 
@@ -131,6 +152,7 @@ Runtime and tooling baselines from this repository:
 - pnpm `10.23.0` baseline (see `packageManager` in `package.json`)
 - A configured model provider key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, etc.)
 - Optional: Docker + Docker Compose for containerized gateway/CLI
+- Optional for mobile/mac builds: Apple/Android toolchains depending on target platform
 
 Optional global CLI install (matches quick-start flow):
 
@@ -142,7 +164,7 @@ pnpm add -g openclaw@latest
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 Runtime baseline in this repo: **Node >= 22.12.0** (`package.json` engine).
 
@@ -163,7 +185,7 @@ For remote access, expose your local gateway through your own secure tunnel (for
 
 ---
 
-## 🧱 Installation
+## Installation
 
 ### Install from source
 
@@ -191,11 +213,16 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Note: mount paths and ports are controlled by compose variables like `OPENCLAW_CONFIG_DIR`, `OPENCLAW_WORKSPACE_DIR`, `OPENCLAW_GATEWAY_PORT`, and `OPENCLAW_BRIDGE_PORT`.
+Compose variables commonly required:
+
+- `OPENCLAW_CONFIG_DIR`
+- `OPENCLAW_WORKSPACE_DIR`
+- `OPENCLAW_GATEWAY_PORT`
+- `OPENCLAW_BRIDGE_PORT`
 
 ---
 
-## 🛠️ Usage
+## Usage
 
 Common commands:
 
@@ -225,9 +252,20 @@ UI development:
 pnpm ui:dev
 ```
 
+Additional useful operational commands:
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --all
+openclaw status --deep
+openclaw health
+openclaw doctor
+```
+
 ---
 
-## 🔐 Configuration
+## Configuration
 
 Environment and config reference is split between `.env` and `~/.openclaw/openclaw.json`.
 
@@ -238,7 +276,7 @@ Environment and config reference is split between `.env` and `~/.openclaw/opencl
 
 Important `.env.example` notes preserved from repo:
 
-- Env precedence: process env → `./.env` → `~/.openclaw/.env` → config `env` block.
+- Env precedence: process env -> `./.env` -> `~/.openclaw/.env` -> config `env` block.
 - Existing non-empty process env values are not overridden.
 - Config keys such as `gateway.auth.token` can take precedence over env fallbacks.
 
@@ -253,15 +291,28 @@ If you expose the gateway to the internet, require token/password auth and trust
 
 ---
 
-## 🧩 LazyingArt workflow focus
+## Deployment modes
+
+| Mode | Best for | Typical command |
+| --- | --- | --- |
+| Local foreground | Development and debugging | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| Local daemon | Everyday personal usage | `openclaw onboard --install-daemon` |
+| Docker | Isolated runtime and repeatable deploys | `docker compose up -d` |
+| Remote host + tunnel | Access from outside home LAN | Run gateway + secure tunnel, keep auth enabled |
+
+Assumption: production-grade reverse-proxy hardening, secret rotation, and backup policy are deployment-specific and should be defined per environment.
+
+---
+
+## LazyingArt workflow focus
 
 This fork prioritizes my personal flow at **lazying.art**:
 
-- custom branding (LAB / panda theme)
-- mobile-friendly dashboard/chat experience
-- automail pipeline variants (rule-triggered, codex-assisted save modes)
-- personal cleanup and sender-classification scripts
-- notes/reminders/calendar routing tuned for real daily use
+- 🎨 custom branding (LAB / panda theme)
+- 📱 mobile-friendly dashboard/chat experience
+- 📨 automail pipeline variants (rule-triggered, codex-assisted save modes)
+- 🧹 personal cleanup and sender-classification scripts
+- 🗂️ notes/reminders/calendar routing tuned for real daily use
 
 Automation workspace (local):
 
@@ -271,9 +322,9 @@ Automation workspace (local):
 
 ---
 
-## 🎼 Orchestral philosophy
+## Orchestral philosophy
 
-LAB orchestration follows one design rule:  
+LAB orchestration follows one design rule:
 break difficult goals into deterministic execution + focused prompt-tool chains.
 
 - Deterministic scripts handle reliable plumbing:
@@ -285,17 +336,17 @@ break difficult goals into deterministic execution + focused prompt-tool chains.
 Core orchestral chains:
 
 - Company entrepreneurship chain:
-  company context ingestion → market/funding/academic/legal intelligence → concrete growth actions.
+  company context ingestion -> market/funding/academic/legal intelligence -> concrete growth actions.
 - Auto mail chain:
-  inbound mail triage → conservative skip policy for low-value mail → structured Notes/Reminders/Calendar actions.
+  inbound mail triage -> conservative skip policy for low-value mail -> structured Notes/Reminders/Calendar actions.
 - Web search chain:
-  results-page capture → targeted deep reads with screenshot/content extraction → evidence-backed synthesis.
+  results-page capture -> targeted deep reads with screenshot/content extraction -> evidence-backed synthesis.
 
 ---
 
-## 🧰 Prompt tools in LAB
+## Prompt tools in LAB
 
-Prompt tools are modular, composable, and orchestration-first.  
+Prompt tools are modular, composable, and orchestration-first.
 They can run independently or as linked stages in a larger workflow.
 
 - Read/save operations:
@@ -311,7 +362,7 @@ Primary location:
 
 ---
 
-## 💡 Examples
+## Examples
 
 ### Example: local-only gateway
 
@@ -334,9 +385,17 @@ pnpm build
 pnpm gateway:watch
 ```
 
+### Example: run in Docker
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose logs -f openclaw-gateway
+```
+
 ---
 
-## 🧪 Development notes
+## Development notes
 
 - Runtime baseline: Node `>=22.12.0`.
 - Package manager baseline: `pnpm@10.23.0` (`packageManager` field).
@@ -353,9 +412,31 @@ pnpm test:coverage  # coverage run
 - TS run loop: `pnpm dev`
 - UI package commands are proxied via root scripts (`pnpm ui:build`, `pnpm ui:dev`).
 
+Common extended test commands in this repo:
+
+```bash
+pnpm test:e2e
+pnpm test:live
+pnpm test:docker:all
+pnpm test:ui
+```
+
+Additional dev helpers:
+
+```bash
+pnpm docs:dev
+pnpm format:check
+pnpm lint
+pnpm tsgo:test
+```
+
+Assumption note:
+
+- Mobile/macOS app build/run commands exist in `package.json` (`ios:*`, `android:*`, `mac:*`) but platform signing/provisioning requirements are environment-specific and not fully documented in this README.
+
 ---
 
-## 🩺 Troubleshooting
+## Troubleshooting
 
 ### Gateway not reachable on `127.0.0.1:18789`
 
@@ -371,13 +452,27 @@ Check for port collisions and daemon conflicts. If using Docker, verify mapped h
 - Ensure at least one model key is configured.
 - Verify channel tokens only for channels you actually enabled.
 
+### Build or install issues
+
+- Re-run `pnpm install` with Node `>=22.12.0`.
+- Rebuild with `pnpm ui:build && pnpm build`.
+- If optional native peers are missing, review install logs for `@napi-rs/canvas` / `node-llama-cpp` compatibility.
+
 ### General health checks
 
 Use `openclaw doctor` to detect migration/security/config drift issues.
 
+### Useful diagnostics
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --deep
+```
+
 ---
 
-## 🌐 LAB ecosystem integrations
+## LAB ecosystem integrations
 
 LAB integrates my broader AI product and research repos into one operating layer for creation, growth, and automation.
 
@@ -405,7 +500,7 @@ Practical LAB integration goals:
 
 ---
 
-## Install from source
+## Install from source (quick reference)
 
 ```bash
 git clone https://github.com/lachlanchen/LazyingArtBot.git
@@ -424,7 +519,7 @@ pnpm gateway:watch
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 Planned directions for this LAB fork (working roadmap):
 
@@ -436,7 +531,7 @@ Planned directions for this LAB fork (working roadmap):
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This repository tracks personal LAB priorities while inheriting core architecture from OpenClaw.
 
@@ -448,17 +543,15 @@ If uncertain about LAB-specific behavior, preserve existing behavior and documen
 
 ---
 
-## ❤️ Support / Sponsor
+## ❤️ Support
 
-If LAB helps your workflow, support ongoing development:
-
-- GitHub Sponsors: https://github.com/sponsors/lachlanchen
-- Donate page: https://chat.lazying.art/donate
-- Website: https://lazying.art
+| Donate | PayPal | Stripe |
+|---|---|---|
+| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 LazyingArtBot is based on **OpenClaw**:
 
@@ -469,6 +562,6 @@ Thanks to the OpenClaw maintainers and community for the core platform.
 
 ---
 
-## 📄 License
+## License
 
 MIT (same as upstream where applicable). See `LICENSE`.

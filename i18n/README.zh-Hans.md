@@ -1,99 +1,118 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
 
-
-<p align="center">
-  <img src="https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png" alt="LazyingArtBot banner" />
-</p>
+[![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb.svg)](../LICENSE)
 [![Node >= 22.12.0](https://img.shields.io/badge/Node-%3E%3D22.12.0-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](pnpm-workspace.yaml)
+[![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](../pnpm-workspace.yaml)
 [![Upstream: openclaw/openclaw](https://img.shields.io/badge/upstream-openclaw%2Fopenclaw-111827?logo=github)](https://github.com/openclaw/openclaw)
-[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#-快速开始)
-[![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
+[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#quick-start)
+[![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](../package.json)
+[![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](..)
+[![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](../docs)
 
-**LazyingArtBot** 是我为 **lazying.art** 打造的个人 AI 助手技术栈。  
-它基于 OpenClaw 构建，并按我的日常工作流做了适配：多渠道聊天、本地优先控制，以及邮件 → 日历/提醒/笔记自动化。
 
-| 链接 | URL |
+**LazyingArtBot** 是我为 **lazying.art** 打造的个人 AI 助手体系。它基于 OpenClaw，并针对我日常工作流做了适配：多渠道聊天、本地优先控制，以及 email → 日历/提醒/笔记自动化。
+
+| 🔗 链接 | URL |
 | --- | --- |
-| Website | https://lazying.art |
-| Bot domain | https://lazying.art |
-| Upstream base | https://github.com/openclaw/openclaw |
-| This repo | https://github.com/lachlanchen/LazyingArtBot |
+| 🌐 网站 | https://lazying.art |
+| 🤖 Bot 域名 | https://lazying.art |
+| 🧱 上游基座 | https://github.com/openclaw/openclaw |
+| 📦 本仓库 | https://github.com/lachlanchen/LazyingArtBot |
 
 ---
 
-## 目录
+## Table of contents
 
-- [🧭 概览](#-概览)
-- [⚡ 快速一览](#-快速一览)
-- [⚙️ 核心能力](#️-核心能力)
-- [🧱 项目结构](#-项目结构)
-- [📋 前置条件](#-前置条件)
-- [🚀 快速开始](#-快速开始)
-- [🧱 安装](#-安装)
-- [🛠️ 使用方式](#️-使用方式)
-- [🔐 配置](#-配置)
-- [🧩 LazyingArt 工作流重点](#-lazyingart-工作流重点)
-- [🎼 Orchestral 设计理念](#-orchestral-设计理念)
-- [🧰 LAB 中的 Prompt Tools](#-lab-中的-prompt-tools)
-- [💡 示例](#-示例)
-- [🧪 开发说明](#-开发说明)
-- [🩺 故障排查](#-故障排查)
-- [🌐 LAB 生态集成](#-lab-生态集成)
-- [从源码安装](#从源码安装)
-- [🗺️ 路线图](#️-路线图)
-- [🤝 贡献](#-贡献)
-- [❤️ 支持 / 赞助](#️-支持--赞助)
-- [🙏 致谢](#-致谢)
-- [📄 许可证](#-许可证)
-
----
-
-## 🧭 概览
-
-LAB 聚焦于实用的个人生产力：
-
-- 在你已经使用的聊天渠道中运行同一个助手。
-- 将数据与控制权保留在你自己的机器/服务器上。
-- 将收件邮件转换为结构化动作（日历、提醒、笔记）。
-- 加入护栏机制，让自动化既有用又安全。
-
-一句话：减少杂务，更好执行。
+- [Overview](#overview)
+- [At a glance](#at-a-glance)
+- [Features](#features)
+- [Core capabilities](#core-capabilities)
+- [Project structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Deployment modes](#deployment-modes)
+- [LazyingArt workflow focus](#lazyingart-workflow-focus)
+- [Orchestral philosophy](#orchestral-philosophy)
+- [Prompt tools in LAB](#prompt-tools-in-lab)
+- [Examples](#examples)
+- [Development notes](#development-notes)
+- [Troubleshooting](#troubleshooting)
+- [LAB ecosystem integrations](#lab-ecosystem-integrations)
+- [Install from source (quick reference)](#install-from-source-quick-reference)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [❤️ Support](#-support)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ---
 
-## ⚡ 快速一览
+## Overview
 
-| 领域 | 本仓库当前基线 |
+LAB 更关注实用性的个人生产力：
+
+- ✅ 在你已经在用的聊天渠道上运行统一的助手。
+- 🔐 将数据与控制权保留在你自己的机器或服务器上。
+- 📬 将入站邮件转换为结构化动作（Calendar、Reminders、Notes）。
+- 🛡️ 加入护栏，让自动化既有用又安全。
+
+简而言之：减少杂务，让执行更顺畅。
+
+---
+
+## At a glance
+
+| 区域 | 本仓库当前基线 |
 | --- | --- |
-| Runtime | Node.js `>=22.12.0` |
-| Package manager | `pnpm@10.23.0` |
-| Core CLI | `openclaw` |
-| Default local gateway | `127.0.0.1:18789` |
-| Primary docs | `docs/` (Mintlify) |
-| Primary LAB orchestration | `orchestral/` + `scripts/prompt_tools/` |
+| 运行时 | Node.js `>=22.12.0` |
+| 包管理器 | `pnpm@10.23.0` |
+| 核心 CLI | `openclaw` |
+| 默认本地网关 | `127.0.0.1:18789` |
+| 默认桥接端口 | `127.0.0.1:18790` |
+| 主要文档 | `docs/`（Mintlify） |
+| 主要 LAB 编排 | `orchestral/` + `scripts/prompt_tools/` |
+| README 多语言位置 | `i18n/README.*.md` |
 
 ---
 
-## ⚙️ 核心能力
+## Features
 
-- 多渠道助手运行时（Gateway + agent sessions）。
-- Web dashboard / web chat 控制界面。
-- 支持工具调用的 agent 工作流（shell、文件、自动化脚本）。
-- 面向个人运营的邮件自动化流水线：
-  - 解析入站邮件
-  - 分类动作类型
-  - 保存到 Notes / Reminders / Calendar
-  - 记录每一步操作，便于复盘与调试
+- 🌐 带本地网关的多渠道助手运行时。
+- 🖥️ 面向本地操作的浏览器仪表盘/聊天界面。
+- 🧰 支持工具调用的自动化流水线（scripts + prompt-tools）。
+- 📨 邮件分流并转换为 Notes、Reminders 与 Calendar 的动作。
+- 🧩 插件/扩展生态（`extensions/*`）支持渠道、提供方和集成。
+- 📱 仓库内多平台界面 (`apps/macos`, `apps/ios`, `apps/android`, `ui`)。
 
 ---
 
-## 🧱 项目结构
+## Core capabilities
+
+| 能力 | 实际含义 |
+| --- | --- |
+| 多渠道助手运行时 | 在你启用的渠道上跨 gateway + agent 会话运行 |
+| Web 仪表盘 / 聊天 | 用于本地运行的浏览器控制界面 |
+| 工具化工作流 | shell + 文件 + 自动化脚本执行链 |
+| 邮件自动化流水线 | 解析邮件、分类动作类型、路由到 Notes/Reminders/Calendar，并记录所有动作以供回溯与调试 |
+
+当前工作流保留的流程：
+
+- parse inbound mail
+- classify action type
+- save to Notes / Reminders / Calendar
+- log every action for review and debugging
+
+---
+
+## Project structure
 
 仓库高层结构如下：
 
@@ -108,6 +127,7 @@ LAB 聚焦于实用的个人生产力：
 ├─ docs/                # Mintlify documentation
 ├─ references/          # LAB references and operating notes
 ├─ test/                # test suites
+├─ i18n/                # localized README files
 ├─ .env.example         # environment template
 ├─ docker-compose.yml   # gateway + CLI containers
 ├─ README_OPENCLAW.md   # larger upstream-style reference README
@@ -116,19 +136,21 @@ LAB 聚焦于实用的个人生产力：
 
 说明：
 
-- `scripts/prompt_tools` 指向 orchestral prompt-tool 实现。
-- 根目录 `i18n/` 已存在；当前本地快照中可见多语言 README。若与英文主 README 的说明存在时间差，以仓库当前文件为准。
+- `scripts/prompt_tools` 指向 orchestral prompt tool 的实现。
+- 根目录 `i18n/` 存放本地化 README。
+- `.github/workflows.disabled/` 在当前快照中存在；若依赖 CI 行为，请按实际仓库状态核实。
 
 ---
 
-## 📋 前置条件
+## Prerequisites
 
-来自本仓库的运行时与工具基线：
+本仓库的运行与工具基线：
 
 - Node.js `>=22.12.0`
-- pnpm `10.23.0` 基线（见 `packageManager` in `package.json`）
-- 已配置的模型提供商密钥（`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` 等）
-- 可选：Docker + Docker Compose（用于容器化 gateway/CLI）
+- pnpm `10.23.0` 基线（见 `package.json` 中的 `packageManager`）
+- 已配置的模型提供方密钥（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GEMINI_API_KEY` 等）
+- 可选：用于容器化网关/CLI 的 Docker + Docker Compose
+- 移动端或 macOS 构建所需：按目标平台准备 Apple/Android 工具链
 
 可选的全局 CLI 安装（与快速开始流程一致）：
 
@@ -140,7 +162,7 @@ pnpm add -g openclaw@latest
 
 ---
 
-## 🚀 快速开始
+## Quick start
 
 本仓库运行时基线：**Node >= 22.12.0**（`package.json` engine）。
 
@@ -153,17 +175,17 @@ openclaw onboard --install-daemon
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-然后打开本地 dashboard 并开始聊天：
+然后打开本地仪表盘和聊天：
 
 - http://127.0.0.1:18789
 
-如果要远程访问，请通过你自己的安全隧道暴露本地 gateway（例如 ngrok/Tailscale），并保持认证开启。
+远程访问时，请通过你自己的安全隧道（如 ngrok/Tailscale）暴露本地网关，并保持认证开启。
 
 ---
 
-## 🧱 安装
+## Installation
 
-### 从源码安装
+### Install from source
 
 ```bash
 git clone https://github.com/lachlanchen/LazyingArtBot.git
@@ -174,9 +196,9 @@ pnpm build
 pnpm openclaw onboard --install-daemon
 ```
 
-### 可选 Docker 工作流
+### Optional Docker workflow
 
-仓库内包含 `docker-compose.yml`，内含：
+仓库自带 `docker-compose.yml`，包含：
 
 - `openclaw-gateway`
 - `openclaw-cli`
@@ -189,11 +211,16 @@ cp .env.example .env
 docker compose up -d
 ```
 
-说明：挂载路径和端口由 compose 变量控制，例如 `OPENCLAW_CONFIG_DIR`、`OPENCLAW_WORKSPACE_DIR`、`OPENCLAW_GATEWAY_PORT`、`OPENCLAW_BRIDGE_PORT`。
+Compose 常见变量：
+
+- `OPENCLAW_CONFIG_DIR`
+- `OPENCLAW_WORKSPACE_DIR`
+- `OPENCLAW_GATEWAY_PORT`
+- `OPENCLAW_BRIDGE_PORT`
 
 ---
 
-## 🛠️ 使用方式
+## Usage
 
 常用命令：
 
@@ -211,7 +238,7 @@ openclaw message send --to +1234567890 --message "Hello from LAB"
 openclaw agent --message "Create today checklist" --thinking high
 ```
 
-开发循环（watch 模式）：
+开发循环（watch mode）：
 
 ```bash
 pnpm gateway:watch
@@ -223,85 +250,110 @@ UI 开发：
 pnpm ui:dev
 ```
 
+常用运维命令：
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --all
+openclaw status --deep
+openclaw health
+openclaw doctor
+```
+
 ---
 
-## 🔐 配置
+## Configuration
 
-环境与配置参考拆分在 `.env` 与 `~/.openclaw/openclaw.json`。
+环境与配置参考拆分在 `.env` 和 `~/.openclaw/openclaw.json`。
 
 1. 从 `.env.example` 开始。
-2. 设置 gateway 认证（推荐 `OPENCLAW_GATEWAY_TOKEN`）。
-3. 至少设置一个模型提供商密钥（`OPENAI_API_KEY`, `ANTHROPIC_API_KEY` 等）。
-4. 仅为你启用的渠道设置对应凭据。
+2. 设置网关鉴权（推荐 `OPENCLAW_GATEWAY_TOKEN`）。
+3. 至少设置一个模型提供方密钥（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY` 等）。
+4. 仅配置你已启用渠道的凭证。
 
-仓库中保留的关键 `.env.example` 说明：
+从仓库中保留的 `.env.example` 说明：
 
-- 环境变量优先级：process env → `./.env` → `~/.openclaw/.env` → config `env` block。
-- 已存在且非空的 process env 值不会被覆盖。
-- `gateway.auth.token` 等 config 键可能优先于 env fallback。
+- 环境变量优先级：进程环境 -> `./.env` -> `~/.openclaw/.env` -> config `env` 区块。
+- 非空的进程环境变量不会被覆盖。
+- 类似 `gateway.auth.token` 的配置键可以优先于 env fallback。
 
 对外网暴露前的安全基线：
 
-- 保持 gateway auth/pairing 启用。
-- 对入站渠道维持严格 allowlist。
-- 将每条入站消息/邮件视为不可信输入。
-- 以最小权限运行，并定期审查日志。
+- 保持网关鉴权与配对开启。
+- 对入站渠道保持严格 allowlist。
+- 将每条入站消息/邮件视作不可信输入。
+- 采用最小权限运行，并定期检查日志。
 
-如果将 gateway 暴露到互联网，请强制使用 token/password 认证和可信代理配置。
+如果你将网关暴露到互联网，请强制要求 token/password 鉴权和可信代理配置。
 
 ---
 
-## 🧩 LazyingArt 工作流重点
+## Deployment modes
 
-这个 fork 优先服务我在 **lazying.art** 的个人流程：
+| 模式 | 适用场景 | 常见命令 |
+| --- | --- | --- |
+| 本地前台运行 | 开发与调试 | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| 本地守护进程 | 日常个人使用 | `openclaw onboard --install-daemon` |
+| Docker | 隔离式运行与可复现部署 | `docker compose up -d` |
+| 远程主机 + 隧道 | 在外网访问家中局域网 |
+|  | 运行网关并搭配安全隧道，始终开启鉴权 |
 
-- 自定义品牌（LAB / 熊猫主题）
-- 移动端友好的 dashboard/chat 体验
-- automail 流水线变体（规则触发、codex 辅助保存模式）
-- 个人清理与发件人分类脚本
-- 针对真实日常使用调优的 notes/reminders/calendar 路由
+生产级别上，反向代理加固、密钥轮换与备份策略应按各环境单独定义。
+
+---
+
+## LazyingArt workflow focus
+
+该分支在 **lazying.art** 优先满足我的个人流程：
+
+- 🎨 自定义品牌（LAB / 熊猫主题）
+- 📱 移动端友好的仪表盘/聊天体验
+- 📨 automail 流程变体（规则触发、codex 辅助保存模式）
+- 🧹 个人清理和发件人分类脚本
+- 🗂️ 按真实日常使用优化 notes/reminders/calendar 路由
 
 本地自动化工作区：
 
 - `~/.openclaw/workspace/automation/`
-- 仓库中的脚本参考：`references/lab-scripts-and-philosophy.md`
+- 仓库中的脚本说明：`references/lab-scripts-and-philosophy.md`
 - 专用 Codex prompt tools：`scripts/prompt_tools/`
 
 ---
 
-## 🎼 Orchestral 设计理念
+## Orchestral philosophy
 
-LAB orchestration 遵循一条设计规则：  
-把复杂目标拆成“确定性执行 + 聚焦的 prompt-tool 链”。
+LAB orchestration 遵循一条设计准则：
+将复杂目标拆成“确定性执行 + 聚焦 prompt-tool 链”。
 
-- 确定性脚本负责可靠的基础设施：
-  调度、文件路由、运行目录、重试与结果交接。
+- 确定性脚本负责可靠的底层处理：
+  调度、文件路由、运行目录、重试与输出交接。
 - Prompt tools 负责自适应智能：
-  规划、分流、上下文综合，以及不确定条件下的决策。
-- 每个阶段都输出可复用产物，让下游工具无需从零开始即可组合出更强的最终笔记/邮件。
+  计划、分流、上下文整合，以及在不确定条件下做决策。
+- 每个阶段都会输出可复用的产物，下游工具可直接组合生成更强的最终 notes/email，而不是从零开始。
 
-核心 orchestral 链：
+核心 orchestral 链路：
 
-- 公司创业链：
-  公司上下文摄取 → 市场/融资/学术/法务情报 → 可执行增长动作。
+- 企业创业链：
+  company context ingestion -> market/funding/academic/legal intelligence -> 具体增长行动。
 - 自动邮件链：
-  入站邮件分流 → 对低价值邮件保守跳过策略 → 结构化 Notes/Reminders/Calendar 动作。
+  inbound mail triage -> 低价值邮件保守跳过策略 -> 结构化 Notes/Reminders/Calendar 动作。
 - Web 搜索链：
-  结果页抓取 → 对目标页面做截图/内容提取的深入读取 → 基于证据的综合分析。
+  results-page capture -> 目标页深度读取与截图/内容提取 -> 基于证据的综合结论。
 
 ---
 
-## 🧰 LAB 中的 Prompt Tools
+## Prompt tools in LAB
 
-Prompt tools 具备模块化、可组合、以 orchestration 为先的特性。  
-它们既可独立运行，也可作为大型工作流中的串联阶段。
+Prompt tools 以模块化、可组合、以 orchestration 为先进行设计。
+它们可以独立运行，也能作为更大工作流的串联阶段。
 
-- 读写类操作：
-  为 AutoLife 流程创建并更新 Notes、Reminders、Calendar 输出。
-- 截图/读取类操作：
-  抓取搜索页和链接页，并提取结构化文本供下游分析。
-- 工具连接类操作：
-  调用确定性脚本、在阶段间交换产物、维持上下文连续性。
+- 读写操作：
+  为 AutoLife 流程创建并更新 Notes、Reminders 和 Calendar 输出。
+- 截图/读取操作：
+  抓取搜索页与链接页，再提取结构化文本供下游分析。
+- 工具连接操作：
+  调用确定性脚本、在阶段间交换产物，并保持上下文连续性。
 
 主要位置：
 
@@ -309,21 +361,21 @@ Prompt tools 具备模块化、可组合、以 orchestration 为先的特性。
 
 ---
 
-## 💡 示例
+## Examples
 
-### 示例：仅本地 gateway
+### Example: local-only gateway
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-### 示例：让 agent 处理每日规划
+### Example: ask agent to process daily planning
 
 ```bash
 openclaw agent --message "Review today inbox and build a prioritized task plan" --thinking high
 ```
 
-### 示例：源码构建 + watch 循环
+### Example: source build + watch loop
 
 ```bash
 pnpm install
@@ -332,13 +384,21 @@ pnpm build
 pnpm gateway:watch
 ```
 
+### Example: run in Docker
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose logs -f openclaw-gateway
+```
+
 ---
 
-## 🧪 开发说明
+## Development notes
 
 - 运行时基线：Node `>=22.12.0`。
 - 包管理器基线：`pnpm@10.23.0`（`packageManager` 字段）。
-- 常用质量门禁：
+- 常见质量门禁：
 
 ```bash
 pnpm check          # format + ts checks + lint
@@ -349,35 +409,71 @@ pnpm test:coverage  # coverage run
 
 - 开发态 CLI：`pnpm openclaw ...`
 - TS 运行循环：`pnpm dev`
-- UI 包命令通过根脚本代理（`pnpm ui:build`, `pnpm ui:dev`）。
+- UI 包命令通过根脚本代理（`pnpm ui:build`、`pnpm ui:dev`）。
+
+仓库里常见的扩展测试命令：
+
+```bash
+pnpm test:e2e
+pnpm test:live
+pnpm test:docker:all
+pnpm test:ui
+```
+
+补充开发辅助命令：
+
+```bash
+pnpm docs:dev
+pnpm format:check
+pnpm lint
+pnpm tsgo:test
+```
+
+假设说明：
+
+- `ios:*`、`android:*`、`mac:*` 命令存在于 `package.json`，用于移动端/macOS 构建与运行，但签名/签发要求与环境相关，README 中未完整覆盖。
 
 ---
 
-## 🩺 故障排查
+## Troubleshooting
 
-### Gateway 在 `127.0.0.1:18789` 不可达
+### Gateway not reachable on `127.0.0.1:18789`
 
 ```bash
 openclaw gateway run --bind loopback --port 18789 --verbose
 ```
 
-检查端口冲突与 daemon 冲突。如果使用 Docker，请确认主机映射端口与服务健康状态。
+检查端口冲突和守护进程冲突。若使用 Docker，请确认主机端口映射与服务健康状态。
 
-### Auth 或渠道配置问题
+### Auth or channel config issues
 
-- 重新对照 `.env.example` 检查 `.env` 值。
-- 确保至少配置了一个模型密钥。
-- 仅为实际启用的渠道配置对应 token。
+- 按 `.env.example` 复核 `.env` 配置。
+- 确保至少配置一个模型 key。
+- 仅为你实际启用的频道配置 token。
 
-### 通用健康检查
+### Build or install issues
 
-使用 `openclaw doctor` 检测迁移/安全/配置漂移问题。
+- 重新运行 `pnpm install`，并确保 Node `>=22.12.0`。
+- 使用 `pnpm ui:build && pnpm build` 重建。
+- 若缺少可选原生依赖，请查阅安装日志中的 `@napi-rs/canvas` / `node-llama-cpp` 兼容性提示。
+
+### General health checks
+
+使用 `openclaw doctor` 检查 migration/security/config 漂移问题。
+
+### Useful diagnostics
+
+```bash
+openclaw channels status --probe
+openclaw gateway status
+openclaw status --deep
+```
 
 ---
 
-## 🌐 LAB 生态集成
+## LAB ecosystem integrations
 
-LAB 将我更广泛的 AI 产品与研究仓库整合为一个操作层，服务于创作、增长与自动化。
+LAB 将我更广泛的 AI 产品和研究仓库整合到一个统一运行层，用于创作、增长和自动化。
 
 Profile:
 
@@ -385,25 +481,25 @@ Profile:
 
 已集成仓库：
 
-- `VoidAbyss` (隙遊之淵)
-- `AutoNovelWriter` (automatic novel writing)
-- `AutoAppDev` (automatic app development)
-- `OrganoidAgent` (organoid research platform with foundation vision models + LLMs)
-- `LazyEdit` (AI-assisted video editing: captions/transcription/highlights/metadata/subtitles)
-- `AutoPublish` (automatic publication pipeline)
+- `VoidAbyss`（隙遊之淵）
+- `AutoNovelWriter`（automatic novel writing）
+- `AutoAppDev`（automatic app development）
+- `OrganoidAgent`（organoid research platform with foundation vision models + LLMs）
+- `LazyEdit`（AI-assisted video editing: captions/transcription/highlights/metadata/subtitles）
+- `AutoPublish`（automatic publication pipeline）
 
-LAB 的实际集成目标：
+实际集成目标：
 
 - 自动写小说
 - 自动开发应用
 - 自动剪辑视频
-- 自动发布成果
+- 自动发布产出
 - 自动分析类器官
 - 自动处理邮件流程
 
 ---
 
-## 从源码安装
+## Install from source (quick reference)
 
 ```bash
 git clone https://github.com/lachlanchen/LazyingArtBot.git
@@ -422,51 +518,47 @@ pnpm gateway:watch
 
 ---
 
-## 🗺️ 路线图
+## Roadmap
 
-本 LAB fork 的规划方向（工作路线图）：
+该 LAB 分支的规划方向（进行中）：
 
-- 通过更严格的发件人/规则分类，扩展 automail 可靠性。
-- 提升 orchestral 各阶段可组合性与产物可追踪性。
+- 通过更严格的发件人/规则分类提升 automail 的稳定性。
+- 提升 orchestral 阶段可组合性与产物可追溯性。
 - 强化移动优先操作与远程 gateway 管理体验。
 - 深化与 LAB 生态仓库的端到端自动化生产集成。
 - 持续加固无人值守自动化所需的安全默认项与可观测性。
 
 ---
 
-## 🤝 贡献
+## Contributing
 
-本仓库跟踪个人 LAB 优先级，同时继承 OpenClaw 的核心架构。
+该仓库在继承 OpenClaw 核心架构的同时，聚焦个人 LAB 的优先需求。
 
-- 阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- 阅读 [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 - 查阅上游文档：https://docs.openclaw.ai
-- 安全问题请见 [`SECURITY.md`](SECURITY.md)
+- 安全问题请参见 [`SECURITY.md`](../SECURITY.md)
 
-如果你不确定某个 LAB 特定行为，请保留现有行为，并在 PR 说明中写明假设。
+若不确定 LAB 特定行为，请保留既有行为并在 PR 说明中写明前提假设。
 
----
+## ❤️ Support
 
-## ❤️ 支持 / 赞助
-
-如果 LAB 对你的工作流有帮助，欢迎支持持续开发：
-
-- GitHub Sponsors: https://github.com/sponsors/lachlanchen
-- Donate page: https://chat.lazying.art/donate
-- Website: https://lazying.art
+| Donate | PayPal | Stripe |
+|---|---|---|
+| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ---
 
-## 🙏 致谢
+## Acknowledgements
 
 LazyingArtBot 基于 **OpenClaw**：
 
 - https://github.com/openclaw/openclaw
 - https://docs.openclaw.ai
 
-感谢 OpenClaw 维护者与社区提供核心平台。
+感谢 OpenClaw 的维护者与社区。
 
 ---
 
-## 📄 许可证
+## License
 
-MIT（适用部分与上游一致）。详见 `LICENSE`。
+MIT（与上游一致，按适用范围）。见 `LICENSE`。
