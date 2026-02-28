@@ -11,6 +11,7 @@ import { toGenericCaptureInput } from "../../adapters/generic-capture-adapter.js
 import { toTelegramCaptureInput } from "../../adapters/telegram-capture-adapter.js";
 import { toWechatCaptureInput } from "../../adapters/wechat-capture-adapter.js";
 import { toWhatsAppCaptureInput } from "../../adapters/whatsapp-capture-adapter.js";
+import { getValidToken } from "../../agents/tools/feishu-calendar-tool.js";
 import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
 import { runCaptureAgent } from "../../capture-agent/run.js";
 import { getGlobalCron } from "../../cron/global-cron.js";
@@ -290,20 +291,14 @@ async function maybeCreateFeishuCalendarEvent(out: {
     return;
   }
 
-  const TOKEN_FILE = path.join(os.homedir(), ".openclaw", "feishu_user_token.json");
-  let tokenData: { access_token: string; calendar_id: string } | null = null;
-  try {
-    const raw = await fs.readFile(TOKEN_FILE, "utf8");
-    tokenData = JSON.parse(raw) as { access_token: string; calendar_id: string };
-  } catch {
-    return; // No token file, silently skip
-  }
-
-  if (!tokenData?.access_token || !tokenData?.calendar_id) {
+  // Use shared getValidToken() — handles expiry + auto-refresh with mutex
+  const auth = await getValidToken().catch(() => null);
+  if (!auth) {
+    console.warn("[feishu-calendar-create] token unavailable or refresh failed, skipping");
     return;
   }
 
-  const calendarId = tokenData.calendar_id;
+  const { token: accessToken, calendarId } = auth;
 
   // End date = next day (Feishu all-day event convention)
   const endDateObj = new Date(`${dateStr}T00:00:00+08:00`);
@@ -326,7 +321,7 @@ async function maybeCreateFeishuCalendarEvent(out: {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${tokenData.access_token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(body),
       },

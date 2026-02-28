@@ -100,7 +100,7 @@ async function refreshToken(
 // Concurrent callers wait for the same promise instead of each firing their own request.
 let _activeRefresh: Promise<{ access_token: string; refresh_token: string } | null> | null = null;
 
-async function getValidToken(): Promise<{ token: string; calendarId: string } | null> {
+export async function getValidToken(): Promise<{ token: string; calendarId: string } | null> {
   // Always re-read from disk so we pick up tokens saved by a concurrent refresh
   const stored = await loadToken();
   if (!stored?.access_token || !stored?.calendar_id) {
