@@ -548,7 +548,16 @@ export async function runHeartbeatOnce(opts: {
     const replyOpts = heartbeatModelOverride
       ? { isHeartbeat: true, heartbeatModelOverride }
       : { isHeartbeat: true };
-    const replyResult = await getReplyFromConfig(ctx, replyOpts, cfg);
+    const HEARTBEAT_LLM_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const replyResult = await Promise.race([
+      getReplyFromConfig(ctx, replyOpts, cfg),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("heartbeat LLM call timed out after 5 minutes")),
+          HEARTBEAT_LLM_TIMEOUT_MS,
+        ),
+      ),
+    ]);
     const replyPayload = resolveHeartbeatReplyPayload(replyResult);
     const includeReasoning = heartbeat?.includeReasoning === true;
     const reasoningPayloads = includeReasoning

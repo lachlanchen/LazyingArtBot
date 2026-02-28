@@ -27,7 +27,9 @@ async function loadToken(): Promise<FeishuToken | null> {
 }
 
 async function saveToken(token: FeishuToken): Promise<void> {
-  await fs.writeFile(TOKEN_FILE, JSON.stringify(token, null, 2));
+  const tmp = `${TOKEN_FILE}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(token, null, 2));
+  await fs.rename(tmp, TOKEN_FILE);
 }
 
 async function getAppAccessToken(appId: string, appSecret: string): Promise<string | null> {

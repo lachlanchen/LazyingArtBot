@@ -36,7 +36,9 @@ async function loadToken(): Promise<TokenData | null> {
 }
 
 async function saveToken(data: TokenData): Promise<void> {
-  await fs.writeFile(TOKEN_FILE, JSON.stringify(data, null, 2));
+  const tmp = `${TOKEN_FILE}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2));
+  await fs.rename(tmp, TOKEN_FILE);
 }
 
 async function getAppAccessToken(appId: string, appSecret: string): Promise<string | null> {
