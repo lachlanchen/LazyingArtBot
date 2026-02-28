@@ -6,7 +6,7 @@
 
 ### Kairo：为知识工作者而生的主动 AI 秘书
 
-[English](#) / 中文
+[English](./README_EN.md) / 中文
 
 <a href="./QUICKSTART.md">快速上手</a> · <a href="https://github.com/sou350121/Kairo-KenVersion">GitHub</a> · <a href="https://github.com/sou350121/Kairo-KenVersion/issues">问题反馈</a> · <a href="./docs/">文档</a>
 
