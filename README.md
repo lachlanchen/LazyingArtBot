@@ -544,18 +544,53 @@ Kairo-KenVersion/
 
 ## 路线图
 
+> **核心命题**：所有现有 AI 工具都是 **Pull** 模式——你问，它答；你不问，它沉默。
+> Kairo 的方向是 **Push**：在你开口之前行动，在你遗忘之前提醒，在你分心之前闭环。
+
+### 已实现（当前基线）
+
 - [x] 多频道捕捉（Telegram / 飞书）
-- [x] 智能意图识别（10 种类型）
-- [x] 本地 Markdown 文件系统
+- [x] 智能意图识别（10 种类型自动分类建卡）
 - [x] Heartbeat 主动推送系统
-- [x] 邮件摘要（Gmail / 飞书日历 / Outlook）
-- [x] 联系人记忆卡片（自动建立与更新）
-- [x] 决策智慧注入（Naval · Munger · Dalio 等 7 位）
-- [x] Hub Context 9个信息源注入
-- [ ] **公开易用版** — 5 分钟部署，零配置负担
-- [ ] Setup Wizard（CLI 引导式配置）
-- [ ] Docker 一键启动
-- [ ] 多语言支持（English / 日本語）
+- [x] 完整任务闭环（捕捉 → 排程 → 提醒 → 更新）
+- [x] Hub Context 9 个信息源注入（每次对话感知 Ken 的全局）
+- [x] 邮件摘要（Gmail / 飞书日历 / Outlook IMAP）
+- [x] 联系人记忆卡片 + 决策智慧框架（Naval · Munger · Dalio 等 7 位）
+
+### 演进路线
+
+**Phase 1 — 研究夥伴**
+让 Kairo 成为研究工作流的主动参与者，而不只是被问到才回答。
+
+- [ ] arXiv 每日监控，自动推送相关方向新论文摘要
+- [ ] 整合 [gpt-researcher](https://github.com/assafelovic/gpt-researcher)，一句话触发深度文献调研
+- [ ] 实验结果追踪 + 自动写入知识库
+
+**Phase 2 — MCP 枢纽**
+把 Kairo 的个人数据变成标准接口，让任何 agent 都能「认识」你。
+
+- [ ] Kairo MCP Server — calendar / tasks / people / roadmap 暴露为 MCP resource
+- [ ] Kairo 作为 MCP client，调用外部工具（filesystem、github、web-search）
+
+**Phase 3 — Swarm 调度**
+从委派一个步骤，升级到委派整件事。
+
+- [ ] Kairo 作为 orchestrator，整合 [agency-swarm](https://github.com/VRSEN/agency-swarm) 执行层
+- [ ] Bounded autonomy 框架 — 高风险操作必须 Ken 确认 + audit trail
+- [ ] 专职 worker agents（Research / Code / Calendar / Email）
+
+**Phase 4 — 开源，让人人都有自己的 Kairo**
+
+- [ ] 移除 hardcoded 路径，`$KAIRO_HOME` 可配置
+- [ ] `install.sh` + AI 引导式 setup，非技术用户 5 分钟部署
+- [ ] GitHub v1.0 正式发布
+
+**Phase 5 — 个人 AI OS**
+
+- [ ] Self-improving — 每周分析自身错误，更新身份与行为模式
+- [ ] Computer use agent — 直接操作浏览器与桌面完成任务
+- [ ] 跨设备 context sync
+- [ ] 关系图谱 — people 卡片升级为网络，自动发现协作机会
 
 ---
 
