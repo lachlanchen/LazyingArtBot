@@ -754,7 +754,7 @@ async function buildItemAndOps(params: {
     tags: inference.tags,
     confidence: Number(inference.confidence.toFixed(2)),
     calendar_entry: calendarEntry,
-    due: inference.due ? inference.due.slice(0, 10) : null,
+    due: inference.due ?? null,
     checkpoints: schedule.checkpoints,
     auto_archive_after: schedule.autoArchiveAfter,
     ts: now.isoWithOffset,
