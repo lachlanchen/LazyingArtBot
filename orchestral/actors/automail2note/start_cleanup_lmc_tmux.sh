@@ -3,7 +3,9 @@ set -euo pipefail
 
 SESSION_NAME="${1:-lmc-cleanup}"
 AUTOMAIL_DIR="${AUTOMAIL_DIR:-$HOME/.openclaw/workspace/automation/automail2note}"
-SENDER_LIST="${2:-$HOME/.openclaw/workspace/automation/lmc_non_important_senders_2026-02-17.txt}"
+DATA_DIR="${AUTOMAIL_DATA_DIR:-$HOME/.openclaw/workspace/automation/data/automail2note}"
+SENDER_LIST_DIR="${DATA_DIR}/non_important_senders"
+SENDER_LIST="${2:-$SENDER_LIST_DIR/lmc_non_important_senders_2026-02-17.txt}"
 CLEANUP_SCRIPT="${3:-$AUTOMAIL_DIR/cleanup_lmc_sender_list.sh}"
 
 if ! command -v tmux >/dev/null 2>&1; then

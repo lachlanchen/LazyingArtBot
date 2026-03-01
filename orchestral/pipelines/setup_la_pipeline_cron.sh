@@ -84,7 +84,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the Lazying.art async launcher once.
 Command:
-$REPO_DIR/orchestral/run_la_pipeline_async.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
+$REPO_DIR/orchestral/pipelines/run_la_pipeline_async.sh --to \"$TO_ADDR\" --from \"$FROM_ADDR\" --model \"$MODEL\" --reasoning \"$REASONING\"
 This command is intentionally fire-and-forget. If it returns pid/stdout/stderr paths, finish the cron turn immediately.
 EOF
 )"

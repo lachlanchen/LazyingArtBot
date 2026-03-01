@@ -38,6 +38,7 @@ USAGE
 
 ROOT="$HOME/.openclaw/workspace"
 LOG_DIR="$ROOT/logs"
+DATA_ROOT="$ROOT/automation/data/automail2note"
 
 DAYS=7
 MIN_CONFIDENCE="0.90"
@@ -46,8 +47,8 @@ MIN_TOTAL_COUNT=6
 MAX_MESSAGES=15
 ACCOUNTS_CSV=""
 
-BASE_IGNORE_FILE="$ROOT/automation/mail_ignore_list.json"
-OUT_IGNORE_FILE="$ROOT/automation/mail_ignore_list_repetitive.json"
+BASE_IGNORE_FILE="$DATA_ROOT/ignore_lists/mail_ignore_list.json"
+OUT_IGNORE_FILE="$DATA_ROOT/ignore_lists/mail_ignore_list_repetitive.json"
 
 MODEL="gpt-5.3-codex"
 DRY_RUN=0

@@ -46,7 +46,7 @@ end lowerText
 on ensureIgnoreLoaded()
   if ignoreConfig is not missing value then return
   if ignorePath is missing value then
-    set ignorePath to (POSIX path of ((path to home folder) as text)) & ".openclaw/workspace/automation/mail_ignore_list.json"
+    set ignorePath to (POSIX path of ((path to home folder) as text)) & ".openclaw/workspace/automation/data/automail2note/ignore_lists/mail_ignore_list.json"
   end if
   set txt to my readFileUTF8(ignorePath)
   set ignoreConfig to my parseJSON(txt)

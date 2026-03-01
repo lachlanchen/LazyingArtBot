@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SENDER_LIST_PATH="${1:-$HOME/.openclaw/workspace/automation/hku_non_important_senders_2026-02-17.txt}"
+DATA_DIR="${AUTOMAIL_DATA_DIR:-$HOME/.openclaw/workspace/automation/data/automail2note}"
+SENDER_LIST_DIR="${DATA_DIR}/non_important_senders"
+SENDER_LIST_PATH="${1:-$SENDER_LIST_DIR/hku_non_important_senders_2026-02-17.txt}"
 ACCOUNT_NAME="${HKU_CLEANUP_ACCOUNT:-lachen@connect.hku.hk}"
 MAILBOX_NAME="${HKU_CLEANUP_MAILBOX:-Inbox}"
 DRY_RUN="${HKU_CLEANUP_DRY_RUN:-0}"

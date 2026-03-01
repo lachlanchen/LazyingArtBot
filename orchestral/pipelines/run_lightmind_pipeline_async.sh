@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="/Users/lachlan/Local/Clawbot"
-PIPELINE_SCRIPT="$REPO_DIR/orchestral/run_lightmind_pipeline.sh"
+PIPELINE_SCRIPT="$REPO_DIR/orchestral/pipelines/run_lightmind_pipeline.sh"
 LOG_DIR="${TMPDIR:-/tmp}/lightmind_pipeline_runs"
 mkdir -p "$LOG_DIR"
 

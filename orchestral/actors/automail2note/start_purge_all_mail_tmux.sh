@@ -3,7 +3,9 @@ set -euo pipefail
 
 SESSION_NAME="${1:-openclaw-purge-all}"
 AUTOMAIL_DIR="${AUTOMAIL_DIR:-$HOME/.openclaw/workspace/automation/automail2note}"
-IGNORE_FILE="${2:-$HOME/.openclaw/workspace/automation/mail_ignore_list_repetitive.json}"
+DATA_DIR="${AUTOMAIL_DATA_DIR:-$HOME/.openclaw/workspace/automation/data/automail2note}"
+IGNORE_DIR="${DATA_DIR}/ignore_lists"
+IGNORE_FILE="${2:-$IGNORE_DIR/mail_ignore_list_repetitive.json}"
 PURGE_SCRIPT="${3:-$AUTOMAIL_DIR/purge_ignored_emails_fast.applescript}"
 LOOKBACK_DAYS="${4:-30}"
 ACCOUNT_FILTER="${5:-}"

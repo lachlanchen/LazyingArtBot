@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IGNORE_FILE="${1:-$HOME/.openclaw/workspace/automation/mail_ignore_list.json}"
+DATA_DIR="${AUTOMAIL_DATA_DIR:-$HOME/.openclaw/workspace/automation/data/automail2note}"
+IGNORE_DIR="${DATA_DIR}/ignore_lists"
+IGNORE_FILE="${1:-$IGNORE_DIR/mail_ignore_list.json}"
 LOG_FILE="${2:-/tmp/purge_ignored_emails.log}"
 AUTOMAIL_DIR="${AUTOMAIL_DIR:-$HOME/.openclaw/workspace/automation/automail2note}"
 

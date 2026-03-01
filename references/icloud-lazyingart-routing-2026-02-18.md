@@ -25,7 +25,7 @@ Move auto-mail outputs to iCloud containers named `LazyingArt`:
    - Legacy placeholders (`Lachlan`, `Calendar`) still map to configured default.
 
 4. **Automail2note bundle synchronized**
-   - Synced runtime scripts into `automail2note/` via `scripts/install_automail2note.sh`.
+   - Synced runtime scripts into `orchestral/actors/automail2note/` via `scripts/install_automail2note.sh`.
 
 ## Files Touched
 
@@ -39,12 +39,12 @@ Move auto-mail outputs to iCloud containers named `LazyingArt`:
 
 ### Repo bundle files
 
-- `automail2note/create_reminder.applescript`
-- `automail2note/lazyingart_apply_action.py`
-- `automail2note/lazyingart_simple.py`
-- `automail2note/lazyingart_simple_rule.applescript`
-- `automail2note/Lazyingart Simple Rule.scpt`
-- `automail2note/README.txt`
+- `orchestral/actors/automail2note/create_reminder.applescript`
+- `orchestral/actors/automail2note/lazyingart_apply_action.py`
+- `orchestral/actors/automail2note/lazyingart_simple.py`
+- `orchestral/actors/automail2note/lazyingart_simple_rule.applescript`
+- `orchestral/actors/automail2note/Lazyingart Simple Rule.scpt`
+- `orchestral/actors/automail2note/README.txt`
 
 ## Verification Snapshot
 

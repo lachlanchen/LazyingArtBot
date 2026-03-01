@@ -129,7 +129,7 @@ fi
 MESSAGE_TEMPLATE="$(cat <<EOF
 Run the Lightmind async launcher once.
 Command:
-$REPO_DIR/orchestral/run_lightmind_pipeline_async.sh \
+$REPO_DIR/orchestral/pipelines/run_lightmind_pipeline_async.sh \
   --model \"$MODEL\" --reasoning \"$REASONING\" \\
 $(printf '  %q ' "${LEGAL_ARGS[@]}")
 $(printf '  %q ' "${LIFE_ARGS[@]}")

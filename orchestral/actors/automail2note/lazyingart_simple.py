@@ -36,6 +36,8 @@ if not AUTOMATION_DIR.exists():
     if fallback_automation_dir.exists():
         AUTOMATION_DIR = fallback_automation_dir
 AUTOMATION_WORKDIR = Path.home() / ".openclaw" / "workspace" / "automation"
+AUTOMAIL_DATA_DIR = AUTOMATION_WORKDIR / "data" / "automail2note"
+IGNORE_LIST_DIR = AUTOMAIL_DATA_DIR / "non_important_senders"
 STATE_DIR = WORKDIR / "state" / "lazyingart_simple"
 INBOUND_DIR = STATE_DIR / "inbound"
 CODEX_DIR = STATE_DIR / "codex"
@@ -240,11 +242,11 @@ def load_ignore_list_from_files() -> list[str]:
         return list(_IGNORE_LIST_CACHE.keys())
 
     candidates: dict[str, set[str]] = {}
-    if not AUTOMATION_WORKDIR.exists():
+    if not IGNORE_LIST_DIR.exists():
         return []
 
     for pattern in IGNORE_LIST_PATTERNS:
-        matches = sorted(AUTOMATION_WORKDIR.glob(pattern))
+        matches = sorted(IGNORE_LIST_DIR.glob(pattern))
         if not matches:
             continue
         latest = matches[-1]
@@ -273,11 +275,11 @@ def load_ignore_list_from_files() -> list[str]:
 
 
 def describe_ignore_list_sources() -> str:
-    if not AUTOMATION_WORKDIR.exists():
+    if not IGNORE_LIST_DIR.exists():
         return "(no ignore list directory found)"
     parts: list[str] = []
     for pattern in IGNORE_LIST_PATTERNS:
-        matches = sorted(AUTOMATION_WORKDIR.glob(pattern))
+        matches = sorted(IGNORE_LIST_DIR.glob(pattern))
         if matches:
             parts.append(matches[-1].name)
     return ", ".join(parts) if parts else "(ignore list files not found)"
@@ -1747,7 +1749,7 @@ You must output EXACTLY one JSON object that matches this schema and contains no
 {json.dumps(SCHEMA, indent=2)}
 
 Source handling:
-- Prefer-skip list (from `~/.openclaw/workspace/automation/{describe_ignore_list_sources()}`):
+- Prefer-skip list (from `~/.openclaw/workspace/automation/data/automail2note/non_important_senders/{describe_ignore_list_sources()}`):
   {ignore_hints}
 - Prefer skip these senders/accounts unless the email has clear personal value:
   concrete action, explicit deadline, booking, payment/receipt, contract, invitation, or personal request.

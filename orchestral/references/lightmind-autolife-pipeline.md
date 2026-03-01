@@ -63,21 +63,21 @@ These markdowns are generated from:
 
 Locking and scheduler behavior:
 
-- `orchestral/run_lightmind_pipeline.sh` uses a run lock file:
+- `orchestral/pipelines/run_lightmind_pipeline.sh` uses a run lock file:
   - `$WORKSPACE/AutoLife/MetaNotes/Companies/Lightmind/pipeline_runs/.lightmind_pipeline.lock`
-- `orchestral/setup_lightmind_pipeline_cron.sh` runs the async wrapper:
-  - `orchestral/run_lightmind_pipeline_async.sh`
+- `orchestral/pipelines/setup_lightmind_pipeline_cron.sh` runs the async wrapper:
+  - `orchestral/pipelines/run_lightmind_pipeline_async.sh`
 - The wrapper launches the full pipeline in background and returns immediately for cron safety.
 
 Coordinator:
 
-- `orchestral/run_lightmind_pipeline.sh`
+- `orchestral/pipelines/run_lightmind_pipeline.sh`
 - Async launcher:
-- `orchestral/run_lightmind_pipeline_async.sh`
+- `orchestral/pipelines/run_lightmind_pipeline_async.sh`
 
 Scheduler setup:
 
-- `orchestral/setup_lightmind_pipeline_cron.sh`
+- `orchestral/pipelines/setup_lightmind_pipeline_cron.sh`
 
 ## Email targets
 
@@ -103,24 +103,24 @@ Default recipients:
 
 ```bash
 cd /Users/lachlan/Local/Clawbot
-orchestral/run_lightmind_pipeline.sh
+orchestral/pipelines/run_lightmind_pipeline.sh
 ```
 
 Run asynchronously:
 
 ```bash
 cd /Users/lachlan/Local/Clawbot
-orchestral/run_lightmind_pipeline_async.sh
+orchestral/pipelines/run_lightmind_pipeline_async.sh
 ```
 
 Dry run (no send):
 
 ```bash
-orchestral/run_lightmind_pipeline.sh --no-send-email
+orchestral/pipelines/run_lightmind_pipeline.sh --no-send-email
 ```
 
 Cron setup:
 
 ```bash
-orchestral/setup_lightmind_pipeline_cron.sh
+orchestral/pipelines/setup_lightmind_pipeline_cron.sh
 ```

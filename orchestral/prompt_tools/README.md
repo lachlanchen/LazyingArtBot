@@ -116,11 +116,11 @@ the generated markdowns into any downstream prompt chain for richer context.
 
 Coordinator scripts:
 
-- `orchestral/run_la_pipeline.sh`
-- `orchestral/setup_la_pipeline_cron.sh`
+- `orchestral/pipelines/run_la_pipeline.sh`
+- `orchestral/pipelines/setup_la_pipeline_cron.sh`
 - `orchestral/prompt_tools/life_reverse_reminder_apply.py`
-- `orchestral/run_lightmind_pipeline.sh`
-- `orchestral/setup_lightmind_pipeline_cron.sh`
+- `orchestral/pipelines/run_lightmind_pipeline.sh`
+- `orchestral/pipelines/setup_lightmind_pipeline_cron.sh`
 
 ## Standard paradigm
 

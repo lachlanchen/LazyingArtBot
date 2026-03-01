@@ -25,7 +25,8 @@ USAGE
 }
 
 ROOT="$HOME/.openclaw/workspace"
-IGNORE_FILE="$ROOT/automation/mail_ignore_list.json"
+DATA_ROOT="$ROOT/automation/data/automail2note"
+IGNORE_FILE="$DATA_ROOT/ignore_lists/mail_ignore_list.json"
 LOG_DIR="$ROOT/logs"
 DAYS=7
 ACCOUNTS_CSV=""
