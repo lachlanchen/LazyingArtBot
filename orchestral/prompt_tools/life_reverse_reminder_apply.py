@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import html
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -41,6 +42,19 @@ LEGACY_SLOT_PREFIXES = {"LA-LIFE", "LazyingArt", "Lightmind", "LightMind", "Life
 LEGACY_COMPANY_TAGS = {"LazyingArt", "Lightmind", "LightMind"}
 
 
+def default_create_reminder_script() -> str:
+    override = os.environ.get("LIFE_REVERSE_CREATE_REMINDER_SCRIPT", "").strip()
+    if override:
+        return override
+
+    modern = Path.home() / ".openclaw/workspace/automation/automail2note/create_reminder.applescript"
+    if modern.exists():
+        return str(modern)
+
+    legacy = Path.home() / ".openclaw/workspace/automation/create_reminder.applescript"
+    return str(legacy)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Apply life reverse reminder plan")
     parser.add_argument("--plan-json", required=True)
@@ -57,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timezone", default="Asia/Hong_Kong")
     parser.add_argument(
         "--create-reminder-script",
-        default="/Users/lachlan/.openclaw/workspace/automation/create_reminder.applescript",
+        default=default_create_reminder_script(),
     )
     return parser.parse_args()
 
