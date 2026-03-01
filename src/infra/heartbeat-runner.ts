@@ -549,15 +549,39 @@ export async function runHeartbeatOnce(opts: {
       ? { isHeartbeat: true, heartbeatModelOverride }
       : { isHeartbeat: true };
     const HEARTBEAT_LLM_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-    const replyResult = await Promise.race([
-      getReplyFromConfig(ctx, replyOpts, cfg),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("heartbeat LLM call timed out after 5 minutes")),
-          HEARTBEAT_LLM_TIMEOUT_MS,
-        ),
-      ),
-    ]);
+
+    async function withHeartbeatRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+      const delays = [30_000, 60_000, 120_000];
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        try {
+          return await fn();
+        } catch (err) {
+          lastError = err;
+          if (attempt < delays.length) {
+            console.warn(
+              `[heartbeat] ${label} failed (attempt ${attempt + 1}/${delays.length + 1}), retrying in ${delays[attempt] / 1000}s...`,
+            );
+            await new Promise<void>((r) => setTimeout(r, delays[attempt]));
+          }
+        }
+      }
+      throw lastError;
+    }
+
+    const replyResult = await withHeartbeatRetry(
+      () =>
+        Promise.race([
+          getReplyFromConfig(ctx, replyOpts, cfg),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("heartbeat LLM call timed out after 5 minutes")),
+              HEARTBEAT_LLM_TIMEOUT_MS,
+            ),
+          ),
+        ]),
+      "LLM call",
+    );
     const replyPayload = resolveHeartbeatReplyPayload(replyResult);
     const includeReasoning = heartbeat?.includeReasoning === true;
     const reasoningPayloads = includeReasoning

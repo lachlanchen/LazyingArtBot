@@ -98,48 +98,98 @@ async function refreshToken(
   }
 }
 
-// Mutex: at most one refresh API call in flight at a time.
-// Concurrent callers wait for the same promise instead of each firing their own request.
+// Single-flight mutex: at most one refresh HTTP call in flight at a time.
+// All concurrent callers that find the token expired share the same Promise instead of each
+// firing their own request.  The finally() block unconditionally clears the slot so a later
+// failure never permanently blocks future refreshes.
+//
+// TOCTOU fix: after the in-flight refresh (or immediately when none is running) we re-read the
+// token from disk before deciding whether to launch a new refresh.  This prevents a caller that
+// loaded a stale `stored` snapshot from kicking off a redundant second refresh once the mutex
+// slot has been vacated by the first refresh.
 let _activeRefresh: Promise<{ access_token: string; refresh_token: string } | null> | null = null;
 
+function _isTokenExpired(t: FeishuToken): boolean {
+  const ageSeconds = (Date.now() - new Date(t.obtained_at).getTime()) / 1000;
+  return ageSeconds > t.expires_in - 120;
+}
+
 export async function getValidToken(): Promise<{ token: string; calendarId: string } | null> {
-  // Always re-read from disk so we pick up tokens saved by a concurrent refresh
-  const stored = await loadToken();
-  if (!stored?.access_token || !stored?.calendar_id) {
+  // --- Phase 1: fast-path — read from disk and return immediately if still valid ---
+  const initial = await loadToken();
+  if (!initial?.access_token || !initial?.calendar_id) {
+    console.warn("[feishu-token] token file missing or incomplete");
     return null;
   }
+  if (!_isTokenExpired(initial)) {
+    return { token: initial.access_token, calendarId: initial.calendar_id };
+  }
 
-  const ageSeconds = (Date.now() - new Date(stored.obtained_at).getTime()) / 1000;
-  const isExpired = ageSeconds > stored.expires_in - 120;
+  // --- Phase 2: token is (or may be) expired — enter the single-flight section ---
 
-  if (isExpired) {
-    // Coalesce concurrent refresh calls into one
-    if (!_activeRefresh) {
-      _activeRefresh = refreshToken(stored).finally(() => {
-        _activeRefresh = null;
-      });
-    }
+  // If a refresh is already in-flight, piggy-back on it.
+  if (_activeRefresh) {
+    console.log("[feishu-token] reusing in-flight refresh");
     const refreshed = await _activeRefresh;
     if (!refreshed) {
+      console.warn("[feishu-token] in-flight refresh returned null (refresh_token may be revoked)");
       return null;
     }
-    // Only write if we are the first to resolve (avoid double-write race)
-    const current = await loadToken();
-    if (current && current.obtained_at === stored.obtained_at) {
-      current.access_token = refreshed.access_token;
-      current.refresh_token = refreshed.refresh_token;
-      current.obtained_at = new Date().toISOString();
-      await saveToken(current);
-    }
-    // Re-read so we return the latest saved value regardless of who wrote it
+    // The refresh promise writes the token; re-read the latest value from disk.
     const latest = await loadToken();
     if (!latest?.access_token) {
+      console.warn("[feishu-token] disk re-read after in-flight refresh returned empty token");
       return null;
     }
     return { token: latest.access_token, calendarId: latest.calendar_id };
   }
 
-  return { token: stored.access_token, calendarId: stored.calendar_id };
+  // TOCTOU guard: re-read from disk — a concurrent caller that finished its refresh and already
+  // cleared _activeRefresh may have written a fresh token between our initial read and now.
+  const preRefreshCheck = await loadToken();
+  if (preRefreshCheck?.access_token && !_isTokenExpired(preRefreshCheck)) {
+    console.log("[feishu-token] token was refreshed by concurrent caller, reusing");
+    return { token: preRefreshCheck.access_token, calendarId: preRefreshCheck.calendar_id };
+  }
+
+  // We are the designated refresher — grab the slot.
+  const storedForRefresh = preRefreshCheck ?? initial;
+  console.log(
+    "[feishu-token] starting token refresh (obtained_at:",
+    storedForRefresh.obtained_at,
+    ")",
+  );
+  _activeRefresh = refreshToken(storedForRefresh).finally(() => {
+    _activeRefresh = null; // always clear, even on failure — never permanently block
+  });
+
+  const refreshed = await _activeRefresh;
+  if (!refreshed) {
+    console.warn(
+      "[feishu-token] refresh failed — refresh_token may be expired or revoked; re-authorize via OAuth",
+    );
+    return null;
+  }
+
+  // Write only if the on-disk token has not been updated by someone else in the meantime.
+  const current = await loadToken();
+  if (current && current.obtained_at === storedForRefresh.obtained_at) {
+    current.access_token = refreshed.access_token;
+    current.refresh_token = refreshed.refresh_token;
+    current.obtained_at = new Date().toISOString();
+    await saveToken(current);
+    console.log("[feishu-token] token saved successfully");
+  } else {
+    console.log("[feishu-token] skipping write — disk already updated by another process");
+  }
+
+  // Final re-read — return whatever is on disk (ours or a concurrent writer's).
+  const latest = await loadToken();
+  if (!latest?.access_token) {
+    console.warn("[feishu-token] disk re-read after own refresh returned empty token");
+    return null;
+  }
+  return { token: latest.access_token, calendarId: latest.calendar_id };
 }
 
 const FeishuCalendarSchema = Type.Object({

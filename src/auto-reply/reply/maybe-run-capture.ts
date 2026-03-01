@@ -290,10 +290,29 @@ async function maybeCreateFeishuCalendarEvent(out: {
     return;
   }
 
-  // Use shared getValidToken() — handles expiry + auto-refresh with mutex
-  const auth = await getValidToken().catch(() => null);
+  // Use shared getValidToken() — handles expiry + auto-refresh with mutex.
+  // Capture the error so we can log a diagnostic message that distinguishes between:
+  //   (a) token file missing / incomplete
+  //   (b) token expired + auto-refresh failed (refresh_token revoked or network error)
+  //   (c) unexpected exception in getValidToken itself
+  let auth: { token: string; calendarId: string } | null = null;
+  try {
+    auth = await getValidToken();
+  } catch (tokenErr) {
+    console.warn(
+      "[feishu-calendar-create] getValidToken threw unexpectedly, skipping calendar create:",
+      tokenErr,
+    );
+    return;
+  }
   if (!auth) {
-    console.warn("[feishu-calendar-create] token unavailable or refresh failed, skipping");
+    // getValidToken() already logs the specific reason (missing file / refresh failed).
+    // This site adds context: we were trying to create a calendar event for the capture.
+    console.warn(
+      "[feishu-calendar-create] skipping calendar event creation because token is unavailable",
+      "(see [feishu-token] log lines above for the specific reason — missing file, expired,",
+      "or refresh_token revoked — and re-authorize if needed)",
+    );
     return;
   }
 
@@ -323,6 +342,7 @@ async function maybeCreateFeishuCalendarEvent(out: {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
       },
     );
     const data = (await resp.json()) as { code?: number; msg?: string };
