@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GroceriesPlan",
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "groceries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "list": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "quantity",
+          "priority",
+          "location",
+          "time",
+          "notes",
+          "list",
+          "tags",
+          "flags"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["summary", "groceries"],
+  "additionalProperties": false
+}

@@ -73,6 +73,7 @@ import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation.t
 import { renderInstances } from "./views/instances.ts";
 import { renderLogs } from "./views/logs.ts";
 import { renderNodes } from "./views/nodes.ts";
+import { renderOrchestral } from "./views/orchestral.ts";
 import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
@@ -574,6 +575,26 @@ export function renderApp(state: AppViewState) {
                   state.usageTimeSeries = null;
                   state.usageSessionLogs = null;
                 },
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "orchestral"
+            ? renderOrchestral({
+                basePath: state.basePath,
+                loading: state.cronLoading,
+                status: state.cronStatus,
+                jobs: state.cronJobs,
+                error: state.cronError,
+                busy: state.cronBusy,
+                selectedRunJobId: state.cronRunsJobId,
+                runs: state.cronRuns,
+                onRefresh: () => state.loadCron(),
+                onRun: (job) => runCronJob(state, job),
+                onToggle: (job, enabled) => toggleCronJob(state, job, enabled),
+                onLoadRuns: (jobId) => loadCronRuns(state, jobId),
+                onOpenCronManager: () => state.setTab("cron"),
               })
             : nothing
         }

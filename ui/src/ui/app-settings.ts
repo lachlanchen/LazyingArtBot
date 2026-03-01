@@ -197,6 +197,9 @@ export async function refreshActiveTab(host: SettingsHost) {
   if (host.tab === "cron") {
     await loadCron(host);
   }
+  if (host.tab === "orchestral") {
+    await loadCron(host);
+  }
   if (host.tab === "skills") {
     await loadSkills(host as unknown as OpenClawApp);
   }
