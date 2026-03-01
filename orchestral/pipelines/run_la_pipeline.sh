@@ -27,10 +27,12 @@ WEB_SEARCH_HOLD_SECONDS="15"
 WEB_SEARCH_SCROLL_STEPS="3"
 WEB_SEARCH_SCROLL_PAUSE="0.9"
 WEB_SEARCH_HEADLESS="0"
+LA_WEB_QUERY_BUDGET=6
 LA_PRIMARY_BRAND="Lazying.art"
 LA_WEBSITE="https://lazying.art"
 LA_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
 ACADEMIC_QUERIES=()
+ACADEMIC_QUERY_BUDGET=5
 ACADEMIC_RSS_SOURCES=(
   "Nature:https://www.nature.com/nature.rss"
   "Science:https://www.science.org/action/showFeed?type=site&jc=science"
@@ -78,9 +80,11 @@ Options:
   --resource-root <path>    Add resource root (repeatable; default LazyingArt roots)
   --skip-resource-analysis   Skip upfront resource analysis stage
   --academic-query <text>    Add/override an academic query (repeatable)
+  --academic-query-budget <n> Number of auto-generated academic queries (default: 5)
   --no-academic-research    Disable academic research stage
   --academic-max-results <n> Max web results per academic query (default: 5)
   --no-web-search            Disable keyword web search stage
+  --web-search-query-budget <n> Number of auto-generated web queries (default: 6)
   --web-search-top-results <n> Max search results per keyword (default: 3)
   --web-search-scroll-steps <n> Number of scroll steps for opened pages (default: 3)
   --web-search-scroll-pause <sec> Seconds between scroll steps for opened pages (default: 0.9)
@@ -140,6 +144,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ACADEMIC_QUERIES+=("${1:-}")
       ;;
+    --academic-query-budget)
+      shift
+      ACADEMIC_QUERY_BUDGET="${1:-5}"
+      ;;
     --no-academic-research)
       ACADEMIC_RESEARCH=0
       ;;
@@ -149,6 +157,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-web-search)
       RUN_WEB_SEARCH=0
+      ;;
+    --web-search-query-budget)
+      shift
+      LA_WEB_QUERY_BUDGET="${1:-6}"
       ;;
     --web-search-scroll-steps)
       shift
@@ -284,6 +296,29 @@ result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 summary = result.get("summary", "")
 Path(sys.argv[2]).write_text(summary.strip() + "\n", encoding="utf-8")
 PY
+}
+
+update_incremental_email() {
+  local stage_label="$1"
+  "$PROMPT_DIR/prompt_email_writer_incremental.sh" \
+    --company-focus "$LA_PRIMARY_BRAND" \
+    --stage "$stage_label" \
+    --output-dir "$EMAIL_INCREMENTAL_DIR" \
+    --output-html "$EMAIL_INCREMENTAL_HTML" \
+    --market-summary-file "$MARKET_SUMMARY" \
+    --web-summary-file "$WEB_SUMMARY_FILE" \
+    --academic-summary-file "$ACADEMIC_SUMMARY" \
+    --legal-summary-file "$LEGAL_SUMMARY" \
+    --funding-summary-file "$FUNDING_SUMMARY" \
+    --money-summary-file "$MONEY_REVENUE_SUMMARY" \
+    --plan-summary-file "$PLAN_SUMMARY" \
+    --mentor-summary-file "$MENTOR_SUMMARY" \
+    --life-summary-file "$LIFE_SUMMARY" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    >/dev/null || true
 }
 
 append_resource_summary() {
@@ -874,12 +909,19 @@ stop = {"the", "and", "for", "with", "from", "that", "this", "company", "market"
 stop.update(blocked_terms)
 terms = [w for w in words if w not in stop]
 if terms:
-    print(" ".join(dict.fromkeys(terms[:6])))
+    base = " ".join(dict.fromkeys(terms[:3]))
+    print(f"news:{base} funding updates")
+    print(f"general:{base} competitors")
+    print(f"general:{base} policy updates")
 else:
-    print("market ecosystem signals")
+    print("news:ai startup funding hong kong")
+    print("general:ai memory assistant competitors")
+    print("general:ai workflow automation market trends")
 PY
   else
-    printf '%s\n' "market ecosystem signals"
+    printf '%s\n' "news:ai startup funding hong kong"
+    printf '%s\n' "general:ai memory assistant competitors"
+    printf '%s\n' "general:ai workflow automation market trends"
   fi
   return 0
 fi
@@ -890,41 +932,77 @@ import re
 import sys
 from pathlib import Path
 
+def simplify_query(text: str, max_terms: int = 8) -> str:
+  text = re.sub(r"\s+", " ", text).strip().replace(":", " -")
+  if not text:
+    return ""
+  out = []
+  seen = set()
+  for token in text.split():
+    t = token.strip(" ,;|")
+    key = t.lower()
+    if not t or key in seen:
+      continue
+    seen.add(key)
+    out.append(t)
+    if len(out) >= max_terms:
+      break
+  return " ".join(out).strip()
+
 def parse_queries(payload_path: str, budget: int):
   try:
     payload = json.loads(Path(payload_path).read_text(encoding="utf-8"))
   except Exception:
     return []
 
-  queries = []
+  general = []
+  news = []
   seen = set()
   for row in payload.get("queries", []) if isinstance(payload, dict) else []:
     if isinstance(row, str):
-      kind = "auto"
+      kind = "general"
       text = row.strip()
     elif isinstance(row, dict):
-      kind = str(row.get("kind", "auto")).strip().lower()
+      kind = str(row.get("kind", "general")).strip().lower()
       text = str(row.get("query", "")).strip()
     else:
       continue
     if kind not in {"auto", "general", "scholar", "news"}:
-      kind = "auto"
-    text = re.sub(r"\\s+", " ", text).strip().replace(":", " -")
+      kind = "general"
+    if kind in {"auto", "scholar"}:
+      kind = "general"
+    text = simplify_query(text, 8)
     if not text:
       continue
     key = (kind, text.lower())
     if key in seen:
       continue
     seen.add(key)
-    queries.append((kind, text))
-    if len(queries) >= budget:
-      break
-  return queries
+    if kind == "news":
+      news.append((kind, text))
+    else:
+      general.append((kind, text))
+
+  queries = []
+  if news:
+    queries.append(news.pop(0))
+  while len(queries) < budget and (general or news):
+    if general:
+      queries.append(general.pop(0))
+      if len(queries) >= budget:
+        break
+    if news:
+      queries.append(news.pop(0))
+  return queries[:budget]
 
 queries = parse_queries(sys.argv[1], int(sys.argv[2]))
 
 if not queries:
-  queries.append(("auto", "market ecosystem signals"))
+  queries = [
+    ("news", "ai startup funding hong kong"),
+    ("general", "ai memory assistant competitors"),
+    ("general", "ai workflow automation market trends"),
+  ]
 
 for kind, text in queries:
   if kind in {"auto", "general"}:
@@ -1072,18 +1150,27 @@ words = [w for w in re.findall(r"[A-Za-z][A-Za-z0-9+\\-&]{2,}", text.lower()) if
 stop = {"the", "and", "for", "with", "from", "that", "this", "company", "scientific", "research", "paper"}
 stop.update(blocked_terms)
 terms = [w for w in words if w not in stop]
-if terms:
-    budget = int(query_budget or 0)
-    if budget < 3:
-      budget = 3
-    if budget > 5:
-      budget = 5
-    print(f"scholar:{' '.join(dict.fromkeys(terms[:budget]))}")
-else:
-    print("scholar:technical research signals")
+budget = int(query_budget or 0)
+if budget < 3:
+  budget = 3
+if budget > 8:
+  budget = 8
+
+theme_words = list(dict.fromkeys(terms[:3]))
+theme = " ".join(theme_words).strip() if theme_words else "ai memory assistant"
+queries = [
+  f"general:{theme} nature science papers",
+  f"news:{theme} research breakthroughs",
+  f"general:{theme} benchmark study",
+  f"scholar:{theme} multimodal memory",
+]
+for q in queries[:budget]:
+  print(q)
 PY
     else
-      printf '%s\n' "scholar:technical research signals"
+      printf '%s\n' "general:ai memory assistant nature science papers"
+      printf '%s\n' "news:ai memory assistant research breakthroughs"
+      printf '%s\n' "general:ai wearable memory benchmark study"
     fi
     return 0
   fi
@@ -1104,23 +1191,43 @@ if budget < 2:
   budget = 2
 
 queries = []
+scholar_count = 0
 seen = set()
 for row in payload.get("queries", []) if isinstance(payload, dict) else []:
   if isinstance(row, str):
-    kind = "scholar"
+    kind = "general"
     text = row.strip()
   elif isinstance(row, dict):
-    kind = str(row.get("kind", "scholar")).strip().lower()
+    kind = str(row.get("kind", "general")).strip().lower()
     text = str(row.get("query", "")).strip()
   else:
     continue
   if kind not in {"auto", "general", "scholar", "news"}:
-    kind = "scholar"
+    kind = "general"
   if kind == "auto":
-    kind = "scholar"
+    kind = "general"
   text = re.sub(r"\\s+", " ", text).strip().replace(":", " -")
   if not text:
     continue
+  terms = []
+  seen_terms = set()
+  for token in text.split():
+    clean = token.strip(" ,;|")
+    key = clean.lower()
+    if not clean or key in seen_terms:
+      continue
+    seen_terms.add(key)
+    terms.append(clean)
+    if len(terms) >= 8:
+      break
+  text = " ".join(terms).strip()
+  if not text:
+    continue
+  if kind == "scholar":
+    if scholar_count >= 1:
+      kind = "general"
+    else:
+      scholar_count += 1
   key = (kind, text.lower())
   if key in seen:
     continue
@@ -1130,9 +1237,18 @@ for row in payload.get("queries", []) if isinstance(payload, dict) else []:
     break
 
 if not queries:
-  queries.append(("scholar", "technical research signals"))
+  queries.extend(
+    [
+      ("general", "ai memory assistant nature science papers"),
+      ("news", "ai memory wearable research updates"),
+      ("general", "ai wearable memory benchmark study"),
+    ]
+  )
 for kind, text in queries[:budget]:
-  print(f"{kind}:{text}")
+  if kind in {"general", "auto"}:
+    print(text)
+  else:
+    print(f"{kind}:{text}")
 PY
 
   rm -f "$planner_input"
@@ -1416,6 +1532,7 @@ PLAN_SUMMARY="$ARTIFACT_DIR/plan.summary.txt"
 MENTOR_SUMMARY="$ARTIFACT_DIR/mentor.summary.txt"
 FUNDING_SUMMARY="$ARTIFACT_DIR/funding.summary.txt"
 MONEY_REVENUE_SUMMARY="$ARTIFACT_DIR/money_revenue.summary.txt"
+LEGAL_SUMMARY="$ARTIFACT_DIR/legal.summary.txt"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
 LIFE_RESULT="$ARTIFACT_DIR/life.result.json"
 LIFE_SUMMARY="$ARTIFACT_DIR/life.summary.txt"
@@ -1423,9 +1540,17 @@ LIFE_HTML="$ARTIFACT_DIR/life.html"
 LIFE_MD="$ARTIFACT_DIR/life.md"
 WEB_SUMMARY_FILE="$ARTIFACT_DIR/web_search.summary.txt"
 WEB_HTML_FILE="$ARTIFACT_DIR/web_search_digest.html"
+EMAIL_INCREMENTAL_DIR="$ARTIFACT_DIR/email_incremental"
+EMAIL_INCREMENTAL_HTML="$ARTIFACT_DIR/email_incremental.html"
 
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
+
+printf '%s\n' "Legal compliance stage is not enabled in the Lazying.art pipeline." > "$LEGAL_SUMMARY"
+if [[ ! -s "$WEB_SUMMARY_FILE" ]]; then
+  printf '%s\n' "Web search disabled for this run." > "$WEB_SUMMARY_FILE"
+  printf '<p>Web search disabled for this run.</p>' > "$WEB_HTML_FILE"
+fi
 
 TOTAL_STEPS=8
 if [[ "$HAS_RESOURCE_CACHE" == "1" ]]; then
@@ -1498,7 +1623,7 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
 
 if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   if [[ "${#LA_WEB_SEARCH_QUERIES[@]}" -eq 0 ]]; then
-    LA_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LA_PRIMARY_BRAND" "$LA_WEBSITE" "$LA_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS" "$CONTEXT_FILE")}")
+    LA_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LA_PRIMARY_BRAND" "$LA_WEBSITE" "$LA_GITHUB_PROFILE" "$LA_WEB_QUERY_BUDGET" "$CONTEXT_FILE")}")
   fi
   log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
   : > "$WEB_SUMMARY_FILE"
@@ -1524,6 +1649,7 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     --mode append \
     --html-file "$WEB_HTML_FILE"
 fi
+update_incremental_email "web_search"
 
 LA_MARKET_REFERENCE_ARGS=(
   --reference-source "$LA_WEBSITE"
@@ -1563,10 +1689,11 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --note "🧠 Market Intel Digest / 市場情報ログ" \
   --mode append \
   --html-file "$MARKET_HTML"
+update_incremental_email "market"
 
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   if [[ "${#ACADEMIC_QUERIES[@]}" -eq 0 ]]; then
-    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$ACADEMIC_MAX_RESULTS" "$CONTEXT_FILE" "${ACADEMIC_RSS_SOURCES[@]}")}")
+    ACADEMIC_QUERIES=("${(@f)$(build_default_academic_queries "$LA_PRIMARY_BRAND" "$ACADEMIC_QUERY_BUDGET" "$CONTEXT_FILE" "${ACADEMIC_RSS_SOURCES[@]}")}")
   fi
 
   log "Step ${ACADEMIC_STEP}/$TOTAL_STEPS: academic research (high-impact)"
@@ -1609,6 +1736,7 @@ else
   printf '%s\n' "<p>Academic research skipped.</p>" > "$ACADEMIC_HTML"
   printf '%s\n' "{}" > "$ACADEMIC_RESULT"
 fi
+update_incremental_email "academic"
 
 merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY" "$WEB_SUMMARY_FILE"
 
@@ -1639,6 +1767,7 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
   --note "🏦 Funding & VC Opportunities / 融资与VC机会 / 融資与VC機会" \
   --mode append \
   --html-file "$FUNDING_HTML"
+update_incremental_email "funding"
 
 log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
 "$PROMPT_DIR/prompt_money_revenue.sh" \
@@ -1669,6 +1798,7 @@ cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
   --note "💰 Monetization & Revenue Strategy / 變現與收益 / 収益化戦略" \
   --mode append \
   --html-file "$MONEY_REVENUE_HTML"
+update_incremental_email "money_revenue"
 
 log "Step ${PLAN_STEP}/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
@@ -1695,6 +1825,7 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
   --note "🎨 Lazying.art · Milestones / 里程碑 / マイルストーン" \
   --mode replace \
   --html-file "$PLAN_HTML"
+update_incremental_email "plan"
 
 log "Step ${MENTOR_STEP}/$TOTAL_STEPS: entrepreneurship mentor"
 "$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
@@ -1722,6 +1853,7 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --note "🧭 Entrepreneurship Mentor / 創業メンター / 創業導航" \
   --mode append \
   --html-file "$MENTOR_HTML"
+update_incremental_email "mentor"
 
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   log "Step ${LIFE_STEP}/$TOTAL_STEPS: life reverse reminder planning"
@@ -1766,9 +1898,10 @@ else
   printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"
   printf '%s\n' "<p>Life reminder planner disabled.</p>" > "$LIFE_HTML"
 fi
+update_incremental_email "life"
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_INCREMENTAL_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -1782,29 +1915,39 @@ money = Path(sys.argv[5]).read_text(encoding="utf-8")
 plan = Path(sys.argv[6]).read_text(encoding="utf-8")
 mentor = Path(sys.argv[7]).read_text(encoding="utf-8")
 life = Path(sys.argv[8]).read_text(encoding="utf-8")
-out = Path(sys.argv[9])
+incremental_path = Path(sys.argv[9])
+incremental = incremental_path.read_text(encoding="utf-8") if incremental_path.exists() else ""
+out = Path(sys.argv[10])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
-digest = (
-    f"<h1>🎨 Lazying.art Daily Intelligence Digest</h1>"
-    f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
-    "<hr/>"
-    f"<h2>🧠 Market Research</h2>{market}"
-    "<hr/>"
-    f"<h2>🕸️ Web Search Signals</h2>{web}"
-    "<hr/>"
-    f"<h2>📚 Academic Research</h2>{academic}"
-    "<hr/>"
-    f"<h2>🏦 Funding & VC Opportunities</h2>{funding}"
-    "<hr/>"
-    f"<h2>💰 Monetization & Revenue Strategy</h2>{money}"
-    "<hr/>"
-    f"<h2>🗺️ Milestones</h2>{plan}"
-    "<hr/>"
-    f"<h2>🧭 Entrepreneurship Mentor</h2>{mentor}"
-    "<hr/>"
-    f"<h2>🗓️ Life Reverse Reminder Plan</h2>{life}"
+parts = [
+    f"<h1>🎨 Lazying.art Daily Intelligence Digest</h1>",
+    f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>",
+    "<hr/>",
+]
+if incremental.strip():
+    parts.append(f"<h2>🧩 Incremental Digest / 增量摘要 / 増分ダイジェスト</h2>{incremental}")
+    parts.append("<hr/>")
+parts.extend(
+    [
+        f"<h2>🧠 Market Research</h2>{market}",
+        "<hr/>",
+        f"<h2>🕸️ Web Search Signals</h2>{web}",
+        "<hr/>",
+        f"<h2>📚 Academic Research</h2>{academic}",
+        "<hr/>",
+        f"<h2>🏦 Funding & VC Opportunities</h2>{funding}",
+        "<hr/>",
+        f"<h2>💰 Monetization & Revenue Strategy</h2>{money}",
+        "<hr/>",
+        f"<h2>🗺️ Milestones</h2>{plan}",
+        "<hr/>",
+        f"<h2>🧭 Entrepreneurship Mentor</h2>{mentor}",
+        "<hr/>",
+        f"<h2>🗓️ Life Reverse Reminder Plan</h2>{life}",
+    ]
 )
+digest = "".join(parts)
 out.write_text(digest, encoding="utf-8")
 PY
 

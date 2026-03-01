@@ -30,20 +30,24 @@ How to build queries:
 - Keep query count close to `query_budget`.
 - Prefer engine-aware mix only when meaningful:
   - `auto` (default web news/general discovery)
-  - `scholar` (academic stage only; do not use for web stage)
+  - `scholar` (use sparingly for academic stage only; never dominant)
   - `news` (timely public announcements / funding updates)
 - If `data.search_kind` is `web`:
   - prioritize `general` + `news` queries, not `scholar`,
   - include explicit market/competitor discovery queries,
-  - include explicit funding/investment discovery queries covering Hong Kong, Mainland China, and US signals.
-- If `data.search_kind` is `web`, keep queries short (4-9 words) and single-intent.
+  - include explicit funding/investment discovery queries,
+  - include at least one legal/policy/regulatory discovery query when context indicates compliance risk.
+- If `data.search_kind` is `web`, keep queries short (4-8 words) and single-intent.
 - Avoid mixed-region mega queries (for example, HK + China + US in one line).
+- If regional coverage is needed, split into separate short queries per region.
 - Avoid queries that are just the company name.
 - Avoid repetitive template patterns.
 - Keep each query focused and directly inferable from context.
+- Prefer plain-language Google-style queries over dense stacked keyword strings.
 - Prefer practical source families over fixed domain-only scans:
   - Web stage: high-signal outlets and ecosystems (for example: news, product launch pages, funding notices, market reports).
-  - Academic stage: examples like Nature, Science, Cell, Nature Machine Intelligence, arXiv, NeurIPS, ICML, CVPR, ICCV, TPAMI when context suggests technical relevance.
+  - Academic stage: prioritize Google web/news discovery for high-impact paper signals first, then add at most one `scholar` query if useful.
+  - Academic stage can consider Nature/Science/Cell style signals by keyword intent, but do not hardcode fixed `site:` patterns.
 - Exclude queries that are only the company name or a raw company domain.
 - If the context is thin, propose conservative, business-context-first alternatives such as market-ecosystem signals, adjacent workflows, or buyer pain points before returning.
 - Do not return strings with `google:`, `google-scholar:`, or `site:` prefixes in `query`.

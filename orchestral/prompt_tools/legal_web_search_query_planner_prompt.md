@@ -28,10 +28,12 @@ Rules:
 - Derive query text from context; avoid fixed templates and company-name-only queries.
 - Avoid `site:`/`google:` style prefixes in query strings.
 - Keep queries concise and executable.
-- Query length target: 4-9 words.
+- Query length target: 4-8 words.
 - Do not include the company brand/domain in legal discovery queries unless the query is explicitly about the company’s own public announcement.
 - Keep one region per query (HK or Mainland/China or US), not mixed-region in one line.
 - Avoid long stacked queries with multiple countries + years + intents in one query.
+- Prefer normal Google/Google News phrasing that a human would type.
+- Keep one intent per query (for example policy update OR funding disclosure OR consumer protection).
 - Include regional policy signals where context suggests cross-border operations:
   - Hong Kong, Mainland China, US.
 
@@ -45,7 +47,8 @@ Coverage guidance:
 - Apply a "reasonable human query" check:
   - one intent per query,
   - no pasted internal phrasing,
-  - no stitched multi-region mega line.
+  - no stitched multi-region mega line,
+  - no long chained noun list.
 
 Output:
 

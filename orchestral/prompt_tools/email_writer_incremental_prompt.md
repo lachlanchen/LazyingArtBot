@@ -1,4 +1,4 @@
-# Prompt: Incremental Email Digest Writer (Lightmind)
+# Prompt: Incremental Email Digest Writer
 
 You maintain an incremental HTML digest for pipeline email composition.
 
@@ -30,6 +30,8 @@ Rules:
 - Prefer evidence-bearing lines from `web_summary` and `legal_summary`.
 - If a section has no new signal, keep prior concise section content.
 - Deduplicate repeated lines.
+- Preserve concrete evidence rows/links from prior incremental HTML unless replaced by newer evidence.
+- Never drop an existing section silently; if no updates, keep prior section with a short `no new update` note.
 
 HTML structure (lightweight):
 
