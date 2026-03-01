@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge";
+export type TtsProvider = "elevenlabs" | "openai" | "edge" | "dashscope";
 
 export type TtsMode = "final" | "all";
 
@@ -55,6 +55,12 @@ export type TtsConfig = {
   };
   /** OpenAI configuration. */
   openai?: {
+    apiKey?: string;
+    model?: string;
+    voice?: string;
+  };
+  /** DashScope Qwen-TTS configuration. */
+  dashscope?: {
     apiKey?: string;
     model?: string;
     voice?: string;

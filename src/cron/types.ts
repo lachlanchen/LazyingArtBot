@@ -23,6 +23,8 @@ export type CronDelivery = {
   mode: CronDeliveryMode;
   channel?: CronMessageChannel;
   to?: string;
+  /** Force a specific channel account (e.g. "main" or "channel2"). */
+  accountId?: string;
   bestEffort?: boolean;
   /** Fan-out: also deliver to these channels after the primary delivery. */
   mirrorTo?: CronMirrorTarget[];

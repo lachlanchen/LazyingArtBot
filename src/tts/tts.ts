@@ -34,6 +34,7 @@ import { normalizeChannelId } from "../channels/plugins/index.js";
 import { logVerbose } from "../globals.js";
 import { isVoiceCompatibleAudio } from "../media/audio.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
+import { dashscopeCosyTTS } from "./dashscope-cosy.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_TTS_MAX_LENGTH = 1500;
@@ -121,6 +122,11 @@ export type ResolvedTtsConfig = {
     saveSubtitles: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  dashscope?: {
+    apiKey?: string;
+    model?: string;
+    voice?: string;
   };
   prefsPath?: string;
   maxTextLength: number;
@@ -295,6 +301,11 @@ export function resolveTtsConfig(cfg: OpenClawConfig): ResolvedTtsConfig {
       saveSubtitles: raw.edge?.saveSubtitles ?? false,
       proxy: raw.edge?.proxy?.trim() || undefined,
       timeoutMs: raw.edge?.timeoutMs,
+    },
+    dashscope: {
+      apiKey: raw.dashscope?.apiKey,
+      model: raw.dashscope?.model?.trim() || "qwen3-tts-flash",
+      voice: raw.dashscope?.voice?.trim() || "Cherry",
     },
     prefsPath: raw.prefsPath,
     maxTextLength: raw.maxTextLength ?? DEFAULT_MAX_TEXT_LENGTH,
@@ -498,10 +509,13 @@ export function resolveTtsApiKey(
   if (provider === "openai") {
     return config.openai.apiKey || process.env.OPENAI_API_KEY;
   }
+  if (provider === "dashscope") {
+    return config.dashscope?.apiKey || process.env.DASHSCOPE_API_KEY;
+  }
   return undefined;
 }
 
-export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge"] as const;
+export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge", "dashscope"] as const;
 
 export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
@@ -510,6 +524,9 @@ export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
 export function isTtsProviderConfigured(config: ResolvedTtsConfig, provider: TtsProvider): boolean {
   if (provider === "edge") {
     return config.edge.enabled;
+  }
+  if (provider === "dashscope") {
+    return Boolean(resolveTtsApiKey(config, provider));
   }
   return Boolean(resolveTtsApiKey(config, provider));
 }
@@ -1251,6 +1268,35 @@ export async function textToSpeech(params: {
           latencyMs: Date.now() - providerStart,
           provider,
           outputFormat: edgeResult.outputFormat,
+          voiceCompatible,
+        };
+      }
+
+      if (provider === "dashscope") {
+        const dsApiKey = resolveTtsApiKey(config, provider);
+        if (!dsApiKey) {
+          lastError = "dashscope: no API key";
+          continue;
+        }
+        const dsResult = await dashscopeCosyTTS({
+          text: params.text,
+          config: {
+            apiKey: dsApiKey,
+            model: config.dashscope?.model,
+            voice: config.dashscope?.voice,
+            timeoutMs: config.timeoutMs,
+          },
+        });
+        const latencyMs = Date.now() - providerStart;
+        const { audioPath: dsAudioPath, cleanup: dsCleanup } = dsResult;
+        setTimeout(() => dsCleanup(), TEMP_FILE_CLEANUP_DELAY_MS);
+        const voiceCompatible = isVoiceCompatibleAudio({ fileName: dsAudioPath });
+        return {
+          success: true,
+          audioPath: dsAudioPath,
+          latencyMs,
+          provider,
+          outputFormat: "ogg",
           voiceCompatible,
         };
       }

@@ -286,6 +286,10 @@ export async function runCronIsolatedAgentTurn(params: {
     channel: deliveryPlan.channel ?? "last",
     to: deliveryPlan.to,
   });
+  // If the job explicitly specifies an accountId, override the session-derived one.
+  if (deliveryPlan.accountId) {
+    resolvedDelivery.accountId = deliveryPlan.accountId;
+  }
 
   const { formattedTime, timeLine } = resolveCronStyleNow(params.cfg, now);
   const base = `[cron:${params.job.id} ${params.job.name}] ${params.message}`.trim();
