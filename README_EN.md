@@ -568,6 +568,9 @@ Phase 5     It starts improving itself           → A partner that knows you be
 - Complete task loop: say something → card → schedule → remind → auto-update status, fully automatic
 - Hub Context: 9 information sources injected every conversation (calendar / email / tasks / contacts / decision wisdom)
 - Gmail + Feishu Calendar auto-sync, silent daily update at 07:00
+- **Semantic Memory Search** (`memory_search` / `memory_get`): LLM autonomously recalls relevant fragments from historical memory, DashScope text-embedding-v3 vector index (2026-02-28)
+- **Qwen-TTS Voice Synthesis**: Daily lessons push 3 voice bubbles (Japanese reading + English vocab + Japanese vocab), qwen3-tts-flash + Cherry voice, sox → OGG delivered as Telegram voice bubble (2026-03-01)
+- **3-Agent Architecture** (Planner / Executor / Reviewer): Pure-config triangular division — Planner handles Ken's conversations, Executor runs all cron tasks (lessons / captures / morning briefing), Reviewer runs heartbeat patrol and memory compression; channel bindings ensure correct message routing (2026-03-01)
 
 ---
 
