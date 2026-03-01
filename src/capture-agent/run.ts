@@ -536,12 +536,12 @@ function buildAck(params: {
     : `→ ${displayHubPath(root, mainPath)}`;
 
   if (inference.confidence >= 0.85) {
-    return { line1, line2 };
+    return { line1, line2, line3: "↩️ 回覆 X 取消建卡" };
   }
   if (inference.type === "watch") {
-    return { line1, line2, line3: "回覆：1=轉任務  6=只提醒一次  0=不用提醒了" };
+    return { line1, line2, line3: "回覆：1=轉任務  6=只提醒一次  0=不用提醒了  X=取消建卡" };
   }
-  return { line1, line2 };
+  return { line1, line2, line3: "↩️ 回覆 X 取消建卡" };
 }
 
 function buildMemoryLogBlock(params: {

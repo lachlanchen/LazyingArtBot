@@ -731,7 +731,7 @@ function buildNotebookLmQueueAck(params: NotebookLmQueueResult): string {
   ].join("\n");
 }
 
-type CaptureControlAction = "watch_converted" | "watch_abandoned";
+type CaptureControlAction = "watch_converted" | "watch_abandoned" | "capture_denied";
 
 function getCommandText(ctx: FinalizedMsgContext): string {
   return (
@@ -800,6 +800,16 @@ function detectCaptureControlAction(commandText: string): CaptureControlAction |
     raw.length <= 16
   ) {
     return "watch_abandoned";
+  }
+  const normalizedForDeny = normalizeCommandText(raw);
+  if (
+    normalizedForDeny === "x" ||
+    normalizedForDeny === "deny" ||
+    normalizedForDeny === "取消" ||
+    normalizedForDeny === "取消建卡" ||
+    normalizedForDeny === "cancel"
+  ) {
+    return "capture_denied";
   }
   return null;
 }
@@ -920,6 +930,98 @@ async function findWatchCardByReplyMessageId(params: {
     };
   }
   return null;
+}
+
+async function findAnyCaptureCardById(
+  hubPaths: ReturnType<typeof resolveHubPaths>,
+  id: string,
+): Promise<WatchCardTarget | null> {
+  const allDirs = [
+    hubPaths.tasks,
+    hubPaths.projects,
+    hubPaths.ideas,
+    hubPaths.highlights,
+    hubPaths.people,
+    hubPaths.questions,
+    hubPaths.beliefs,
+    hubPaths.references,
+  ];
+  for (const dir of allDirs) {
+    const files = await listMarkdownFiles(dir);
+    const direct = files.find((fp) => path.basename(fp).startsWith(`${id}_`));
+    if (!direct) {
+      continue;
+    }
+    const content = await readText(direct);
+    if (!content) {
+      continue;
+    }
+    const cardId = frontmatterField(content, "id");
+    if (!cardId) {
+      continue;
+    }
+    return {
+      id: cardId,
+      path: direct,
+      title: frontmatterField(content, "title") ?? cardId,
+      due: frontmatterField(content, "due"),
+    };
+  }
+  return null;
+}
+
+async function findAnyCaptureCardByReplyMessageId(
+  hubPaths: ReturnType<typeof resolveHubPaths>,
+  replyMessageId: string,
+): Promise<WatchCardTarget | null> {
+  const allDirs = [
+    hubPaths.tasks,
+    hubPaths.projects,
+    hubPaths.ideas,
+    hubPaths.highlights,
+    hubPaths.people,
+    hubPaths.questions,
+    hubPaths.beliefs,
+    hubPaths.references,
+  ];
+  const escaped = escapeForRegExp(replyMessageId);
+  const re = new RegExp(`\\b(?:message_id|reply_to)\\s*[:=]\\s*${escaped}\\b`, "m");
+  for (const dir of allDirs) {
+    const files = await listMarkdownFiles(dir);
+    for (const filePath of files) {
+      const content = await readText(filePath);
+      if (!content || !re.test(content)) {
+        continue;
+      }
+      const id = frontmatterField(content, "id");
+      if (!id) {
+        continue;
+      }
+      return {
+        id,
+        path: filePath,
+        title: frontmatterField(content, "title") ?? id,
+        due: frontmatterField(content, "due"),
+      };
+    }
+  }
+  return null;
+}
+
+async function cancelCaptureCard(cardPath: string, today: string): Promise<boolean> {
+  const raw = await readText(cardPath);
+  const split = splitFrontmatter(raw);
+  if (!split) {
+    return false;
+  }
+  let frontLines = split.frontLines.slice();
+  const statusUpdate = upsertFrontmatterLine(frontLines, "status", "cancelled");
+  frontLines = statusUpdate.lines;
+  const lifecycleEntry = `- capture_denied: ${today}`;
+  const lifecycle = appendLifecycleLine(split.body, lifecycleEntry);
+  const next = `---\n${frontLines.join("\n")}\n---\n${withTrailingNewline(lifecycle.body)}`;
+  await writeText(cardPath, withTrailingNewline(next));
+  return true;
 }
 
 type FrontmatterSplit = {
@@ -1196,9 +1298,40 @@ async function maybeHandleCaptureControlCommand(params: {
     });
   }
 
+  // For capture_denied we search all card directories, not just watch cards
+  if (!target && action === "capture_denied") {
+    if (explicitId) {
+      target = await findAnyCaptureCardById(hubPaths, explicitId);
+    }
+    if (!target && replyBodyId) {
+      target = await findAnyCaptureCardById(hubPaths, replyBodyId);
+    }
+    if (!target && replyMessageId) {
+      target = await findAnyCaptureCardByReplyMessageId(hubPaths, replyMessageId);
+    }
+  }
+
   if (!target) {
+    if (action === "capture_denied") {
+      return {
+        text: "⚠️ 找不到要取消的卡片。請直接回覆 bot 的建卡確認訊息再輸入 X。",
+      };
+    }
     return {
       text: "⚠️ 找不到要操作的 watch 卡。請直接回覆 bot 的 capture 回覆訊息，或在訊息中附上卡片 id（例如 2026-02-19-001）。",
+    };
+  }
+
+  if (action === "capture_denied") {
+    const today = tokyoYmd();
+    await cancelCaptureCard(target.path, today);
+    await updateReasoningQueue({
+      metaDir: hubPaths.meta,
+      id: target.id,
+      action,
+    });
+    return {
+      text: `✅ 已取消建卡：${target.title} (id:${target.id})`,
     };
   }
 
