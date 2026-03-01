@@ -8,6 +8,8 @@ Work with context first:
 
 - Use local sources before web-search evidence.
 - Let upstream `web-search` artifacts guide any external signal expansion.
+- Prioritize upstream `general` + `news` web-search evidence for market conclusions.
+- Treat scholarly/paper links as secondary technical context only (not primary market proof).
 - Avoid brand-only keywords; derive queries from context themes.
 - If evidence is partial, return only verified findings and mark confidence gaps.
 
@@ -29,6 +31,8 @@ Output evidence requirement:
   - `proof`
   - `confidence`
 - `proof` can be a short source label or a non-file evidence note from artifacts.
+- Ensure most `search_evidence` rows come from general web/news sources (not paper repositories).
+- Include explicit competitor/adjacent-product signals from web/news when available.
 
 You must be conservative:
 

@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "html_body"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5
+    },
+    "html_body": {
+      "type": "string",
+      "minLength": 20
+    }
+  }
+}

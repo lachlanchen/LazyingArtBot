@@ -10,7 +10,7 @@ PIPELINE_LOCK_FILE="$ARTIFACT_BASE/.la_pipeline.lock"
 
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.3-codex-spark"
+MODEL="gpt-5.3-codex"
 REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
@@ -70,7 +70,7 @@ Options:
   --from <email>            Sender hint for Apple Mail (default: lachlan.miao.chen@gmail.com)
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
-  --model <name>            Codex model (default: gpt-5.3-codex-spark)
+  --model <name>            Codex model (default: gpt-5.3-codex)
   --reasoning <level>       Reasoning level (default: medium)
   --market-context <path>   Optional extra context file for market step
   --resource-output-dir <p> Resource analysis markdown output directory
@@ -1738,7 +1738,7 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --report-md "$LIFE_MD" \
     --report-html "$LIFE_HTML" \
     --list-name "LazyingArt" \
-    --slot-prefix "LazyingArt" \
+    --slot-prefix "RevEng" \
     --run-id "$RUN_ID" \
     --model "$MODEL" \
     --reasoning "$REASONING" \

@@ -6,7 +6,7 @@ Inputs:
 
 - `run_context`: current market + confidential notes context
 - `market_summary`, `resource_summary`
-- `web_search_summary` (optional, evidence-backed operational signals)
+- `web_search_summary` (optional, evidence-backed operational signals; may include legal-stage targeted Google/Google News searches)
 - `legal_materials` (compiled from legal folder)
 - `reference_sources`
 - `company_focus`
@@ -17,6 +17,8 @@ Principles:
 - Mark uncertain items as **requires counsel review**.
 - Prefer practical risk controls and execution-ready action steps.
 - Use provided web-search evidence only when links, URLs, and screenshots are present in artifacts.
+- Prioritize web/news evidence for policy and regulatory updates; do not treat academic papers as legal authority.
+- If a query string is overly long/compound or mixes multiple regions in one line, treat it as low-quality retrieval metadata and rely on the actual linked evidence rows instead.
 - If legal materials are weak or not found, call out the confidence gap and avoid assumptions.
 - Keep HK and Mainland scope separated where signal differs.
 

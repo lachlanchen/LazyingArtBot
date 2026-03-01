@@ -30,8 +30,14 @@ How to build queries:
 - Keep query count close to `query_budget`.
 - Prefer engine-aware mix only when meaningful:
   - `auto` (default web news/general discovery)
-  - `scholar` (academic stage only)
+  - `scholar` (academic stage only; do not use for web stage)
   - `news` (timely public announcements / funding updates)
+- If `data.search_kind` is `web`:
+  - prioritize `general` + `news` queries, not `scholar`,
+  - include explicit market/competitor discovery queries,
+  - include explicit funding/investment discovery queries covering Hong Kong, Mainland China, and US signals.
+- If `data.search_kind` is `web`, keep queries short (4-9 words) and single-intent.
+- Avoid mixed-region mega queries (for example, HK + China + US in one line).
 - Avoid queries that are just the company name.
 - Avoid repetitive template patterns.
 - Keep each query focused and directly inferable from context.

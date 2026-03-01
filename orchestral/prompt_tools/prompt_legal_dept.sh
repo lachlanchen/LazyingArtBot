@@ -25,6 +25,333 @@ REFERENCE_SOURCES=(
 CUSTOM_REFERENCE_SOURCES=0
 DEFAULT_LEGAL_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input/Legal"
 LEGAL_ROOTS=()
+RUN_LEGAL_WEB_SEARCH=1
+LEGAL_WEB_QUERY_BUDGET=5
+LEGAL_WEB_TOP_RESULTS=3
+LEGAL_WEB_SCROLL_STEPS=2
+LEGAL_WEB_SCROLL_PAUSE=0.8
+LEGAL_WEB_HOLD_SECONDS=8
+LEGAL_WEB_QUERIES=()
+LEGAL_WEB_QUERY_PLANNER_PROMPT="orchestral/prompt_tools/legal_web_search_query_planner_prompt.md"
+LEGAL_WEB_QUERY_SCHEMA="orchestral/prompt_tools/web_search_query_planner_schema.json"
+
+parse_web_query() {
+  local raw="$1"
+  local parsed_kind="auto"
+  local parsed_query="$raw"
+  local kind_normalized=""
+
+  if [[ "$raw" == *:* ]]; then
+    local kind_candidate="${raw%%:*}"
+    local rest="${raw#*:}"
+    kind_normalized="${kind_candidate:l}"
+    case "$kind_normalized" in
+      auto|general|news)
+        parsed_kind="$kind_normalized"
+        parsed_query="$rest"
+        ;;
+      google)
+        parsed_kind="auto"
+        parsed_query="$rest"
+        ;;
+      google-news)
+        parsed_kind="news"
+        parsed_query="$rest"
+        ;;
+      *)
+        parsed_kind="auto"
+        parsed_query="$raw"
+        ;;
+    esac
+  fi
+
+  parsed_query="$(printf '%s' "$parsed_query" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+  if [[ -z "$parsed_query" ]]; then
+    parsed_query="$raw"
+  fi
+  printf '%s|%s\n' "$parsed_kind" "$parsed_query"
+}
+
+web_search_engine_from_kind() {
+  local kind="$1"
+  case "$kind" in
+    news)
+      echo "google-news"
+      ;;
+    auto|general)
+      echo "google"
+      ;;
+    *)
+      echo "google"
+      ;;
+  esac
+}
+
+slugify_query() {
+  local raw="$1"
+  local value
+  value="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-24)"
+  if [[ -z "$value" ]]; then
+    echo "query"
+  else
+    echo "$value"
+  fi
+}
+
+build_default_legal_web_queries() {
+  local planner_input="$OUTPUT_DIR/legal-web-planner-input.json"
+  local planner_output_dir="$OUTPUT_DIR/legal_web_query_planner"
+  local planner_result="$planner_output_dir/latest-result.json"
+  mkdir -p "$planner_output_dir"
+
+  python3 - "$planner_input" "$COMPANY_FOCUS" "$LEGAL_WEB_QUERY_BUDGET" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "${REFERENCE_SOURCES[@]}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+out = Path(sys.argv[1]).expanduser()
+company_focus = (sys.argv[2] or "").strip()
+try:
+    budget = int(sys.argv[3]) if str(sys.argv[3]).strip() else 5
+except Exception:
+    budget = 5
+context_file = sys.argv[4]
+market_file = sys.argv[5]
+resource_file = sys.argv[6]
+web_file = sys.argv[7]
+references = [x for x in sys.argv[8:] if x.strip()]
+
+def read_text(path: str, limit: int = 6000) -> str:
+    p = Path(path).expanduser()
+    if not path or not p.exists() or not p.is_file():
+        return ""
+    try:
+        return p.read_text(encoding="utf-8", errors="ignore")[:limit]
+    except Exception:
+        return ""
+
+source_text = "\n\n".join([
+    read_text(context_file, 7000),
+    read_text(market_file, 5000),
+    read_text(resource_file, 5000),
+    read_text(web_file, 5000),
+]).strip()
+
+if budget < 3:
+    budget = 3
+if budget > 8:
+    budget = 8
+
+payload = {
+    "company_focus": company_focus or "target company",
+    "search_kind": "web",
+    "query_budget": budget,
+    "reference_sources": references,
+    "source_text": source_text,
+    "context_file": context_file,
+    "resource_context_hint": "Generate legal/compliance web+news discovery queries with funding/competition/entrepreneur context support.",
+}
+out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+
+  if [[ -f "$LEGAL_WEB_QUERY_PLANNER_PROMPT" && -f "$LEGAL_WEB_QUERY_SCHEMA" ]]; then
+    if ! python3 orchestral/prompt_tools/codex-json-runner.py \
+      --input-json "$planner_input" \
+      --output-dir "$planner_output_dir" \
+      --prompt-file "$LEGAL_WEB_QUERY_PLANNER_PROMPT" \
+      --schema "$LEGAL_WEB_QUERY_SCHEMA" \
+      --model "$MODEL" \
+      --reasoning "$REASONING" \
+      --safety "$SAFETY" \
+      --approval "$APPROVAL" \
+      --label "legal-web-query-planner" \
+      --skip-git-check >/dev/null 2>&1; then
+      true
+    fi
+  fi
+
+  if [[ -f "$planner_result" ]]; then
+    python3 - "$planner_result" "$LEGAL_WEB_QUERY_BUDGET" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+def simplify_query(text: str) -> str:
+    text = re.sub(r"\s+", " ", text).strip().replace(":", " -")
+    if not text:
+        return ""
+    out = []
+    seen = set()
+    for token in text.split():
+        t = token.strip(" ,;|")
+        if not t:
+            continue
+        key = t.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(t)
+        if len(out) >= 9:
+            break
+    return " ".join(out).strip()
+
+def parse_queries(payload_path: str, budget: int):
+    try:
+        payload = json.loads(Path(payload_path).read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    out = []
+    seen = set()
+    for row in payload.get("queries", []) if isinstance(payload, dict) else []:
+        if isinstance(row, str):
+            kind = "auto"
+            query = row.strip()
+        elif isinstance(row, dict):
+            kind = str(row.get("kind", "auto")).strip().lower()
+            query = str(row.get("query", "")).strip()
+        else:
+            continue
+        if kind not in {"auto", "general", "news"}:
+            kind = "auto"
+        query = simplify_query(query)
+        if not query:
+            continue
+        key = (kind, query.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append((kind, query))
+        if len(out) >= budget:
+            break
+    return out
+
+queries = parse_queries(sys.argv[1], int(sys.argv[2]))
+if not queries:
+    queries = [
+        ("news", "Hong Kong AI startup compliance and policy updates"),
+        ("news", "China cross-border data compliance AI product"),
+        ("general", "AI wearable privacy compliance checklist enterprise deployment"),
+    ]
+
+for kind, query in queries:
+    if kind in {"auto", "general"}:
+        print(query)
+    else:
+        print(f"{kind}:{query}")
+PY
+    rm -f "$planner_input"
+    return 0
+  fi
+
+  rm -f "$planner_input"
+  printf '%s\n' \
+    "news:Hong Kong AI startup compliance and policy updates" \
+    "news:China cross-border data compliance AI product" \
+    "general:AI wearable privacy compliance checklist enterprise deployment"
+}
+
+run_legal_web_search_queries() {
+  local output_dir="$1"
+  local top_n="$2"
+  local run_id="$3"
+  shift 3
+  local queries=("$@")
+  local run_output_dir="$output_dir/legal_web_search"
+  local summary_file="$output_dir/legal_web_search.summary.txt"
+  mkdir -p "$run_output_dir"
+  : > "$summary_file"
+
+  local idx=1
+  for raw_query in "${queries[@]}"; do
+    local parse kind query query_slug query_run_id query_result_dir query_result_file query_log_file
+    parse="$(parse_web_query "$raw_query")"
+    kind="${parse%%|*}"
+    query="${parse#*|}"
+    query_slug="$(slugify_query "$query")"
+    query_run_id="${run_id}-legal-web-${idx}-${query_slug}"
+    query_result_dir="$run_output_dir/$query_run_id"
+    query_log_file="$query_result_dir/search.log"
+    mkdir -p "$query_result_dir"
+
+    if ! "$REPO_DIR/orchestral/prompt_tools/prompt_web_search_immersive.sh" \
+      --query "$query" \
+      --engine "$(web_search_engine_from_kind "$kind")" \
+      --results "$top_n" \
+      --open-top-results "$top_n" \
+      --summarize-open-url \
+      --scroll-steps "$LEGAL_WEB_SCROLL_STEPS" \
+      --scroll-pause "$LEGAL_WEB_SCROLL_PAUSE" \
+      --keep-open \
+      --hold-seconds "$LEGAL_WEB_HOLD_SECONDS" \
+      --output-dir "$run_output_dir" \
+      --run-id "$query_run_id" \
+      > "$query_log_file" 2>&1; then
+      printf '%s\n' "- [legal-web] ❌ $query ($kind): search failed" >> "$summary_file"
+      idx=$((idx + 1))
+      continue
+    fi
+
+    query_result_file=""
+    for candidate in \
+      "$query_result_dir"/query-*.json \
+      "$query_result_dir"/search_batch_result.json; do
+      if [[ -f "$candidate" ]]; then
+        query_result_file="$candidate"
+        break
+      fi
+    done
+
+    if [[ -z "$query_result_file" ]]; then
+      printf '%s\n' "- [legal-web] ⚠️ $query ($kind): result missing" >> "$summary_file"
+      idx=$((idx + 1))
+      continue
+    fi
+
+    python3 - "$summary_file" "$query" "$kind" "$query_result_file" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+summary_path = Path(sys.argv[1]).expanduser()
+query = sys.argv[2]
+kind = sys.argv[3]
+result_file = Path(sys.argv[4]).expanduser()
+
+try:
+    payload = json.loads(result_file.read_text(encoding="utf-8"))
+except Exception as exc:
+    with summary_path.open("a", encoding="utf-8") as w:
+        w.write(f"- [legal-web] ⚠️ {query} ({kind}): parse failed ({exc})\n")
+    raise SystemExit(0)
+
+items = payload.get("items") if isinstance(payload, dict) else []
+opened = payload.get("opened_items") if isinstance(payload, dict) else []
+if not isinstance(items, list):
+    items = []
+if not isinstance(opened, list):
+    opened = []
+
+with summary_path.open("a", encoding="utf-8") as w:
+    w.write(f"- [legal-web] ✅ {query} ({kind}): {len(items)} result(s)\n")
+    for row in items[:3]:
+        title = str(row.get("title", "")).strip()
+        url = str(row.get("url", "")).strip()
+        if title or url:
+            w.write(f"  - {title} | {url}\n")
+    for row in opened[:2]:
+        title = str(row.get("title", "")).strip()
+        url = str(row.get("url", "")).strip()
+        summary = str(row.get("summary", "")).strip().replace("\n", " ")
+        w.write(f"  - opened: {title} | {url}\n")
+        if summary:
+            w.write(f"    - summary: {summary[:320]}\n")
+PY
+    idx=$((idx + 1))
+  done
+
+  echo "$summary_file"
+}
 
 usage() {
   cat <<'USAGE'
@@ -37,6 +364,11 @@ Options:
   --market-summary-file <path>    Market summary text file
   --resource-summary-file <path>  Resource analysis summary file
   --web-summary-file <path>      Web-search context summary file
+  --legal-web-search             Run legal-stage targeted web search (default: on)
+  --no-legal-web-search          Disable legal-stage targeted web search
+  --legal-web-query <text>       Legal web search query (repeatable; planner used if omitted)
+  --legal-web-query-budget <n>   Planner query budget (default: 5)
+  --legal-web-top-results <n>    Open top N results per legal query (default: 3)
   --model <name>                 Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>            Reasoning level (default: high)
   --safety <mode>                Safety mode (default: danger-full-access)
@@ -75,6 +407,24 @@ while [[ $# -gt 0 ]]; do
     --web-summary-file)
       shift
       WEB_SUMMARY_FILE="${1:-}"
+      ;;
+    --legal-web-search)
+      RUN_LEGAL_WEB_SEARCH=1
+      ;;
+    --no-legal-web-search)
+      RUN_LEGAL_WEB_SEARCH=0
+      ;;
+    --legal-web-query)
+      shift
+      LEGAL_WEB_QUERIES+=("${1:-}")
+      ;;
+    --legal-web-query-budget)
+      shift
+      LEGAL_WEB_QUERY_BUDGET="${1:-5}"
+      ;;
+    --legal-web-top-results)
+      shift
+      LEGAL_WEB_TOP_RESULTS="${1:-3}"
       ;;
     --model)
       shift
@@ -197,8 +547,32 @@ for ref_item in "${REFERENCE_SOURCES[@]}"; do
 done
 REFERENCE_SOURCES=("${dedupe_reference_sources[@]}")
 
+MERGED_WEB_SUMMARY_FILE="$WEB_SUMMARY_FILE"
+LEGAL_WEB_SUMMARY_FILE=""
+if [[ "$RUN_LEGAL_WEB_SEARCH" == "1" ]]; then
+  if [[ "${#LEGAL_WEB_QUERIES[@]}" -eq 0 ]]; then
+    LEGAL_WEB_QUERIES=("${(@f)$(build_default_legal_web_queries)}")
+  fi
+  LEGAL_WEB_RUN_ID="$(date +%Y%m%d-%H%M%S)"
+  LEGAL_WEB_SUMMARY_FILE="$(run_legal_web_search_queries "$OUTPUT_DIR" "$LEGAL_WEB_TOP_RESULTS" "$LEGAL_WEB_RUN_ID" "${LEGAL_WEB_QUERIES[@]}")"
+
+  if [[ -n "$LEGAL_WEB_SUMMARY_FILE" && -f "$LEGAL_WEB_SUMMARY_FILE" ]]; then
+    if [[ -n "$WEB_SUMMARY_FILE" && -f "$WEB_SUMMARY_FILE" ]]; then
+      MERGED_WEB_SUMMARY_FILE="$OUTPUT_DIR/merged_web_summary.txt"
+      {
+        cat "$WEB_SUMMARY_FILE"
+        printf '\n'
+        echo "Legal stage targeted web search:"
+        cat "$LEGAL_WEB_SUMMARY_FILE"
+      } > "$MERGED_WEB_SUMMARY_FILE"
+    else
+      MERGED_WEB_SUMMARY_FILE="$LEGAL_WEB_SUMMARY_FILE"
+    fi
+  fi
+fi
+
 PAYLOAD_PATH="$OUTPUT_DIR/latest-payload.json"
-python3 - "$OUTPUT_DIR" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$COMPANY_FOCUS" \
+python3 - "$OUTPUT_DIR" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$MERGED_WEB_SUMMARY_FILE" "$COMPANY_FOCUS" \
   "__ROOTS__" "${LEGAL_ROOTS[@]}" "__REFS__" "${REFERENCE_SOURCES[@]}" <<'PY'
 import json
 import re

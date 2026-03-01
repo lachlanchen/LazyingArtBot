@@ -10,6 +10,7 @@ CONTEXT_FILE=""
 MARKET_SUMMARY_FILE=""
 RESOURCE_SUMMARY_FILE=""
 WEB_SUMMARY_FILE=""
+LEGAL_SUMMARY_FILE=""
 MODEL="gpt-5.3-codex-spark"
 REASONING="high"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
@@ -32,6 +33,7 @@ Options:
   --market-summary-file <p>   Optional market summary file
   --resource-summary-file <p> Optional resource/resource-analysis summary
   --web-summary-file <p>      Optional web-search summary file
+  --legal-summary-file <p>    Optional legal/compliance summary file
   --model <name>              Codex model (default: gpt-5.3-codex-spark)
   --reasoning <level>         Reasoning level (default: high)
   --safety <level>            Codex safety mode (default: danger-full-access)
@@ -70,6 +72,10 @@ while [[ $# -gt 0 ]]; do
     --web-summary-file)
       shift
       WEB_SUMMARY_FILE="${1:-}"
+      ;;
+    --legal-summary-file)
+      shift
+      LEGAL_SUMMARY_FILE="${1:-}"
       ;;
     --model)
       shift
@@ -134,7 +140,7 @@ print(json.dumps(items, ensure_ascii=False))
 PY
 )"
 
-python3 - "$TMP_PAYLOAD" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$COMPANY_FOCUS" "$LANGUAGE_POLICY" "$REF_SOURCES_JSON" <<'PY'
+python3 - "$TMP_PAYLOAD" "$CONTEXT_FILE" "$MARKET_SUMMARY_FILE" "$RESOURCE_SUMMARY_FILE" "$WEB_SUMMARY_FILE" "$LEGAL_SUMMARY_FILE" "$COMPANY_FOCUS" "$LANGUAGE_POLICY" "$REF_SOURCES_JSON" <<'PY'
 import json
 import sys
 from datetime import datetime
@@ -145,9 +151,10 @@ context_path = sys.argv[2]
 market_path = sys.argv[3]
 resource_path = sys.argv[4]
 web_summary_path = sys.argv[5]
-company_focus = sys.argv[6]
-language_policy = sys.argv[7]
-reference_sources = json.loads(sys.argv[8]) if len(sys.argv) > 8 else []
+legal_summary_path = sys.argv[6]
+company_focus = sys.argv[7]
+language_policy = sys.argv[8]
+reference_sources = json.loads(sys.argv[9]) if len(sys.argv) > 9 else []
 
 context = ""
 if context_path:
@@ -175,6 +182,12 @@ if web_summary_path:
     if p.exists():
         web_search_summary = p.read_text(encoding="utf-8")
 
+legal_summary = ""
+if legal_summary_path:
+    p = Path(legal_summary_path).expanduser()
+    if p.exists():
+        legal_summary = p.read_text(encoding="utf-8")
+
 payload = {
     "run_local_iso": datetime.now().astimezone().isoformat(timespec="seconds"),
     "company_focus": company_focus or "Company",
@@ -183,6 +196,7 @@ payload = {
     "market_summary": market_summary,
     "resource_summary": resource_summary,
     "web_search_summary": web_search_summary,
+    "legal_summary": legal_summary,
     "reference_sources": reference_sources,
 }
 payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

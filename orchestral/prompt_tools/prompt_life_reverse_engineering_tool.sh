@@ -14,7 +14,7 @@ REASONING="high"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-life-reverse"
 REMINDER_LIST="LazyingArt"
-SLOT_PREFIX="LA-LIFE"
+SLOT_PREFIX="RevEng"
 WRITE_REMINDER=1
 STATE_JSON="$HOME/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/life_reminder_state.json"
 STATE_MD="$HOME/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md"
@@ -36,7 +36,7 @@ Options:
   --state-json <path>          Reminder state JSON (default: workspace AutoLife state)
   --state-md <path>            Reminder state markdown mirror (default: ~/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md)
   --no-write-reminder          Generate plan only; do not write reminders
-  --slot-prefix <text>         Prefix used in reminder titles and duplication markers (default: LA-LIFE)
+  --slot-prefix <text>         Prefix used in reminder titles and duplication markers (default: RevEng)
   --report-json <path>         Output report json path (default: <output-dir>/life-reminder-report.json)
   --report-md <path>           Output report markdown path (default: <output-dir>/life-reminder-report.md)
   --report-html <path>         Output report html path (default: <output-dir>/life-reminder-report.html)

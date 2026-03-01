@@ -36,6 +36,10 @@ SLOT_LABEL = {
     "one_year_milestone": "One-Year Milestone",
 }
 
+CANONICAL_SLOT_PREFIX = "RevEng"
+LEGACY_SLOT_PREFIXES = {"LA-LIFE", "LazyingArt", "Lightmind", "LightMind", "Life", "RevEng"}
+LEGACY_COMPANY_TAGS = {"LazyingArt", "Lightmind", "LightMind"}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Apply life reverse reminder plan")
@@ -47,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-html", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--list-name", default="LazyingArt")
-    parser.add_argument("--slot-prefix", default="LA-LIFE")
+    parser.add_argument("--slot-prefix", default=CANONICAL_SLOT_PREFIX)
     parser.add_argument("--company-name", default="LazyingArt")
     parser.add_argument("--no-write-reminder", action="store_true", help="Generate life plan without writing reminders")
     parser.add_argument("--timezone", default="Asia/Hong_Kong")
@@ -268,13 +272,13 @@ def create_reminder(script_path: Path, title: str, due_iso: str, notes: str, lis
 def normalize_slot_prefix(raw: str) -> str:
     prefix = (raw or "").strip()
     if not prefix:
-        return "LA-LIFE"
+        return CANONICAL_SLOT_PREFIX
     return (
         prefix.replace("[", "").replace("]", "").replace("\r", "").replace("\n", "").strip()
-    ) or "LA-LIFE"
+    ) or CANONICAL_SLOT_PREFIX
 
 
-def parse_slot(name: str, allowed_prefixes: set[str]) -> tuple[str, str]:
+def parse_slot(name: str, allowed_prefixes: set[str], allowed_middle_tags: set[str]) -> tuple[str, str]:
     raw = (name or "").strip()
     if raw.startswith("[") and raw.count("]") >= 2:
         first_part = raw[1:]
@@ -285,11 +289,49 @@ def parse_slot(name: str, allowed_prefixes: set[str]) -> tuple[str, str]:
             if remainder.startswith("["):
                 second_close = remainder[1:].find("]")
                 if second_close >= 0:
-                    slot = remainder[1:1 + second_close]
+                    second_part = remainder[1:1 + second_close]
                     tail = remainder[1 + second_close + 1:]
+
+                    # Canonical format: [RevEng][Life][slot] Title
+                    # Legacy-supported: [RevEng][Company][slot] Title
+                    if tail.startswith("["):
+                        third_close = tail[1:].find("]")
+                        if third_close >= 0:
+                            slot = tail[1:1 + third_close]
+                            rest = tail[1 + third_close + 1:]
+                            prefix_ok = (not allowed_prefixes) or (prefix in allowed_prefixes)
+                            middle_ok = (not allowed_middle_tags) or (second_part in allowed_middle_tags)
+                            if prefix_ok and middle_ok:
+                                return slot.strip(), rest.strip()
+
+                    # Legacy format: [prefix][slot] Title
                     if not allowed_prefixes or prefix in allowed_prefixes:
-                        return slot.strip(), tail.strip()
+                        return second_part.strip(), tail.strip()
     return "", raw
+
+
+def parse_slot_from_body(body: str) -> str:
+    raw = (body or "").strip()
+    if not raw:
+        return ""
+    markers = ("[RevEngSlot]", "[Life slot]", "[LA-LIFE slot]")
+    for line in raw.splitlines():
+        clean = line.strip()
+        for marker in markers:
+            if clean.startswith(marker):
+                return clean.replace(marker, "", 1).strip(" :")
+    return ""
+
+
+def normalize_company_tag(raw: str) -> str:
+    name = (raw or "").strip()
+    cleaned = "".join(ch for ch in name.lower() if ch.isalnum())
+    if cleaned in {"lightmind", "lightmindart"}:
+        return "LightMind"
+    if cleaned in {"lazyingart", "lazyingartcompany"}:
+        return "LazyingArt"
+    safe = name.replace("[", "").replace("]", "").replace("\r", "").replace("\n", "").strip()
+    return safe or "LazyingArt"
 
 
 def dedupe_open_slot_items(
@@ -470,7 +512,10 @@ def main() -> int:
     now = datetime.now(tz)
     slot_prefix = normalize_slot_prefix(args.slot_prefix)
     company_name = (args.company_name or "LazyingArt").strip() or "LazyingArt"
-    allowed_prefixes = {slot_prefix, "LA-LIFE"}
+    company_tag = normalize_company_tag(company_name)
+    allowed_prefixes = set(LEGACY_SLOT_PREFIXES)
+    allowed_prefixes.add(slot_prefix)
+    allowed_middle_tags = {"Life"} | set(LEGACY_COMPANY_TAGS) | {company_tag}
 
     plan_path = Path(args.plan_json).expanduser().resolve()
     state_json_path = Path(args.state_json).expanduser().resolve()
@@ -536,7 +581,10 @@ def main() -> int:
         open_by_slot: dict[str, list[dict[str, str]]] = {slot: [] for slot in SLOT_ORDER}
 
         for item in existing:
-            slot, bare = parse_slot(item.get("name", ""), allowed_prefixes)
+            slot, bare = parse_slot(item.get("name", ""), allowed_prefixes, allowed_middle_tags)
+            if slot not in open_by_slot:
+                slot = parse_slot_from_body(item.get("body", ""))
+                bare = item.get("name", "")
             if slot not in open_by_slot:
                 continue
             item["bare_title"] = bare
@@ -555,11 +603,12 @@ def main() -> int:
         for item in desired:
             slot = item["slot"]
             planned_title = item["title"]
-            reminder_title = f"[{slot_prefix}][{slot}] {planned_title}"
+            reminder_title = f"[{slot_prefix}][{company_tag}][{slot}] {planned_title}"
             due_iso = item["due_iso"]
             desired_key = item["duplication_key"]
             notes = (
-                f"[{slot_prefix} slot] {slot}\n"
+                f"[RevEngMeta] {slot_prefix}/{company_tag}\n"
+                f"[RevEngSlot] {slot}\n"
                 f"[Generated] {now.isoformat(timespec='seconds')}\n"
                 f"[Rationale] {item['rationale']}\n\n"
                 f"[DuplicationKey] {desired_key}\n\n"
@@ -590,8 +639,19 @@ def main() -> int:
                 "error": "",
             }
 
-            # If same reminder already open, keep it.
+            same_open_is_canonical = False
             if same_open is not None:
+                existing_name = str(same_open.get("name", "")).strip()
+                existing_due_iso = str(same_open.get("due_iso", "")).strip()
+                existing_dup_key = str(same_open.get("duplication_key", "")).strip()
+                same_open_is_canonical = (
+                    existing_name == reminder_title
+                    and due_close(existing_due_iso, due_iso, tz)
+                    and ((not desired_key) or existing_dup_key == desired_key)
+                )
+
+            # Keep only canonical reminder. Otherwise complete old and recreate cleanly.
+            if same_open is not None and same_open_is_canonical:
                 kept_count += 1
                 for ex in open_items:
                     if ex.get("id") == same_open.get("id"):

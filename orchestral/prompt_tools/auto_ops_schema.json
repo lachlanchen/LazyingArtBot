@@ -79,6 +79,6 @@
       }
     }
   },
-  "required": ["summary", "notes"],
+  "required": ["summary", "notes", "calendar_events", "reminders", "log_entries", "actions"],
   "additionalProperties": false
 }

@@ -26,6 +26,8 @@ Rules:
 - For notes, always include `target_note`, `folder`, and `html_body`.
 - Keep one direct plan item per concrete task.
 - Prefer notes/calendar/reminders when context naturally suggests them.
+- For a single recurring daily habit (for example one Vitamin B reminder), output exactly one reminder item.
+- Never emit two reminders with the same title for the same local day/time.
 
 Output:
 

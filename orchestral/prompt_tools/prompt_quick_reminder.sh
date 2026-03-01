@@ -166,13 +166,14 @@ if [[ ! -f "$PLAN_JSON" ]]; then
   exit 1
 fi
 
-python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" "$TARGET_NOTE" "$NOTE_FOLDER" "$CALENDAR_NAME" <<'PY'
+python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" "$TARGET_NOTE" "$NOTE_FOLDER" "$CALENDAR_NAME" "$TIMEZONE" <<'PY'
 import json
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 PLAN_JSON = Path(sys.argv[1]).expanduser()
 STATE_JSON = Path(sys.argv[2]).expanduser()
@@ -181,6 +182,8 @@ DEFAULT_LIST = sys.argv[4]
 DEFAULT_NOTE = sys.argv[5]
 DEFAULT_FOLDER = sys.argv[6]
 DEFAULT_CALENDAR = sys.argv[7]
+TIMEZONE = sys.argv[8]
+LOCAL_TZ = ZoneInfo(TIMEZONE)
 CREATE_NOTE_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_note.applescript")
 CREATE_CALENDAR_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_calendar_event.applescript")
 CREATE_REMINDER_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_reminder.applescript")
@@ -195,6 +198,13 @@ def run_osascript_with_args(script: str, *args: str) -> str:
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout or "osascript failed").strip())
     return proc.stdout.strip()
+
+
+def reminder_minute_key(iso_text: str) -> str:
+    dt = datetime.fromisoformat(iso_text.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=LOCAL_TZ)
+    return dt.astimezone(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M")
 
 
 def parse_existing(list_name: str) -> set[tuple[str, str]]:
@@ -261,7 +271,11 @@ end run
         due_iso = parts[2].strip()
         if done or not due_iso:
             continue
-        keys.add((title, due_iso[:16]))
+        try:
+            keys.add((title, reminder_minute_key(due_iso)))
+        except Exception:
+            # If parsing fails, keep a best-effort fallback to avoid duplicate writes.
+            keys.add((title, due_iso[:16]))
     return keys
 
 
@@ -482,8 +496,13 @@ for item in calendar_items:
         )
 
 for item in reminder_items:
-    key = (item["title"].strip().lower(), item["due_iso"][:16], item["list"])
-    if (item["title"].strip().lower(), item["due_iso"][:16]) in existing_reminders or key in seen_reminder_keys:
+    title_key = item["title"].strip().lower()
+    try:
+        minute_key = reminder_minute_key(item["due_iso"])
+    except Exception:
+        minute_key = item["due_iso"][:16]
+    key = (title_key, minute_key, item["list"])
+    if (title_key, minute_key) in existing_reminders or key in seen_reminder_keys:
         results.append(
             {
                 "status": "skipped_duplicate",

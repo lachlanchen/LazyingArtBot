@@ -114,12 +114,12 @@ scripts/prompt_tools/run_auto_ops.sh \
   --prompt "$REPO_DIR/orchestral/prompt_tools/daily_rituals_ping_prompt.md" \
   --label "daily-ritual-ping" \
   --payload "$TMP_PAYLOAD" \
-  --output-dir "$OUTPUT_DIR" \
   --model "$MODEL" \
   --reasoning "$REASONING"
 rm -f "$TMP_PAYLOAD"
 
-PLAN_JSON="$OUTPUT_DIR/latest-result.json"
+# run_auto_ops.sh writes to its stable output path
+PLAN_JSON="/tmp/codex-auto-ops/latest-result.json"
 if [[ ! -f "$PLAN_JSON" ]]; then
   echo "No plan result found from Codex tool" >&2
   exit 1

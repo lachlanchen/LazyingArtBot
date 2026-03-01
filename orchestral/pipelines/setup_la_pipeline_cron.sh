@@ -10,7 +10,7 @@ JOB_NAME_PM="LazyingArt Pipeline 20:00 HK"
 JOB_NAME_PM_ALT="LazyingArt Pipeline 21:00 HK"
 TO_ADDR="lachchen@qq.com"
 FROM_ADDR="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.3-codex-spark"
+MODEL="gpt-5.3-codex"
 REASONING="medium"
 
 usage() {
@@ -23,7 +23,7 @@ the Lazying.art pipeline script through agent exec.
 Options:
   --to <email>            Digest recipient (default: lachchen@qq.com)
   --from <email>          Sender hint (default: lachlan.miao.chen@gmail.com)
-  --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
+  --model <name>          Agent model for cron run (default: gpt-5.3-codex)
   --reasoning <level>     Agent reasoning level (default: medium)
   -h, --help              Show help
 USAGE

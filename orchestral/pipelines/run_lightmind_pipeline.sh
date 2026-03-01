@@ -12,7 +12,7 @@ LIGHTMIND_INPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input"
 LIGHTMIND_OUTPUT_ROOT="/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Output"
 
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
-MODEL="gpt-5.3-codex-spark"
+MODEL="gpt-5.3-codex"
 REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
@@ -38,6 +38,8 @@ LIGHTMIND_COMPANY_NAME="Lightmind"
 LIGHTMIND_WEBSITE="https://lightmind.art"
 LIGHTMIND_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
 LIGHTMIND_WEB_SEARCH_QUERIES=()
+LIGHTMIND_WEB_QUERY_BUDGET=6
+LIGHTMIND_WEB_QUERY_PLANNER_PROMPT="$PROMPT_DIR/lm_web_search_query_planner_prompt.md"
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
 WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 RUN_RESOURCE_ANALYSIS=1
@@ -76,7 +78,7 @@ Options:
   --from <email>            Sender hint for Apple Mail (default: lachlan.miao.chen@gmail.com)
   --no-send-email           Build email draft only, do not send
   --send-email              Send email (default)
-  --model <name>            Codex model (default: gpt-5.3-codex-spark)
+  --model <name>            Codex model (default: gpt-5.3-codex)
   --reasoning <level>       Reasoning level (default: medium)
   --legal-dept              Enable legal/compliance stage (default: on)
   --no-legal-dept           Disable legal/compliance stage
@@ -331,6 +333,29 @@ result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 summary = result.get("summary", "")
 Path(sys.argv[2]).write_text(summary.strip() + "\n", encoding="utf-8")
 PY
+}
+
+update_incremental_email() {
+  local stage_label="$1"
+  "$PROMPT_DIR/prompt_email_writer_incremental.sh" \
+    --company-focus "$LIGHTMIND_COMPANY_NAME" \
+    --stage "$stage_label" \
+    --output-dir "$EMAIL_INCREMENTAL_DIR" \
+    --output-html "$EMAIL_INCREMENTAL_HTML" \
+    --market-summary-file "$MARKET_SUMMARY" \
+    --web-summary-file "$WEB_SUMMARY_FILE" \
+    --academic-summary-file "$ACADEMIC_SUMMARY" \
+    --legal-summary-file "$LEGAL_SUMMARY" \
+    --funding-summary-file "$FUNDING_SUMMARY" \
+    --money-summary-file "$MONEY_REVENUE_SUMMARY" \
+    --plan-summary-file "$PLAN_SUMMARY" \
+    --mentor-summary-file "$MENTOR_SUMMARY" \
+    --life-summary-file "$LIFE_SUMMARY" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    >/dev/null || true
 }
 
 find_latest_resource_markdown_dir() {
@@ -860,10 +885,10 @@ except Exception:
   budget = 4
 context_path = (sys.argv[3] or "").strip()
 
-if budget < 3:
-  budget = 3
-if budget > 8:
-  budget = 8
+if budget < 5:
+  budget = 5
+if budget > 10:
+  budget = 10
 
 source_text = read_snippet(context_path, 7000)
 
@@ -883,7 +908,7 @@ PY
   if ! python3 orchestral/prompt_tools/codex-json-runner.py \
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
-    --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
+    --prompt-file "$LIGHTMIND_WEB_QUERY_PLANNER_PROMPT" \
     --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
@@ -942,6 +967,31 @@ import re
 import sys
 from pathlib import Path
 
+SCHOLARISH_MARKERS = (
+  "arxiv", "paper", "ieee", "cvpr", "icml", "neurips", "journal", "research", "doi", "pubmed", "mdpi"
+)
+
+
+def simplify_query(text: str) -> str:
+  text = re.sub(r"\s+", " ", text).strip().replace(":", " -")
+  if not text:
+    return ""
+  words = text.split()
+  compact = []
+  seen = set()
+  for w in words:
+    token = w.strip(" ,;|")
+    if not token:
+      continue
+    token_key = token.lower()
+    if token_key in seen:
+      continue
+    seen.add(token_key)
+    compact.append(token)
+    if len(compact) >= 9:
+      break
+  return " ".join(compact).strip()
+
 
 def parse_queries(payload_path: str, budget: int):
   try:
@@ -960,27 +1010,28 @@ def parse_queries(payload_path: str, budget: int):
       text = str(row.get("query", "")).strip()
     else:
       continue
-    if kind not in {"auto", "general", "scholar", "news"}:
+    if kind not in {"auto", "general", "news"}:
       kind = "auto"
-    text = re.sub(r"\\s+", " ", text).strip().replace(":", " -")
+    text = simplify_query(text)
     if not text:
+      continue
+    if any(marker in text.lower() for marker in SCHOLARISH_MARKERS):
       continue
     key = (kind, text.lower())
     if key in seen:
       continue
     seen.add(key)
     queries.append((kind, text))
-    if len(queries) >= budget:
-      break
   return queries
 
 
-queries = parse_queries(sys.argv[1], int(sys.argv[2]))
+budget = int(sys.argv[2])
+queries = parse_queries(sys.argv[1], budget)
 
 if not queries:
-  queries.append(("auto", "commercialization signal scan"))
+  queries.append(("general", "market ecosystem signals"))
 
-for kind, text in queries[: int(sys.argv[2])]:
+for kind, text in queries[:budget]:
   if kind in {"auto", "general"}:
     print(text)
   else:
@@ -1765,6 +1816,8 @@ LIFE_MD="$ARTIFACT_DIR/life.md"
 WEB_SUMMARY_FILE="$ARTIFACT_DIR/web_search.summary.txt"
 WEB_HTML_FILE="$ARTIFACT_DIR/web_search_digest.html"
 PLAN_INPUT_SUMMARY="$ARTIFACT_DIR/plan_input_summary.txt"
+EMAIL_INCREMENTAL_DIR="$ARTIFACT_DIR/email_incremental"
+EMAIL_INCREMENTAL_HTML="$ARTIFACT_DIR/email_incremental.html"
 
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
@@ -1784,7 +1837,7 @@ log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoL
 
 if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   if [[ "${#LIGHTMIND_WEB_SEARCH_QUERIES[@]}" -eq 0 ]]; then
-    LIGHTMIND_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LIGHTMIND_COMPANY_NAME" "$LIGHTMIND_WEBSITE" "$LIGHTMIND_GITHUB_PROFILE" "$WEB_SEARCH_TOP_RESULTS" "$CONTEXT_FILE")}")
+    LIGHTMIND_WEB_SEARCH_QUERIES=("${(@f)$(build_default_web_search_queries "$LIGHTMIND_COMPANY_NAME" "$LIGHTMIND_WEBSITE" "$LIGHTMIND_GITHUB_PROFILE" "$LIGHTMIND_WEB_QUERY_BUDGET" "$CONTEXT_FILE")}")
   fi
   log "Step ${WEB_STEP}/$TOTAL_STEPS: immersive web search triage"
   : > "$WEB_SUMMARY_FILE"
@@ -1809,6 +1862,7 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     --note "🕸️ Web Search Signals / 网页信号 / ウェブシグナル" \
     --mode append \
     --html-file "$WEB_HTML_FILE"
+  update_incremental_email "web_search"
 fi
 
 LIGHTMIND_MARKET_REFERENCE_ARGS=(
@@ -1851,6 +1905,7 @@ cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
   --note "🧠 Lightmind Market Intel / 市場情報ログ" \
   --mode append \
   --html-file "$MARKET_HTML"
+update_incremental_email "market"
 
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   log "Step $ACADEMIC_STEP/$TOTAL_STEPS: academic research (high-impact)"
@@ -1895,6 +1950,7 @@ else
   printf '%s\n' "Academic research disabled for this run." > "$ACADEMIC_SUMMARY"
   printf '%s\n' "<p>Academic research stage skipped for this run.</p>" > "$ACADEMIC_HTML"
 fi
+update_incremental_email "academic"
 
 merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY" "$WEB_SUMMARY_FILE"
 
@@ -1930,16 +1986,23 @@ else
   printf '%s\n' "Legal compliance stage disabled for this run." > "$LEGAL_SUMMARY"
   printf '%s\n' "<p>Legal compliance stage skipped for this run.</p>" > "$LEGAL_HTML"
 fi
+update_incremental_email "legal"
+{
+  echo
+  echo "Legal summary:"
+  cat "$LEGAL_SUMMARY"
+} >> "$CONTEXT_FILE"
 
 log "Step $FUNDING_STEP/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
-  --market-summary-file "$PLAN_INPUT_SUMMARY" \
+  --market-summary-file "$MARKET_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --web-summary-file "$WEB_SUMMARY_FILE" \
+  --legal-summary-file "$LEGAL_SUMMARY" \
   --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
-  "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
+  "${LIGHTMIND_MARKET_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1959,18 +2022,19 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
   --note "🏦 Lightmind Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會" \
   --mode append \
   --html-file "$FUNDING_HTML"
+update_incremental_email "funding"
 
 log "Step $MONEY_STEP/$TOTAL_STEPS: monetization and revenue strategy"
 "$PROMPT_DIR/prompt_money_revenue.sh" \
   --context-file "$CONTEXT_FILE" \
-  --market-summary-file "$PLAN_INPUT_SUMMARY" \
+  --market-summary-file "$MARKET_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --academic-summary-file "$ACADEMIC_SUMMARY" \
   --web-summary-file "$WEB_SUMMARY_FILE" \
   --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --language-policy "$MONEY_REVENUE_LANGUAGE_POLICY" \
-  "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
+  "${LIGHTMIND_MARKET_REFERENCE_ARGS[@]}" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1990,6 +2054,7 @@ cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
   --note "💰 盈利模式與增長策略 / 収益化戦略 / 收益战略" \
   --mode append \
   --html-file "$MONEY_REVENUE_HTML"
+update_incremental_email "money_revenue"
 
 log "Step $PLAN_STEP/$TOTAL_STEPS: milestone plan draft"
 "$PROMPT_DIR/prompt_la_plan.sh" \
@@ -2020,6 +2085,7 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
   --note "💡 Lightmind Milestones / 里程碑 / マイルストーン" \
   --mode replace \
   --html-file "$PLAN_HTML"
+update_incremental_email "plan"
 
 log "Step $MENTOR_STEP/$TOTAL_STEPS: entrepreneurship mentor"
 "$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
@@ -2051,6 +2117,7 @@ cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
   --note "🧭 Lightmind Entrepreneurship Mentor / 創業メンター / 創業導航" \
   --mode append \
   --html-file "$MENTOR_HTML"
+update_incremental_email "mentor"
 
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   log "Step $LIFE_STEP/$TOTAL_STEPS: life reverse reminder planning"
@@ -2060,7 +2127,7 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     --state-json "$LIFE_STATE_JSON" \
     --state-md "$LIFE_STATE_MD" \
     --list-name "Lightmind" \
-    --slot-prefix "Lightmind" \
+    --slot-prefix "RevEng" \
     --market-summary-file "$MARKET_SUMMARY" \
     --plan-summary-file "$PLAN_SUMMARY" \
     --mentor-summary-file "$MENTOR_SUMMARY" \
@@ -2097,9 +2164,10 @@ else
   printf '%s\n' "Life reminder planner disabled by --no-life-reminder" > "$LIFE_SUMMARY"
   printf '%s\n' "<p>Life reminder planner disabled.</p>" > "$LIFE_HTML"
 fi
+update_incremental_email "life"
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_INCREMENTAL_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -2115,33 +2183,43 @@ plan = Path(sys.argv[7]).read_text(encoding="utf-8")
 mentor = Path(sys.argv[8]).read_text(encoding="utf-8")
 plan_input = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
 life = Path(sys.argv[10]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[11])
+incremental_path = Path(sys.argv[11])
+incremental = incremental_path.read_text(encoding="utf-8") if incremental_path.exists() else ""
+out = Path(sys.argv[12])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
-digest = (
-    f"<h1>👓 Lightmind Daily Intelligence Digest</h1>"
-    f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>"
-    "<hr/>"
-    f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}"
-    "<hr/>"
-    f"<h2>🕸️ Web Search Signals / 网页信号 / ウェブシグナル</h2>{web}"
-    "<hr/>"
-    f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}"
-    "<hr/>"
-    f"<h2>💰 Monetization & Revenue Strategy / 盈利增长策略 / 收益戦略</h2>{money}"
-    "<hr/>"
-    f"<h2>⚖️ Legal / Compliance / Tax / 法务合规税务</h2>{legal}"
-    "<hr/>"
-    f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}"
-    "<hr/>"
-    f"<h2>🧭 Executive Note / 运营要点 / 運營要點</h2><p>{html.escape(plan_input)}</p>"
-    "<hr/>"
-    f"<h2>💡 Milestones / 里程碑 / マイルストーン</h2>{plan}"
-    "<hr/>"
-    f"<h2>🧭 Entrepreneurship Mentor / 创业导师 / 創業メンター</h2>{mentor}"
-    "<hr/>"
-    f"<h2>🗓️ Life Reverse Reminder / 反向规划 / 逆算計画</h2>{life}"
+parts = [
+    f"<h1>👓 Lightmind Daily Intelligence Digest</h1>",
+    f"<p><strong>Generated:</strong> {html.escape(run_ts)}</p>",
+    "<hr/>",
+]
+if incremental.strip():
+    parts.append(f"<h2>🧩 Incremental Digest / 增量摘要 / 増分ダイジェスト</h2>{incremental}")
+    parts.append("<hr/>")
+parts.extend(
+    [
+        f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}",
+        "<hr/>",
+        f"<h2>🕸️ Web Search Signals / 网页信号 / ウェブシグナル</h2>{web}",
+        "<hr/>",
+        f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}",
+        "<hr/>",
+        f"<h2>💰 Monetization & Revenue Strategy / 盈利增长策略 / 收益戦略</h2>{money}",
+        "<hr/>",
+        f"<h2>⚖️ Legal / Compliance / Tax / 法务合规税务</h2>{legal}",
+        "<hr/>",
+        f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}",
+        "<hr/>",
+        f"<h2>🧭 Executive Note / 运营要点 / 運營要點</h2><p>{html.escape(plan_input)}</p>",
+        "<hr/>",
+        f"<h2>💡 Milestones / 里程碑 / マイルストーン</h2>{plan}",
+        "<hr/>",
+        f"<h2>🧭 Entrepreneurship Mentor / 创业导师 / 創業メンター</h2>{mentor}",
+        "<hr/>",
+        f"<h2>🗓️ Life Reverse Reminder / 反向规划 / 逆算計画</h2>{life}",
+    ]
 )
+digest = "".join(parts)
 out.write_text(digest, encoding="utf-8")
 PY
 
@@ -2201,6 +2279,8 @@ Requirements:
 - Subject should include: [AutoLife] Lightmind Daily Intelligence Update
 - Do not invent facts outside the provided digest.
 - Keep the Web Search Signals section evidence-based and link-backed.
+- Do not drop evidence rows from the digest tables unless they are exact duplicates.
+- Preserve section completeness across web, legal, funding, and market blocks.
 
 Digest HTML:
 $(cat "$EMAIL_HTML")

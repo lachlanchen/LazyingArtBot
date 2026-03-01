@@ -25,6 +25,7 @@ Your job is to keep a fixed strategic reminder backbone and update it carefully.
 - Be conservative with changes. Avoid churn.
 - Do not generate duplicate reminders under slight rewording.
 - Keep exactly one reminder per slot and replace the previous item when the same `duplication_key` is present.
+- Keep planned titles slot-focused (no company prefix in `title`); canonical reminder naming is handled as `[{slot_prefix}][{company_tag}][{slot}] {title}` where `company_tag` should be one of `Life`, `LazyingArt`, `LightMind`.
 - Prefer stable, actionable titles.
 - For each slot, produce one clear milestone-oriented reminder.
 
@@ -61,7 +62,7 @@ For each reminder:
 - Avoid creating reminder plans that would result in duplicate titles/dates in the same slot without intent change.
 - During refine runs, treat existing reminder state as potentially dirty and self-cleaning:
   - keep exactly one active reminder per slot,
-  - replace stale or duplicate legacy reminders for the same slot/intent so only one canonical copy remains.
+  - replace stale or duplicate legacy reminders (including old prefix variants) so only one canonical copy remains per slot.
 
 ## Output contract
 

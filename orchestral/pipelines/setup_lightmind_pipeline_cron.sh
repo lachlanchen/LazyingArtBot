@@ -7,7 +7,7 @@ cd "$REPO_DIR"
 TZ_NAME="Asia/Hong_Kong"
 JOB_NAME_AM="Lightmind Pipeline 07:00 HK"
 JOB_NAME_PM="Lightmind Pipeline 19:00 HK"
-MODEL="gpt-5.3-codex-spark"
+MODEL="gpt-5.3-codex"
 REASONING="medium"
 RUN_LIFE_REMINDER=1
 RUN_LEGAL_DEPT=1
@@ -23,7 +23,7 @@ Creates/refreshes OpenClaw cron jobs (07:00 + 19:00 Asia/Hong_Kong) that trigger
 the Lightmind pipeline script through agent exec.
 
 Options:
-  --model <name>          Agent model for cron run (default: gpt-5.3-codex-spark)
+  --model <name>          Agent model for cron run (default: gpt-5.3-codex)
   --reasoning <level>     Reasoning level (default: medium)
   --life-reminder         Enable life reverse planning (default: on)
   --no-life-reminder      Disable life reverse planning

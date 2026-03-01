@@ -8,6 +8,7 @@ Inputs:
 - `market_summary`: latest market + competitor signals.
 - `resource_summary`: resource-analysis summary.
 - `web_search_summary`: web search summary artifacts and traces.
+- `legal_summary`: legal/compliance summary from prior stage (if available).
 - `run_context`: merged run context.
 - `reference_sources`: source hints passed from the pipeline.
 - `language_policy`: output style policy.
@@ -17,6 +18,8 @@ How to decide:
 - Use `reference_sources` and local summaries first.
 - Only use web-search links that exist in provided artifacts (opened items, result summaries, and screenshots when present).
 - Treat upstream web evidence as traceable signals, not a full crawl.
+- For funding conclusions, prioritize web/news and investment-program signals over scholarly links.
+- Cover regional signals explicitly: Hong Kong, Mainland China, and US.
 - Remove duplicates by URL.
 - If evidence is weak, mark confidence and report gaps explicitly.
 - Prefer practical opportunities with a clear next action in 7d/30d/quarter.
@@ -47,6 +50,8 @@ Output (`la_ops_schema.json`):
        - `proof`
      - `proof` should be a short, human-readable evidence note (source context or risk signal), not a file path.
      - Include only links present in attached web-search artifacts or run summaries.
+     - Add a short `Regional funding signal board` subsection (HK / CN / US) with `signal`, `confidence`, `next check`.
+     - If any region lacks direct evidence, add one concrete follow-up query for that region in `next check`.
    - `tags`: include `funding`, `vc`, `grants`, `pipeline`.
 
 Tone:
