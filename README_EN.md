@@ -571,6 +571,7 @@ Phase 5     It starts improving itself           → A partner that knows you be
 - **Semantic Memory Search** (`memory_search` / `memory_get`): LLM autonomously recalls relevant fragments from historical memory, DashScope text-embedding-v3 vector index (2026-02-28)
 - **Qwen-TTS Voice Synthesis**: Daily lessons push 3 voice bubbles (Japanese reading + English vocab + Japanese vocab), qwen3-tts-flash + Cherry voice, sox → OGG delivered as Telegram voice bubble (2026-03-01)
 - **3-Agent Architecture** (Planner / Executor / Reviewer): Pure-config triangular division — Planner handles Ken's conversations, Executor runs all cron tasks (lessons / captures / morning briefing), Reviewer runs heartbeat patrol and memory compression; channel bindings ensure correct message routing (2026-03-01)
+- **True Multi-Agent `sessions_spawn`**: Planner can spawn Executor as a sub-agent for any complex task (shell commands, multi-step research, data collation); results auto-announced back to Planner session asynchronously; end-to-end verified: Planner delegates → Executor spawns in isolated session → executes tools → result returned → Planner summarizes for Ken (2026-03-01)
 
 ---
 
