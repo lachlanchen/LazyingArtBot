@@ -6,7 +6,7 @@ WORKSPACE="/Users/lachlan/.openclaw/workspace"
 PROMPT_DIR="$REPO_DIR/orchestral/prompt_tools"
 NOTES_ROOT="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt"
 ARTIFACT_BASE="$WORKSPACE/AutoLife/MetaNotes/Companies/LazyingArt/pipeline_runs"
-PIPELINE_LOCK_FILE="$ARTIFACT_BASE/.la_pipeline.lock"
+PIPELINE_LOCK_FILE="$ARTIFACT_BASE/.lazyingart_pipeline.lock"
 
 DEFAULT_TO="lachchen@qq.com"
 DEFAULT_FROM="lachlan.miao.chen@gmail.com"
@@ -60,7 +60,7 @@ RESOURCE_ROOTS=(
 
 usage() {
   cat <<'USAGE'
-Usage: run_la_pipeline.sh [options]
+Usage: run_lazyingart_pipeline.sh [options]
 
 Runs the Lazying.art chain:
   market research -> milestone plan draft -> monetization strategy ->

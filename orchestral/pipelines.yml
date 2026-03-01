@@ -2,10 +2,10 @@ pipelines:
   - name: la-daily
     label: LazyingArt Pipeline
     launch:
-      sync: orchestral/pipelines/run_la_pipeline.sh
-      async: orchestral/pipelines/run_la_pipeline_async.sh
+      sync: orchestral/pipelines/run_lazyingart_pipeline.sh
+      async: orchestral/pipelines/run_lazyingart_pipeline_async.sh
     setup:
-      cron: orchestral/pipelines/setup_la_pipeline_cron.sh
+      cron: orchestral/pipelines/setup_lazyingart_pipeline_cron.sh
     outputs:
       notes_root: "~/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt"
     prompt_tools:

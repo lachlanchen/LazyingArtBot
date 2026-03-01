@@ -116,8 +116,8 @@ the generated markdowns into any downstream prompt chain for richer context.
 
 Coordinator scripts:
 
-- `orchestral/pipelines/run_la_pipeline.sh`
-- `orchestral/pipelines/setup_la_pipeline_cron.sh`
+- `orchestral/pipelines/run_lazyingart_pipeline.sh`
+- `orchestral/pipelines/setup_lazyingart_pipeline_cron.sh`
 - `orchestral/prompt_tools/life_reverse_reminder_apply.py`
 - `orchestral/pipelines/run_lightmind_pipeline.sh`
 - `orchestral/pipelines/setup_lightmind_pipeline_cron.sh`

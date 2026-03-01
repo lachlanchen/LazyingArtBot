@@ -42,11 +42,11 @@ This pipeline runs at 08:00 and 20:00 (Asia/Hong_Kong) and updates AutoLife note
 
 Coordinator:
 
-- `orchestral/pipelines/run_la_pipeline.sh`
+- `orchestral/pipelines/run_lazyingart_pipeline.sh`
 
 Scheduler setup:
 
-- `orchestral/pipelines/setup_la_pipeline_cron.sh`
+- `orchestral/pipelines/setup_lazyingart_pipeline_cron.sh`
 
 ## AutoLife output notes
 
@@ -75,29 +75,29 @@ Reminder planning input:
 
 ```bash
 cd /Users/lachlan/Local/Clawbot
-chmod +x orchestral/pipelines/run_la_pipeline.sh orchestral/pipelines/setup_la_pipeline_cron.sh
+chmod +x orchestral/pipelines/run_lazyingart_pipeline.sh orchestral/pipelines/setup_lazyingart_pipeline_cron.sh
 chmod +x orchestral/prompt_tools/prompt_la_market.sh orchestral/prompt_tools/prompt_la_plan.sh
 chmod +x orchestral/prompt_tools/prompt_entrepreneurship_mentor.sh
 chmod +x orchestral/prompt_tools/prompt_life_reverse_engineering_tool.sh
 chmod +x orchestral/prompt_tools/prompt_la_note_reader.sh orchestral/prompt_tools/prompt_la_note_save.sh
-orchestral/pipelines/setup_la_pipeline_cron.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com
+orchestral/pipelines/setup_lazyingart_pipeline_cron.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com
 ```
 
 ## Manual run (after setup)
 
 ```bash
-orchestral/pipelines/run_la_pipeline.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com
+orchestral/pipelines/run_lazyingart_pipeline.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com
 ```
 
 Dry-run email only:
 
 ```bash
-orchestral/pipelines/run_la_pipeline.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com --no-send-email
+orchestral/pipelines/run_lazyingart_pipeline.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com --no-send-email
 ```
 
 ## Why it failed before
 
-- Broken heredoc/script syntax in `orchestral/pipelines/run_la_pipeline.sh`.
+- Broken heredoc/script syntax in `orchestral/pipelines/run_lazyingart_pipeline.sh`.
 - Missing env export in prompt wrappers.
 - Wrong schema in mentor tool (`purchases_sort_schema.json`) causing invalid result shape.
 - No cron jobs existed (`openclaw cron list` returned empty).
