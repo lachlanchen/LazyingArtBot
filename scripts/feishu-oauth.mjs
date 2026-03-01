@@ -5,7 +5,11 @@ import path from "node:path";
 
 const APP_ID = "cli_a92aeaf256389cd3";
 const APP_SECRET = "hXdW0z6oMt4jShvylSwesggRSyEaUdnM";
-const TOKEN_FILE = path.join(os.homedir(), ".openclaw", "feishu_user_token.json");
+const STATE_DIR =
+  process.env.OPENCLAW_STATE_DIR?.trim() ||
+  process.env.KAIRO_HOME?.trim() ||
+  path.join(os.homedir(), ".openclaw");
+const TOKEN_FILE = path.join(STATE_DIR, "feishu_user_token.json");
 // Known calendar_id as fallback (from previous token)
 const KNOWN_CALENDAR_ID = "feishu.cn_NiNT3twWMhJNei05w0pRWf@group.calendar.feishu.cn";
 

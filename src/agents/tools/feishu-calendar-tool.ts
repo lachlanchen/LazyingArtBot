@@ -6,7 +6,11 @@ import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringParam } from "./common.js";
 
 const FEISHU_BASE = "https://open.feishu.cn/open-apis";
-const TOKEN_FILE = path.join(os.homedir(), ".openclaw", "feishu_user_token.json");
+const STATE_DIR =
+  process.env.OPENCLAW_STATE_DIR?.trim() ||
+  process.env.KAIRO_HOME?.trim() ||
+  path.join(os.homedir(), ".openclaw");
+const TOKEN_FILE = path.join(STATE_DIR, "feishu_user_token.json");
 
 type FeishuToken = {
   access_token: string;

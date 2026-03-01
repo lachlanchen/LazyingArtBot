@@ -31,12 +31,11 @@ type WebMediaOptions = {
 };
 
 function getDefaultLocalRoots(): string[] {
-  const home = os.homedir();
-  return [
-    os.tmpdir(),
-    path.join(home, ".openclaw", "media"),
-    path.join(home, ".openclaw", "agents"),
-  ];
+  const stateDir =
+    process.env.OPENCLAW_STATE_DIR?.trim() ||
+    process.env.KAIRO_HOME?.trim() ||
+    path.join(os.homedir(), ".openclaw");
+  return [os.tmpdir(), path.join(stateDir, "media"), path.join(stateDir, "agents")];
 }
 
 async function assertLocalMediaAllowed(
