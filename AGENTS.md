@@ -178,3 +178,49 @@
 - Publish: `npm publish --access public --otp="<otp>"` (run from the package dir).
 - Verify without local npmrc side effects: `npm view <pkg> version --userconfig "$(mktemp)"`.
 - Kill the tmux session after publish.
+
+---
+
+## Kairo (Ken's deployment) — Agent Architecture
+
+> This section documents Ken's self-hosted Kairo deployment on top of openclaw.
+
+### 3-Agent Setup (deployed 2026-03-01)
+
+Three agents run in parallel, each with isolated workspace and session context:
+
+| Agent        | ID               | Channel binding                            | Workspace                            | Heartbeat                  |
+| ------------ | ---------------- | ------------------------------------------ | ------------------------------------ | -------------------------- |
+| **Planner**  | `main` (default) | Telegram `@ken_MB2Bot` + Feishu            | `/root/.openclaw/workspace`          | none                       |
+| **Executor** | `executor`       | Telegram `@KensRF_AssistantBot` (channel2) | `/root/.openclaw/workspace-executor` | none                       |
+| **Reviewer** | `reviewer`       | — (background only)                        | `/root/.openclaw/workspace-reviewer` | every 30m, 07:00–23:30 CST |
+
+**Config files:**
+
+- `agents.list[]` + `bindings[]` in `/root/.openclaw/openclaw.json`
+- Cron job `agentId` assignments in `/root/.openclaw/cron/jobs.json`
+
+**Routing rules:**
+
+- `bindings`: `telegram/main` → Planner, `telegram/channel2` → Executor, `feishu/*` → Planner
+- Cron `agentId=executor`: all lessons (language/health/problem-def), investor stories, relax, all captures, 晨報
+- Cron `agentId=reviewer`: weekly reflection (Sun 21:00), monthly memory compression (1st 08:00)
+- Reminders with `kind: systemEvent` keep `agentId=main`
+
+**Key implementation notes:**
+
+- `heartbeat: null` is rejected by zod — omit the field entirely for agents without heartbeat
+- Reviewer's HEARTBEAT.md (full logic) lives in `workspace-reviewer/`; Planner's HEARTBEAT.md is a stub
+- `agents.defaults.heartbeat` removed (was `mirrorTo: feishu`); now lives in reviewer's per-agent config
+- Agent dirs: `/root/.openclaw/agents/{executor,reviewer}/agent/` — copy `models.json` + `auth-profiles.json` from main
+- Shared data via symlinks: `workspace-executor/{packs,automation}` → main workspace; `workspace-reviewer/{memory,automation}` → main workspace
+
+**Rollback:**
+
+```bash
+sudo cp /root/.openclaw/openclaw.json.bak.pre-3agent /root/.openclaw/openclaw.json
+sudo cp /root/.openclaw/cron/jobs.json.bak.pre-3agent /root/.openclaw/cron/jobs.json
+sudo cp /root/.openclaw/workspace/SOUL.md.bak /root/.openclaw/workspace/SOUL.md
+sudo cp /root/.openclaw/workspace/HEARTBEAT.md.bak /root/.openclaw/workspace/HEARTBEAT.md
+openclaw-restart
+```
