@@ -4,7 +4,7 @@ set -euo pipefail
 SESSION_NAME="${1:-openclaw}"
 ATTACH_MODE="${2:-attach}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NGROK_URL="${OPENCLAW_NGROK_URL:-dullish-amee-multiovulate.ngrok-free.dev}"
+NGROK_URL="${OPENCLAW_NGROK_URL:-lab.ngrok.pizza}"
 NGROK_PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
 
 if ! command -v tmux >/dev/null 2>&1; then
@@ -30,7 +30,7 @@ else
   # Bottom pane: ngrok tunnel
   tmux send-keys -t "${SESSION_NAME}:0.1" "source ~/.zshrc" C-m
   tmux send-keys -t "${SESSION_NAME}:0.1" "ngrok http --url=${NGROK_URL} ${NGROK_PORT}" C-m
-  # Free-plan default domain; export OPENCLAW_NGROK_URL to revive lab.ngrok.pizza if you switch back
+  # Default domain is lab.ngrok.pizza; export OPENCLAW_NGROK_URL to override.
 fi
 
 if [[ "${ATTACH_MODE}" == "attach" ]]; then
