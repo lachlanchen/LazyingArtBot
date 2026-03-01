@@ -222,7 +222,7 @@ CODex_RC=0
 RUN_OUTPUT_DIR="$OUTPUT_DIR/$LABEL-$RUN_ID"
 mkdir -p "$RUN_OUTPUT_DIR"
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$PAYLOAD_PATH" \
   --output-dir "$RUN_OUTPUT_DIR" \
   --prompt-file "$PROMPT_FILE" \

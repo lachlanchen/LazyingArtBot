@@ -150,10 +150,10 @@ Plus shared latest pointers:
 ## Example
 
 ```bash
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
-  --schema scripts/prompt_tools/email_send_schema.json \
+  --schema orchestral/prompt_tools/email_send_schema.json \
   --model gpt-5.3-codex-spark \
   --reasoning high
 ```

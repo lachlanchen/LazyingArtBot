@@ -121,7 +121,7 @@ with open(payload_path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$TMP_PAYLOAD" \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file "$REPO_DIR/orchestral/prompt_tools/grocery_prompt.md" \

@@ -45,11 +45,11 @@ PY
 OUTPUT_DIR="/tmp/codex-log"
 mkdir -p "$OUTPUT_DIR"
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir "$OUTPUT_DIR" \
-  --prompt-file scripts/prompt_tools/log_prompt.md \
-  --schema scripts/prompt_tools/log_entry_schema.json \
+  --prompt-file orchestral/prompt_tools/log_prompt.md \
+  --schema orchestral/prompt_tools/log_entry_schema.json \
   --model gpt-5.3-codex-spark \
   --reasoning low \
   --label log-entry \

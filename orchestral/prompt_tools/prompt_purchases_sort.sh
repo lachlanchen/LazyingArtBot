@@ -43,7 +43,7 @@ PY
 OUTPUT_DIR="/tmp/codex-purchases"
 mkdir -p "$OUTPUT_DIR"
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file orchestral/prompt_tools/purchases_sort_prompt.md \

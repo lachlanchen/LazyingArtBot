@@ -1,8 +1,5 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
-
-
-
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -18,17 +15,16 @@
 [![GitHub stars](https://img.shields.io/badge/GitHub-stars-0ea5e9?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
 [![GitHub issues](https://img.shields.io/badge/GitHub-issues-ef4444?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/issues)
 
-
 **LazyingArtBot** 是我為 **lazying.art** 打造的個人 AI 助手系統：
 
 **LazyingArtBot** 建立於 OpenClaw 之上，並針對我日常工作流程做了客製化：多通道聊天、local-first 控制，以及 email → 行事曆/提醒/筆記自動化。
 
-| 🔗 Link | URL | Focus |
-| --- | --- | --- |
-| 🌐 Website | https://lazying.art | 主網域與狀態儀表板 |
-| 🤖 Bot domain | https://lazying.art | 聊天與助手入口 |
-| 🧱 Upstream base | https://github.com/openclaw/openclaw | OpenClaw 平台基礎 |
-| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot | LAB 專屬客製化 |
+| 🔗 Link          | URL                                          | Focus              |
+| ---------------- | -------------------------------------------- | ------------------ |
+| 🌐 Website       | https://lazying.art                          | 主網域與狀態儀表板 |
+| 🤖 Bot domain    | https://lazying.art                          | 聊天與助手入口     |
+| 🧱 Upstream base | https://github.com/openclaw/openclaw         | OpenClaw 平台基礎  |
+| 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | LAB 專屬客製化     |
 
 ---
 
@@ -77,16 +73,16 @@ LAB 聚焦於務實的個人效率：
 
 ## At a glance
 
-| 領域 | 本儲存庫目前基線 |
-| --- | --- |
-| Runtime | Node.js `>=22.12.0` |
-| 套件管理員 | `pnpm@10.23.0` |
-| 核心 CLI | `openclaw` |
-| 預設本地閘道器 | `127.0.0.1:18789` |
-| 預設橋接埠 | `127.0.0.1:18790` |
-| 主要文件 | `docs/`（Mintlify） |
-| 主要 LAB 編排 | `orchestral/` + `scripts/prompt_tools/` |
-| README i18n 位置 | `i18n/README.*.md` |
+| 領域             | 本儲存庫目前基線                           |
+| ---------------- | ------------------------------------------ |
+| Runtime          | Node.js `>=22.12.0`                        |
+| 套件管理員       | `pnpm@10.23.0`                             |
+| 核心 CLI         | `openclaw`                                 |
+| 預設本地閘道器   | `127.0.0.1:18789`                          |
+| 預設橋接埠       | `127.0.0.1:18790`                          |
+| 主要文件         | `docs/`（Mintlify）                        |
+| 主要 LAB 編排    | `orchestral/` + `orchestral/prompt_tools/` |
+| README i18n 位置 | `i18n/README.*.md`                         |
 
 ---
 
@@ -103,12 +99,12 @@ LAB 聚焦於務實的個人效率：
 
 ## Core capabilities
 
-| 能力 | 實際意思 |
-| --- | --- |
-| 多通道助理執行時 | 透過閘道在你啟用的通道上統一運行 agent session |
-| Web dashboard / chat | 用瀏覽器做本地操作的控制介面 |
-| 工具驅動工作流 | Shell、檔案與自動化腳本執行鏈 |
-| 電子郵件自動化管線 | 解析信件、分類動作類型、路由到 Notes/Reminders/Calendar，並記錄每次動作供後續檢視／除錯 |
+| 能力                 | 實際意思                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| 多通道助理執行時     | 透過閘道在你啟用的通道上統一運行 agent session                                          |
+| Web dashboard / chat | 用瀏覽器做本地操作的控制介面                                                            |
+| 工具驅動工作流       | Shell、檔案與自動化腳本執行鏈                                                           |
+| 電子郵件自動化管線   | 解析信件、分類動作類型、路由到 Notes/Reminders/Calendar，並記錄每次動作供後續檢視／除錯 |
 
 本專案保留的流程如下：
 
@@ -143,7 +139,7 @@ LAB 聚焦於務實的個人效率：
 
 補充說明：
 
-- `scripts/prompt_tools` 指向 orchestral 的 prompt-tool 實作。
+- `orchestral/prompt_tools` 指向 orchestral 的 prompt-tool 實作。
 - 根目錄 `i18n/` 存放在地化 README 變體。
 - 本快照仍保留 `.github/workflows.disabled/`；若依賴 CI 行為，請在使用前先確認實際是否啟用。
 
@@ -298,12 +294,12 @@ openclaw doctor
 
 ## Deployment modes
 
-| 模式 | 最適用情境 | 典型指令 |
-| --- | --- | --- |
-| 本地前景 | 開發與除錯 | `openclaw gateway run --bind loopback --port 18789 --verbose` |
-| 本地 daemon | 日常個人使用 | `openclaw onboard --install-daemon` |
-| Docker | 隔離式執行與可重現部署 | `docker compose up -d` |
-| 遠端主機 + 隧道 | 從外部網路存取 | 運行閘道 + 安全隧道，並持續啟用驗證 |
+| 模式            | 最適用情境             | 典型指令                                                      |
+| --------------- | ---------------------- | ------------------------------------------------------------- |
+| 本地前景        | 開發與除錯             | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| 本地 daemon     | 日常個人使用           | `openclaw onboard --install-daemon`                           |
+| Docker          | 隔離式執行與可重現部署 | `docker compose up -d`                                        |
+| 遠端主機 + 隧道 | 從外部網路存取         | 運行閘道 + 安全隧道，並持續啟用驗證                           |
 
 預設假設：生產級反向代理防護、金鑰輪替與備份策略皆屬各環境專屬設計。
 
@@ -323,7 +319,7 @@ openclaw doctor
 
 - `~/.openclaw/workspace/automation/`
 - 相關腳本請見 `references/lab-scripts-and-philosophy.md`
-- 專屬 Codex prompt tools：`scripts/prompt_tools/`
+- 專屬 Codex prompt tools：`orchestral/prompt_tools/`
 
 ---
 
@@ -363,7 +359,7 @@ Prompt tools 在 LAB 中為模組化、可組合、以編排為先的設計。
 
 主要位置：
 
-- `scripts/prompt_tools/`
+- `orchestral/prompt_tools/`
 
 ---
 
@@ -559,8 +555,8 @@ LazyingArtBot 基於 **OpenClaw**：
 
 ## ❤️ Support
 
-| Donate | PayPal | Stripe |
-| --- | --- | --- |
+| Donate                                                                                                                                                                                                                                                                                                                                                     | PayPal                                                                                                                                                                                                                                                                                                                                                          | Stripe                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ## Contact

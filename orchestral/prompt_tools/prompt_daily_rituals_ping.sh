@@ -110,7 +110,7 @@ payload = {
 payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
-scripts/prompt_tools/run_auto_ops.sh \
+orchestral/prompt_tools/run_auto_ops.sh \
   --prompt "$REPO_DIR/orchestral/prompt_tools/daily_rituals_ping_prompt.md" \
   --label "daily-ritual-ping" \
   --payload "$TMP_PAYLOAD" \

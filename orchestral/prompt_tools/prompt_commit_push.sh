@@ -42,7 +42,7 @@ JSON
 OUTPUT_DIR="/tmp/codex-commit-runs"
 mkdir -p "$OUTPUT_DIR"
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$TMP_JSON" \
   --output-dir "$OUTPUT_DIR" \
   --model gpt-5.1-codex-mini \

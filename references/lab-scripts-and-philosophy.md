@@ -35,11 +35,11 @@ LAB automation follows these rules:
 
 All Codex prompt-driven scripts now live in:
 
-- `scripts/prompt_tools/`
+- `orchestral/prompt_tools/`
 
 ### 1) Codex non-interactive wrapper
 
-- Path: `scripts/prompt_tools/codex-noninteractive.sh`
+- Path: `orchestral/prompt_tools/codex-noninteractive.sh`
 - Purpose: stable shell wrapper around `codex exec` with explicit model/reasoning.
 - Key options:
   - `--model <name>`
@@ -52,7 +52,7 @@ All Codex prompt-driven scripts now live in:
 Example:
 
 ```bash
-./scripts/prompt_tools/codex-noninteractive.sh \
+./orchestral/prompt_tools/codex-noninteractive.sh \
   --model gpt-5.1-codex-mini \
   --reasoning medium \
   --prompt "Reply with exactly: OK"
@@ -60,7 +60,7 @@ Example:
 
 ### 2) Codex email CLI (Apple Mail sender)
 
-- Path: `scripts/prompt_tools/codex-email-cli.py`
+- Path: `orchestral/prompt_tools/codex-email-cli.py`
 - Purpose: use Codex to draft structured email, then optionally send via macOS Mail.
 - Behavior:
   - Uses strict JSON output schema.
@@ -78,7 +78,7 @@ Key options:
 Dry-run:
 
 ```bash
-./scripts/prompt_tools/codex-email-cli.py \
+./orchestral/prompt_tools/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -88,7 +88,7 @@ Dry-run:
 Send now:
 
 ```bash
-./scripts/prompt_tools/codex-email-cli.py \
+./orchestral/prompt_tools/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -98,7 +98,7 @@ Send now:
 
 ### 3) Standardized JSON runner (common Codex practice)
 
-- Path: `scripts/prompt_tools/codex-json-runner.py`
+- Path: `orchestral/prompt_tools/codex-json-runner.py`
 - Purpose: run any JSON-in / JSON-out Codex task with standardized artifacts.
 - Required input contract:
   - `--input-json <path>`
@@ -109,10 +109,10 @@ Send now:
 Example:
 
 ```bash
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
-  --schema scripts/prompt_tools/email_send_schema.json \
+  --schema orchestral/prompt_tools/email_send_schema.json \
   --model gpt-5.1-codex-mini \
   --reasoning medium
 ```
@@ -135,7 +135,7 @@ Shared latest pointers:
 
 ### 4) Prompt tools (reusable prompt components)
 
-- Directory: `scripts/prompt_tools/`
+- Directory: `orchestral/prompt_tools/`
 - Files:
   - `common_tools.md` - shared tool semantics and guardrails
   - `email_send_prompt.md` - system/task prompt for email drafting

@@ -1,8 +1,5 @@
 [English](README.md) · [العربية](i18n/README.ar.md) · [Español](i18n/README.es.md) · [Français](i18n/README.fr.md) · [日本語](i18n/README.ja.md) · [한국어](i18n/README.ko.md) · [Tiếng Việt](i18n/README.vi.md) · [中文 (简体)](i18n/README.zh-Hans.md) · [中文（繁體）](i18n/README.zh-Hant.md) · [Deutsch](i18n/README.de.md) · [Русский](i18n/README.ru.md)
 
-
-
-
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -24,12 +21,12 @@
 
 **LazyingArtBot** is built on top of OpenClaw and adapted for my daily workflows: multi-channel chat, local-first control, and email → calendar/reminder/notes automation.
 
-| 🔗 Link | URL | Focus |
-| --- | --- | --- |
-| 🌐 Website | https://lazying.art | Primary domain and status dashboard |
-| 🤖 Bot domain | https://lazying.art | Chat and assistant entrypoint |
-| 🧱 Upstream base | https://github.com/openclaw/openclaw | OpenClaw platform foundation |
-| 📦 This repo | https://github.com/lachlanchen/LazyingArtBot | LAB-specific adaptations |
+| 🔗 Link          | URL                                          | Focus                               |
+| ---------------- | -------------------------------------------- | ----------------------------------- |
+| 🌐 Website       | https://lazying.art                          | Primary domain and status dashboard |
+| 🤖 Bot domain    | https://lazying.art                          | Chat and assistant entrypoint       |
+| 🧱 Upstream base | https://github.com/openclaw/openclaw         | OpenClaw platform foundation        |
+| 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | LAB-specific adaptations            |
 
 ---
 
@@ -78,16 +75,16 @@ In short: less busywork, better execution.
 
 ## At a glance
 
-| Area | Current baseline in this repo |
-| --- | --- |
-| Runtime | Node.js `>=22.12.0` |
-| Package manager | `pnpm@10.23.0` |
-| Core CLI | `openclaw` |
-| Default local gateway | `127.0.0.1:18789` |
-| Default bridge port | `127.0.0.1:18790` |
-| Primary docs | `docs/` (Mintlify) |
-| Primary LAB orchestration | `orchestral/` + `scripts/prompt_tools/` |
-| README i18n location | `i18n/README.*.md` |
+| Area                      | Current baseline in this repo              |
+| ------------------------- | ------------------------------------------ |
+| Runtime                   | Node.js `>=22.12.0`                        |
+| Package manager           | `pnpm@10.23.0`                             |
+| Core CLI                  | `openclaw`                                 |
+| Default local gateway     | `127.0.0.1:18789`                          |
+| Default bridge port       | `127.0.0.1:18790`                          |
+| Primary docs              | `docs/` (Mintlify)                         |
+| Primary LAB orchestration | `orchestral/` + `orchestral/prompt_tools/` |
+| README i18n location      | `i18n/README.*.md`                         |
 
 ---
 
@@ -104,12 +101,12 @@ In short: less busywork, better execution.
 
 ## Core capabilities
 
-| Capability | What it means in practice |
-| --- | --- |
-| Multi-channel assistant runtime | Gateway + agent sessions across channels you enable |
-| Web dashboard / chat | Browser-based control surface for local operations |
-| Tool-enabled workflows | Shell + file + automation script execution chains |
-| Email automation pipeline | Parse mail, classify action type, route to Notes/Reminders/Calendar, log actions for review/debugging |
+| Capability                      | What it means in practice                                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Multi-channel assistant runtime | Gateway + agent sessions across channels you enable                                                   |
+| Web dashboard / chat            | Browser-based control surface for local operations                                                    |
+| Tool-enabled workflows          | Shell + file + automation script execution chains                                                     |
+| Email automation pipeline       | Parse mail, classify action type, route to Notes/Reminders/Calendar, log actions for review/debugging |
 
 Pipeline steps preserved from current workflow:
 
@@ -144,7 +141,7 @@ High-level repository layout:
 
 Notes:
 
-- `scripts/prompt_tools` points to orchestral prompt-tool implementation.
+- `orchestral/prompt_tools` points to orchestral prompt-tool implementation.
 - Root `i18n/` contains localized README variants.
 - `.github/workflows.disabled/` is present in this snapshot; active CI behavior should be verified before relying on workflow assumptions.
 
@@ -299,12 +296,12 @@ If you expose the gateway to the internet, require token/password auth and trust
 
 ## Deployment modes
 
-| Mode | Best for | Typical command |
-| --- | --- | --- |
-| Local foreground | Development and debugging | `openclaw gateway run --bind loopback --port 18789 --verbose` |
-| Local daemon | Everyday personal usage | `openclaw onboard --install-daemon` |
-| Docker | Isolated runtime and repeatable deploys | `docker compose up -d` |
-| Remote host + tunnel | Access from outside home LAN | Run gateway + secure tunnel, keep auth enabled |
+| Mode                 | Best for                                | Typical command                                               |
+| -------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| Local foreground     | Development and debugging               | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| Local daemon         | Everyday personal usage                 | `openclaw onboard --install-daemon`                           |
+| Docker               | Isolated runtime and repeatable deploys | `docker compose up -d`                                        |
+| Remote host + tunnel | Access from outside home LAN            | Run gateway + secure tunnel, keep auth enabled                |
 
 Assumption: production-grade reverse-proxy hardening, secret rotation, and backup policy are deployment-specific and should be defined per environment.
 
@@ -324,7 +321,7 @@ Automation workspace (local):
 
 - `~/.openclaw/workspace/automation/`
 - Script references in repo: `references/lab-scripts-and-philosophy.md`
-- Dedicated Codex prompt tools: `scripts/prompt_tools/`
+- Dedicated Codex prompt tools: `orchestral/prompt_tools/`
 
 ---
 
@@ -364,7 +361,7 @@ They can run independently or as linked stages in a larger workflow.
 
 Primary location:
 
-- `scripts/prompt_tools/`
+- `orchestral/prompt_tools/`
 
 ---
 
@@ -560,8 +557,8 @@ Thanks to the OpenClaw maintainers and community for the core platform.
 
 ## ❤️ Support
 
-| Donate | PayPal | Stripe |
-| --- | --- | --- |
+| Donate                                                                                                                                                                                                                                                                                                                                                     | PayPal                                                                                                                                                                                                                                                                                                                                                          | Stripe                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ## Contact

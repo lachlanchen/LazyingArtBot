@@ -59,7 +59,7 @@ with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-RESULT=$(scripts/prompt_tools/run_auto_ops.sh --prompt scripts/prompt_tools/market_research_prompt.md --label market-research --payload "$TMP")
+RESULT=$(orchestral/prompt_tools/run_auto_ops.sh --prompt orchestral/prompt_tools/market_research_prompt.md --label market-research --payload "$TMP")
 rm -f "$TMP"
 
 echo "$RESULT"

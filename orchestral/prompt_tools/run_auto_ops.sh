@@ -59,11 +59,11 @@ fi
 OUTPUT_DIR="/tmp/codex-auto-ops"
 mkdir -p "$OUTPUT_DIR"
 
-python3 scripts/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/codex-json-runner.py \
   --input-json "$PAYLOAD" \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file "$PROMPT_FILE" \
-  --schema scripts/prompt_tools/auto_ops_schema.json \
+  --schema orchestral/prompt_tools/auto_ops_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label "$LABEL" \

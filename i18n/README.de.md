@@ -1,7 +1,5 @@
 [English](../README.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Français](README.fr.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Tiếng Việt](README.vi.md) · [中文 (简体)](README.zh-Hans.md) · [中文（繁體）](README.zh-Hant.md) · [Deutsch](README.de.md) · [Русский](README.ru.md)
 
-
-
 [![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
 
 # 🐼 LazyingArtBot (LAB)
@@ -23,12 +21,12 @@
 
 **LazyingArtBot** ist auf OpenClaw aufgebaut und für meinen täglichen Workflow angepasst: Multi-Channel-Chat, lokale-first-Kontrolle und E-Mail → Kalender/Erinnerungs-/Notizautomatisierung.
 
-| 🔗 Link | URL | Fokus |
-| --- | --- | --- |
-| 🌐 Website | https://lazying.art | Primäre Domain und Status-Dashboard |
-| 🤖 Bot-Domain | https://lazying.art | Chat- und Assistent-Einstiegspunkt |
-| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw | OpenClaw-Plattform-Basis |
-| 📦 Dieses Repo | https://github.com/lachlanchen/LazyingArtBot | LAB-spezifische Anpassungen |
+| 🔗 Link           | URL                                          | Fokus                               |
+| ----------------- | -------------------------------------------- | ----------------------------------- |
+| 🌐 Website        | https://lazying.art                          | Primäre Domain und Status-Dashboard |
+| 🤖 Bot-Domain     | https://lazying.art                          | Chat- und Assistent-Einstiegspunkt  |
+| 🧱 Upstream-Basis | https://github.com/openclaw/openclaw         | OpenClaw-Plattform-Basis            |
+| 📦 Dieses Repo    | https://github.com/lachlanchen/LazyingArtBot | LAB-spezifische Anpassungen         |
 
 ---
 
@@ -77,16 +75,16 @@ Kurz gesagt: weniger Routinearbeit, bessere Ausführung.
 
 ## Auf einen Blick
 
-| Bereich | Aktueller Stand in diesem Repo |
-| --- | --- |
-| Runtime | Node.js `>=22.12.0` |
-| Paketmanager | `pnpm@10.23.0` |
-| Kern-CLI | `openclaw` |
-| Standard-Lokales Gateway | `127.0.0.1:18789` |
-| Standard-Bridge-Port | `127.0.0.1:18790` |
-| Primäre Docs | `docs/` (Mintlify) |
-| Primäre LAB-Orchestrierung | `orchestral/` + `scripts/prompt_tools/` |
-| Ort der i18n-README | `i18n/README.*.md` |
+| Bereich                    | Aktueller Stand in diesem Repo             |
+| -------------------------- | ------------------------------------------ |
+| Runtime                    | Node.js `>=22.12.0`                        |
+| Paketmanager               | `pnpm@10.23.0`                             |
+| Kern-CLI                   | `openclaw`                                 |
+| Standard-Lokales Gateway   | `127.0.0.1:18789`                          |
+| Standard-Bridge-Port       | `127.0.0.1:18790`                          |
+| Primäre Docs               | `docs/` (Mintlify)                         |
+| Primäre LAB-Orchestrierung | `orchestral/` + `orchestral/prompt_tools/` |
+| Ort der i18n-README        | `i18n/README.*.md`                         |
 
 ---
 
@@ -103,12 +101,12 @@ Kurz gesagt: weniger Routinearbeit, bessere Ausführung.
 
 ## Kernkompetenzen
 
-| Fähigkeit | Bedeutung in der Praxis |
-| --- | --- |
-| Multi-Channel-Assistenten-Runtime | Gateway + Agent-Sitzungen über die von dir aktivierten Kanäle |
-| Web-Dashboard / Chat | Browser-basierte Kontrolloberfläche für lokale Operationen |
-| Tool-gestützte Workflows | Shell-, Dateisystem- und Automatisierungsskript-Ketten |
-| E-Mail-Automatisierungspipeline | Parse Mail, klassifiziere Aktionstypen, route zu Notes/Reminders/Calendar und protokolliere Aktionen zur Prüfung/Fehlersuche |
+| Fähigkeit                         | Bedeutung in der Praxis                                                                                                      |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Multi-Channel-Assistenten-Runtime | Gateway + Agent-Sitzungen über die von dir aktivierten Kanäle                                                                |
+| Web-Dashboard / Chat              | Browser-basierte Kontrolloberfläche für lokale Operationen                                                                   |
+| Tool-gestützte Workflows          | Shell-, Dateisystem- und Automatisierungsskript-Ketten                                                                       |
+| E-Mail-Automatisierungspipeline   | Parse Mail, klassifiziere Aktionstypen, route zu Notes/Reminders/Calendar und protokolliere Aktionen zur Prüfung/Fehlersuche |
 
 Pipeline-Schritte aus dem aktuellen Workflow:
 
@@ -143,7 +141,7 @@ High-level repository layout:
 
 Hinweise:
 
-- `scripts/prompt_tools` verweist auf die Orchestrations-Implementierung der Prompt-Tools.
+- `orchestral/prompt_tools` verweist auf die Orchestrations-Implementierung der Prompt-Tools.
 - Im Root-`i18n/` befinden sich die lokalisierten README-Varianten.
 - `.github/workflows.disabled/` ist in diesem Snapshot vorhanden; aktives CI-Verhalten sollte vor Nutzung von Workflow-Annahmen validiert werden.
 
@@ -298,12 +296,12 @@ Wenn du das Gateway ins Internet stellst, erfordere Token-/Passwort-Authentifizi
 
 ## Bereitstellungsmodi
 
-| Modus | Am besten geeignet für | Typischer Befehl |
-| --- | --- | --- |
-| Lokaler Vordergrundmodus | Entwicklung und Debugging | `openclaw gateway run --bind loopback --port 18789 --verbose` |
-| Lokaler Daemon | Tägliche Nutzung | `openclaw onboard --install-daemon` |
-| Docker | Isolierte Runtime und reproduzierbare Bereitstellungen | `docker compose up -d` |
-| Remote Host + Tunnel | Zugriff außerhalb des lokalen LAN | Gateway + sicheren Tunnel betreiben, Auth aktiviert lassen |
+| Modus                    | Am besten geeignet für                                 | Typischer Befehl                                              |
+| ------------------------ | ------------------------------------------------------ | ------------------------------------------------------------- |
+| Lokaler Vordergrundmodus | Entwicklung und Debugging                              | `openclaw gateway run --bind loopback --port 18789 --verbose` |
+| Lokaler Daemon           | Tägliche Nutzung                                       | `openclaw onboard --install-daemon`                           |
+| Docker                   | Isolierte Runtime und reproduzierbare Bereitstellungen | `docker compose up -d`                                        |
+| Remote Host + Tunnel     | Zugriff außerhalb des lokalen LAN                      | Gateway + sicheren Tunnel betreiben, Auth aktiviert lassen    |
 
 Annahme: produktionsreife Reverse-Proxy-Härtung, Secret-Rotation und Backup-Policy sind deploymentspezifisch und sollten pro Umgebung definiert werden.
 
@@ -323,7 +321,7 @@ Automatisierungs-Arbeitsbereich (lokal):
 
 - `~/.openclaw/workspace/automation/`
 - Skriptverweise im Repo: `references/lab-scripts-and-philosophy.md`
-- Spezielle Codex-Prompt-Tools: `scripts/prompt_tools/`
+- Spezielle Codex-Prompt-Tools: `orchestral/prompt_tools/`
 
 ---
 
@@ -363,7 +361,7 @@ Sie können eigenständig laufen oder als verkettete Stufen in größeren Workfl
 
 Primärer Ort:
 
-- `scripts/prompt_tools/`
+- `orchestral/prompt_tools/`
 
 ---
 
@@ -570,9 +568,8 @@ Danke an die OpenClaw-Maintainer und die Community für die Kernplattform.
 
 MIT (wie bei Upstream, sofern zutreffend). Siehe `LICENSE`.
 
-
 ## ❤️ Support
 
-| Donate | PayPal | Stripe |
-| --- | --- | --- |
+| Donate                                                                                                                                                                                                                                                                                                                                                     | PayPal                                                                                                                                                                                                                                                                                                                                                          | Stripe                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |

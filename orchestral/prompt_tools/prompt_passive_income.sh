@@ -47,7 +47,7 @@ with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-RESULT=$(scripts/prompt_tools/run_auto_ops.sh --prompt scripts/prompt_tools/passive_income_prompt.md --label passive-income --payload "$TMP")
+RESULT=$(orchestral/prompt_tools/run_auto_ops.sh --prompt orchestral/prompt_tools/passive_income_prompt.md --label passive-income --payload "$TMP")
 rm -f "$TMP"
 
 echo "$RESULT"
