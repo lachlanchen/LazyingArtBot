@@ -1,6 +1,6 @@
 use scripting additions
 
-property automationScript : "/Users/lachlan/.openclaw/workspace/automation/lazyingart_simple.py"
+property automationScript : "/Users/lachlan/.openclaw/workspace/automation/automail2note/lazyingart_simple.py"
 property pythonPath : "/Users/lachlan/.openclaw/workspace/.venv/bin/python"
 property logPath : "/Users/lachlan/.openclaw/workspace/logs/lazyingart_simple_rule.log"
 property lockDir : "/tmp/lazyingart_simple_rule.lock"

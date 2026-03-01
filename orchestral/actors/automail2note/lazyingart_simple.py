@@ -23,8 +23,18 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-WORKDIR = Path(__file__).resolve().parent.parent
-AUTOMATION_DIR = WORKDIR / "automation"
+DEFAULT_WORKDIR = Path.home() / ".openclaw" / "workspace"
+WORKDIR = Path(os.environ.get("LAZYINGART_WORKDIR", str(DEFAULT_WORKDIR))).expanduser()
+AUTOMATION_DIR = Path(
+    os.environ.get(
+        "LAZYINGART_AUTOMATION_DIR",
+        str(WORKDIR / "automation" / "automail2note"),
+    )
+).expanduser()
+if not AUTOMATION_DIR.exists():
+    fallback_automation_dir = WORKDIR / "automation"
+    if fallback_automation_dir.exists():
+        AUTOMATION_DIR = fallback_automation_dir
 AUTOMATION_WORKDIR = Path.home() / ".openclaw" / "workspace" / "automation"
 STATE_DIR = WORKDIR / "state" / "lazyingart_simple"
 INBOUND_DIR = STATE_DIR / "inbound"
@@ -1871,7 +1881,7 @@ Rules:
 - For note actions, always use folder path starting with "AutoMail/".
 - For finance/payment/bank emails:
   - prefer note unless urgent action needed;
-  - group by day: folder "AutoMail/Finance/YYYY-MM-DD", title "Finance Ledger YYYY-MM-DD";
+    - group by day: folder "AutoMail/Finance/YYYY-MM-DD", title "Finance Ledger YYYY-MM-DD";
   - if a same-day ledger note already exists, reuse its exact title/folder.
 - For note content, produce structured text when useful:
   - Summary
@@ -1957,10 +1967,10 @@ Execution requirements:
    - note:
      osascript {json.dumps(str(AUTOMATION_DIR / "create_note.applescript"))} "<title>" "<notes>" "<folder>" "prepend"
 5) For note actions, dynamically merge into existing knowledge:
-   - folder must be meaningful and start with AutoMail/
+- folder must be meaningful and start with AutoMail/
    - prefer this top-level taxonomy when possible:
      Work / Research / Travel / MEMO / To-Do-List / Finance / School / Personal / Inbox
-  - use nested folders to keep context clear, examples:
+   - use nested folders to keep context clear, examples:
      AutoMail/Work/Meetings
      AutoMail/Research/Papers
      AutoMail/Travel/Japan
@@ -1985,10 +1995,10 @@ Execution requirements:
    - when merging existing notes, dedupe repeated checklist lines and reorder by urgency/date
 6) For finance/payment messages:
    - prefer daily ledger note
-  - folder: AutoMail/Finance/YYYY-MM-DD
+- folder: AutoMail/Finance/YYYY-MM-DD
    - title: Finance Ledger YYYY-MM-DD
 7) After actions, create one processing log note:
-  - folder: AutoMail/Log/{today}
+- folder: AutoMail/Log/{today}
    - title: Mail Log {today}
    - include run_id, message_id, subject, created/skipped/failed, and per-item summary
    - command:

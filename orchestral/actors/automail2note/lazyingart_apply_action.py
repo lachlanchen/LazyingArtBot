@@ -12,8 +12,18 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-WORKDIR = Path(__file__).resolve().parent.parent
-AUTOMATION_DIR = WORKDIR / "automation"
+DEFAULT_WORKDIR = Path.home() / ".openclaw" / "workspace"
+WORKDIR = Path(os.environ.get("LAZYINGART_WORKDIR", str(DEFAULT_WORKDIR))).expanduser()
+AUTOMATION_DIR = Path(
+    os.environ.get(
+        "LAZYINGART_AUTOMATION_DIR",
+        str(WORKDIR / "automation" / "automail2note"),
+    )
+).expanduser()
+if not AUTOMATION_DIR.exists():
+    fallback_automation_dir = WORKDIR / "automation"
+    if fallback_automation_dir.exists():
+        AUTOMATION_DIR = fallback_automation_dir
 LOG_DIR = WORKDIR / "logs"
 LOG_FILE = LOG_DIR / "lazyingart_simple.log"
 
