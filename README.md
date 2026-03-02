@@ -25,6 +25,16 @@
 
 ---
 
+## 落地頁 / Landing Page
+
+**https://sou350121.github.io/kairo-web/**
+
+Kairo 產品介紹頁，包含生成藝術 Hero 動畫、互動 Chat Demo、功能說明及快速安裝指引。
+
+本地訪問（需啟動 gateway）：`http://localhost:18789/landing/`
+
+---
+
 ## 项目概览
 
 ### 知识工作者面临的六大困境
