@@ -867,7 +867,7 @@
   /* ─────────────────────────────────────────────
      PLAYBACK ENGINE
   ───────────────────────────────────────────── */
-  let currentScenarioIdx = 0;
+  let _currentScenarioIdx = 0;
   let cancelToken = { cancelled: false };
   let replayTimer = null;
 
@@ -880,7 +880,7 @@
     // Reset
     msgsEl.innerHTML = "";
     cancelToken = { cancelled: false };
-    currentScenarioIdx = idx;
+    _currentScenarioIdx = idx;
 
     try {
       await scenarios[idx](msgsEl, cancelToken);
@@ -888,7 +888,7 @@
         // Replay after 3.5s
         replayTimer = setTimeout(() => playScenario(idx), 3500);
       }
-    } catch (e) {
+    } catch (_e) {
       // Silently ignore cancellation errors
     }
   }
@@ -899,10 +899,10 @@
       const idx = parseInt(btn.dataset.idx, 10);
       tabsEl.querySelectorAll(".kd-tab").forEach((b) => b.classList.remove("kd-tab--active"));
       btn.classList.add("kd-tab--active");
-      playScenario(idx);
+      void playScenario(idx);
     });
   });
 
   // Auto-start first scenario
-  playScenario(0);
+  void playScenario(0);
 })();
