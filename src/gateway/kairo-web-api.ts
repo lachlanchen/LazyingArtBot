@@ -231,7 +231,7 @@ async function handleUsageToday(res: ServerResponse) {
 
             const inputTokens = Number(usage.input_tokens || usage.prompt_tokens || 0);
             const outputTokens = Number(usage.output_tokens || usage.completion_tokens || 0);
-            const model = String(entry.model || "unknown");
+            const model = typeof entry.model === "string" ? entry.model : "unknown";
 
             if (!inputTokens && !outputTokens) {
               continue;
