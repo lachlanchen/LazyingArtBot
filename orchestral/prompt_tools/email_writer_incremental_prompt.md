@@ -27,11 +27,14 @@ Rules:
 
 - Do not invent facts.
 - Keep sections concise and structured for Apple Mail.
+- Prefer Chinese-first narrative with concise English labels.
 - Prefer evidence-bearing lines from `web_summary` and `legal_summary`.
 - If a section has no new signal, keep prior concise section content.
 - Deduplicate repeated lines.
 - Preserve concrete evidence rows/links from prior incremental HTML unless replaced by newer evidence.
 - Never drop an existing section silently; if no updates, keep prior section with a short `no new update` note.
+- Preserve section completeness across market, web, legal, funding, monetization, plan, and mentor blocks.
+- Keep HTML well-formed and easy to scan (clear headings + concise bullets).
 
 HTML structure (lightweight):
 

@@ -16,6 +16,7 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 SEND_EMAIL=1
 RUN_WEB_SEARCH=1
+RUN_LEGAL_DEPT=1
 RUN_LIFE_REMINDER=1
 WRITE_REMINDER=1
 TO_ADDR="$DEFAULT_TO"
@@ -28,6 +29,8 @@ WEB_SEARCH_SCROLL_STEPS="3"
 WEB_SEARCH_SCROLL_PAUSE="0.9"
 WEB_SEARCH_HEADLESS="0"
 LA_WEB_QUERY_BUDGET=6
+LA_WEB_QUERY_PLANNER_PROMPT="$PROMPT_DIR/la_web_search_query_planner_prompt.md"
+LA_LEGAL_PROMPT_FILE="$PROMPT_DIR/la_legal_dept_prompt.md"
 LA_PRIMARY_BRAND="Lazying.art"
 LA_WEBSITE="https://lazying.art"
 LA_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
@@ -46,11 +49,12 @@ WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 LIFEPATH_BASE="$HOME/Documents/LazyingArtBotIO/LazyingArt"
 LIFE_INPUT_MD="$LIFEPATH_BASE/Input/LazyingArtCompanyInput.md"
 LIFE_STATE_MD="$LIFEPATH_BASE/Output/LazyingArtLifeReminderState.md"
+LEGAL_INPUT_ROOT="$LIFEPATH_BASE/Input/Legal"
 RUN_RESOURCE_ANALYSIS=1
 RESOURCE_OUTPUT_DIR="$LIFEPATH_BASE/Output/ResourceAnalysis"
 RESOURCE_LABEL="lazyingart-resource-analysis"
-FUNDING_LANGUAGE_POLICY="EN:中文:JP = 5:4:1 for operational updates and analysis."
-MONEY_REVENUE_LANGUAGE_POLICY="EN:中文:JP = 5:4:1"
+FUNDING_LANGUAGE_POLICY="Chinese-first with concise EN/JP labels for operations and analysis."
+MONEY_REVENUE_LANGUAGE_POLICY="Chinese-first with concise EN/JP labels."
 ITIN_COMPANY_ROOT="/Users/lachlan/Documents/ITIN+Company"
 RESOURCE_ROOTS=(
   "$LIFEPATH_BASE/Input"
@@ -63,9 +67,10 @@ usage() {
 Usage: run_lazyingart_pipeline.sh [options]
 
 Runs the Lazying.art chain:
-  market research -> milestone plan draft -> monetization strategy ->
-  entrepreneurship mentor -> life reverse reminder planning ->
-  save notes under AutoLife -> compose/send HTML email
+  market research -> academic -> legal/compliance -> funding ->
+  monetization -> milestone plan -> entrepreneurship mentor ->
+  life reverse reminder planning -> save notes under AutoLife ->
+  compose/send HTML email
 
 Options:
   --to <email>              Email recipient (default: lachchen@qq.com)
@@ -75,6 +80,9 @@ Options:
   --model <name>            Codex model (default: gpt-5.3-codex)
   --reasoning <level>       Reasoning level (default: medium)
   --market-context <path>   Optional extra context file for market step
+  --legal-dept              Enable legal/compliance stage (default: on)
+  --no-legal-dept           Disable legal/compliance stage
+  --legal-root <path>       Legal materials root override
   --resource-output-dir <p> Resource analysis markdown output directory
   --resource-label <name>   Resource analysis marker/label
   --resource-root <path>    Add resource root (repeatable; default LazyingArt roots)
@@ -127,6 +135,16 @@ while [[ $# -gt 0 ]]; do
     --market-context)
       shift
       MARKET_CONTEXT_FILE="${1:-}"
+      ;;
+    --legal-dept)
+      RUN_LEGAL_DEPT=1
+      ;;
+    --no-legal-dept)
+      RUN_LEGAL_DEPT=0
+      ;;
+    --legal-root)
+      shift
+      LEGAL_INPUT_ROOT="${1:-}"
       ;;
     --resource-output-dir)
       shift
@@ -866,7 +884,7 @@ PY
   if ! python3 orchestral/prompt_tools/codex-json-runner.py \
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
-    --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
+    --prompt-file "$LA_WEB_QUERY_PLANNER_PROMPT" \
     --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
@@ -1434,7 +1452,7 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
     RESOURCE_ANALYSIS_ARGS+=(--resource-root "$root")
   done
 
-  log "Step 0/8: analyze resources and build reference summary"
+  log "Step 0: analyze resources and build reference summary"
   set +e
   "$PROMPT_DIR/prompt_resource_analysis.sh" \
     --company "LazyingArt" \
@@ -1462,10 +1480,10 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
 else
   RESOURCE_ANALYSIS_MARKDOWN_DIR="$(find_latest_resource_markdown_dir "$RESOURCE_OUTPUT_DIR" || true)"
   if [[ -n "$RESOURCE_ANALYSIS_MARKDOWN_DIR" ]]; then
-  log "Step 0/8: use latest cached resource analysis markdown."
+  log "Step 0: use latest cached resource analysis markdown."
     HAS_RESOURCE_CACHE=1
   else
-    log "Step 0/8: resource analysis skipped."
+    log "Step 0: resource analysis skipped."
   fi
 fi
 
@@ -1486,6 +1504,7 @@ fi
   echo
   echo "Personal context: based in Hong Kong, can travel to Shenzhen, and LazyingArt LLC is in the US."
   echo "Input/state files are under ~/Documents/LazyingArtBotIO/LazyingArt."
+  echo "Output language preference: Chinese-first with concise EN labels."
   echo
   echo "Resource analysis roots:"
   for root in "${RESOURCE_ROOTS[@]}"; do
@@ -1513,6 +1532,7 @@ fi
 
 MARKET_RESULT="$ARTIFACT_DIR/market.result.json"
 ACADEMIC_RESULT="$ARTIFACT_DIR/academic.result.json"
+LEGAL_RESULT="$ARTIFACT_DIR/legal.result.json"
 PLAN_RESULT="$ARTIFACT_DIR/plan.result.json"
 MENTOR_RESULT="$ARTIFACT_DIR/mentor.result.json"
 FUNDING_RESULT="$ARTIFACT_DIR/funding.result.json"
@@ -1521,6 +1541,7 @@ MONEY_REVENUE_RESULT="$ARTIFACT_DIR/money_revenue.result.json"
 MARKET_HTML="$ARTIFACT_DIR/market.html"
 ACADEMIC_CONTEXT="$ARTIFACT_DIR/academic_context.txt"
 ACADEMIC_HTML="$ARTIFACT_DIR/academic.html"
+LEGAL_HTML="$ARTIFACT_DIR/legal.html"
 PLAN_HTML="$ARTIFACT_DIR/milestones.html"
 MENTOR_HTML="$ARTIFACT_DIR/mentor.html"
 FUNDING_HTML="$ARTIFACT_DIR/funding.html"
@@ -1546,7 +1567,10 @@ EMAIL_INCREMENTAL_HTML="$ARTIFACT_DIR/email_incremental.html"
 CURRENT_MILESTONE_HTML="$ARTIFACT_DIR/current_milestones.html"
 : > "$CURRENT_MILESTONE_HTML"
 
-printf '%s\n' "Legal compliance stage is not enabled in the Lazying.art pipeline." > "$LEGAL_SUMMARY"
+if [[ "$RUN_LEGAL_DEPT" != "1" ]]; then
+  printf '%s\n' "Legal compliance stage disabled for this run." > "$LEGAL_SUMMARY"
+  printf '%s\n' "<p>Legal compliance stage skipped for this run.</p>" > "$LEGAL_HTML"
+fi
 if [[ ! -s "$WEB_SUMMARY_FILE" ]]; then
   printf '%s\n' "Web search disabled for this run." > "$WEB_SUMMARY_FILE"
   printf '<p>Web search disabled for this run.</p>' > "$WEB_HTML_FILE"
@@ -1560,6 +1584,9 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
 if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
+  TOTAL_STEPS=$((TOTAL_STEPS + 1))
+fi
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
   TOTAL_STEPS=$((TOTAL_STEPS + 1))
 fi
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
@@ -1591,6 +1618,13 @@ if [[ "$ACADEMIC_RESEARCH" == "1" ]]; then
   STEP_CURSOR=$((STEP_CURSOR + 1))
 else
   ACADEMIC_STEP="$BASE_STEP"
+fi
+
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  LEGAL_STEP=$STEP_CURSOR
+  STEP_CURSOR=$((STEP_CURSOR + 1))
+else
+  LEGAL_STEP="$BASE_STEP"
 fi
 
 FUNDING_STEP=$STEP_CURSOR
@@ -1740,12 +1774,56 @@ update_incremental_email "academic"
 
 merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN_INPUT_SUMMARY" "$WEB_SUMMARY_FILE"
 
+if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
+  log "Step ${LEGAL_STEP}/$TOTAL_STEPS: legal compliance and tax review (HK + Mainland + US)"
+  "$PROMPT_DIR/prompt_legal_dept.sh" \
+    --company-focus "$LA_PRIMARY_BRAND" \
+    --legal-root "$LEGAL_INPUT_ROOT" \
+    --context-file "$CONTEXT_FILE" \
+    --market-summary-file "$PLAN_INPUT_SUMMARY" \
+    --resource-summary-file "$RESOURCE_APPEND_PATH" \
+    --web-summary-file "$WEB_SUMMARY_FILE" \
+    --reference-source "$LA_WEBSITE" \
+    --reference-source "$LA_GITHUB_PROFILE" \
+    --legal-web-search \
+    --prompt-file "$LA_LEGAL_PROMPT_FILE" \
+    --model "$MODEL" \
+    --reasoning "$REASONING" \
+    --safety "$SAFETY" \
+    --approval "$APPROVAL" \
+    --label "la-legal" \
+    > "$LEGAL_RESULT"
+
+  extract_note_html "$LEGAL_RESULT" "$LEGAL_HTML"
+  extract_summary "$LEGAL_RESULT" "$LEGAL_SUMMARY"
+  cp "$LEGAL_RESULT" "$NOTES_ROOT/last_legal_result.json"
+  cp "$LEGAL_HTML" "$NOTES_ROOT/last_legal.html"
+
+  "$PROMPT_DIR/prompt_la_note_save.sh" \
+    --account "iCloud" \
+    --root-folder "AutoLife" \
+    --folder-path "🏢 Companies/🐼 Lazying.art" \
+    --note "⚖️ Lazying.art 法务与税务合规 / 法務與稅務コンプライアンス" \
+    --mode append \
+    --html-file "$LEGAL_HTML"
+else
+  printf '%s\n' "Legal compliance stage disabled for this run." > "$LEGAL_SUMMARY"
+  printf '%s\n' "<p>Legal compliance stage skipped for this run.</p>" > "$LEGAL_HTML"
+fi
+update_incremental_email "legal"
+{
+  echo
+  echo "Legal summary:"
+  cat "$LEGAL_SUMMARY"
+} >> "$CONTEXT_FILE"
+
 log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
 "$PROMPT_DIR/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
   --web-summary-file "$WEB_SUMMARY_FILE" \
+  --legal-summary-file "$LEGAL_SUMMARY" \
   --company-focus "$LA_PRIMARY_BRAND" \
   --language-policy "$FUNDING_LANGUAGE_POLICY" \
   "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
@@ -1901,7 +1979,7 @@ fi
 update_incremental_email "life"
 
 EMAIL_HTML="$ARTIFACT_DIR/email_digest.html"
-python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$LIFE_HTML" "$EMAIL_INCREMENTAL_HTML" "$EMAIL_HTML" <<'PY'
+python3 - "$MARKET_HTML" "$WEB_HTML_FILE" "$ACADEMIC_HTML" "$FUNDING_HTML" "$MONEY_REVENUE_HTML" "$LEGAL_HTML" "$PLAN_HTML" "$MENTOR_HTML" "$PLAN_INPUT_SUMMARY" "$LIFE_HTML" "$EMAIL_INCREMENTAL_HTML" "$EMAIL_HTML" <<'PY'
 import html
 import sys
 from datetime import datetime
@@ -1912,12 +1990,14 @@ web = Path(sys.argv[2]).read_text(encoding="utf-8")
 academic = Path(sys.argv[3]).read_text(encoding="utf-8")
 funding = Path(sys.argv[4]).read_text(encoding="utf-8")
 money = Path(sys.argv[5]).read_text(encoding="utf-8")
-plan = Path(sys.argv[6]).read_text(encoding="utf-8")
-mentor = Path(sys.argv[7]).read_text(encoding="utf-8")
-life = Path(sys.argv[8]).read_text(encoding="utf-8")
-incremental_path = Path(sys.argv[9])
+legal = Path(sys.argv[6]).read_text(encoding="utf-8")
+plan = Path(sys.argv[7]).read_text(encoding="utf-8")
+mentor = Path(sys.argv[8]).read_text(encoding="utf-8")
+plan_input = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[10]).read_text(encoding="utf-8")
+incremental_path = Path(sys.argv[11])
 incremental = incremental_path.read_text(encoding="utf-8") if incremental_path.exists() else ""
-out = Path(sys.argv[10])
+out = Path(sys.argv[12])
 
 run_ts = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 parts = [
@@ -1930,21 +2010,25 @@ if incremental.strip():
     parts.append("<hr/>")
 parts.extend(
     [
-        f"<h2>🧠 Market Research</h2>{market}",
+        f"<h2>🧠 Market Research / 市场 / 市場</h2>{market}",
         "<hr/>",
-        f"<h2>🕸️ Web Search Signals</h2>{web}",
+        f"<h2>🕸️ Web Search Signals / 网页信号 / ウェブシグナル</h2>{web}",
         "<hr/>",
-        f"<h2>📚 Academic Research</h2>{academic}",
+        f"<h2>🏦 Funding & VC Opportunities / 融资与VC机会 / 融資與VC機會</h2>{funding}",
         "<hr/>",
-        f"<h2>🏦 Funding & VC Opportunities</h2>{funding}",
+        f"<h2>💰 Monetization & Revenue Strategy / 变现与增长 / 収益化戦略</h2>{money}",
         "<hr/>",
-        f"<h2>💰 Monetization & Revenue Strategy</h2>{money}",
+        f"<h2>⚖️ Legal / Compliance / Tax / 法务合规税务</h2>{legal}",
         "<hr/>",
-        f"<h2>🗺️ Milestones</h2>{plan}",
+        f"<h2>📚 High-Impact Academic Research / 高质量论文追踪 / 高影響論文追跡</h2>{academic}",
         "<hr/>",
-        f"<h2>🧭 Entrepreneurship Mentor</h2>{mentor}",
+        f"<h2>🧭 Executive Note / 运营要点 / 運營要點</h2><p>{html.escape(plan_input)}</p>",
         "<hr/>",
-        f"<h2>🗓️ Life Reverse Reminder Plan</h2>{life}",
+        f"<h2>🗺️ Milestones / 里程碑 / マイルストーン</h2>{plan}",
+        "<hr/>",
+        f"<h2>🧭 Entrepreneurship Mentor / 创业导师 / 創業メンター</h2>{mentor}",
+        "<hr/>",
+        f"<h2>🗓️ Life Reverse Reminder Plan / 反向规划 / 逆算計画</h2>{life}",
     ]
 )
 digest = "".join(parts)
@@ -1953,7 +2037,7 @@ PY
 
 log "Step ${LOG_STEP}/$TOTAL_STEPS: save daily pipeline log note"
 LOG_HTML="$ARTIFACT_DIR/pipeline_log_note.html"
-python3 - "$RUN_ID" "$MARKET_SUMMARY" "$WEB_SUMMARY_FILE" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
+python3 - "$RUN_ID" "$MARKET_SUMMARY" "$WEB_SUMMARY_FILE" "$ACADEMIC_SUMMARY" "$FUNDING_SUMMARY" "$MONEY_REVENUE_SUMMARY" "$LEGAL_SUMMARY" "$PLAN_SUMMARY" "$MENTOR_SUMMARY" "$LIFE_SUMMARY" "$LOG_HTML" <<'PY'
 import html
 import sys
 from pathlib import Path
@@ -1964,10 +2048,11 @@ web = Path(sys.argv[3]).read_text(encoding="utf-8").strip()
 academic = Path(sys.argv[4]).read_text(encoding="utf-8").strip()
 funding = Path(sys.argv[5]).read_text(encoding="utf-8").strip()
 money = Path(sys.argv[6]).read_text(encoding="utf-8").strip()
-plan = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
-mentor = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
-life = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
-out = Path(sys.argv[10])
+legal = Path(sys.argv[7]).read_text(encoding="utf-8").strip()
+plan = Path(sys.argv[8]).read_text(encoding="utf-8").strip()
+mentor = Path(sys.argv[9]).read_text(encoding="utf-8").strip()
+life = Path(sys.argv[10]).read_text(encoding="utf-8").strip()
+out = Path(sys.argv[11])
 
 content = (
     f"<h3>📌 Lazying.art Pipeline Run / 运行 / 実行: {html.escape(run_id)}</h3>"
@@ -1977,6 +2062,7 @@ content = (
     f"<li><strong>📚 Academic</strong>: {html.escape(academic)}</li>"
     f"<li><strong>🏦 Funding</strong>: {html.escape(funding)}</li>"
     f"<li><strong>💰 Revenue</strong>: {html.escape(money)}</li>"
+    f"<li><strong>⚖️ Legal / Compliance</strong>: {html.escape(legal)}</li>"
     f"<li><strong>🗺️ Plan</strong>: {html.escape(plan)}</li>"
     f"<li><strong>🧭 Mentor</strong>: {html.escape(mentor)}</li>"
     f"<li><strong>🗓️ Life</strong>: {html.escape(life)}</li>"
@@ -2001,10 +2087,12 @@ Create a beautiful HTML email update for Lazying.art.
 Requirements:
 - Use the provided digest HTML as the core content.
 - Keep sections structured and readable in Apple Mail.
-- Include bilingual labels (EN/中文/日本語) in headings where natural.
+- Use Chinese-first narrative with concise English labels for clarity.
 - Subject must include: [AutoLife] Lazying.art 08:00/20:00 Update
 - Do not invent facts outside the provided digest.
-- Keep the Web Search Signals section explicit and link-backed.
+- Keep the Web Search Signals section evidence-based and link-backed.
+- Do not drop evidence rows from digest tables unless they are exact duplicates.
+- Preserve complete section coverage across web, legal, funding, and market blocks.
 
 Digest HTML:
 $(cat "$EMAIL_HTML")

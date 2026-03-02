@@ -40,6 +40,7 @@ LIGHTMIND_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
 LIGHTMIND_WEB_SEARCH_QUERIES=()
 LIGHTMIND_WEB_QUERY_BUDGET=6
 LIGHTMIND_WEB_QUERY_PLANNER_PROMPT="$PROMPT_DIR/lm_web_search_query_planner_prompt.md"
+LIGHTMIND_LEGAL_PROMPT_FILE="$PROMPT_DIR/lm_legal_dept_prompt.md"
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
 WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 RUN_RESOURCE_ANALYSIS=1
@@ -1963,6 +1964,8 @@ if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
     --market-summary-file "$PLAN_INPUT_SUMMARY" \
     --resource-summary-file "$RESOURCE_APPEND_PATH" \
     --web-summary-file "$WEB_SUMMARY_FILE" \
+    --legal-web-search \
+    --prompt-file "$LIGHTMIND_LEGAL_PROMPT_FILE" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
@@ -2276,6 +2279,7 @@ Requirements:
 - Use the provided digest HTML as the core content.
 - Keep sections structured and readable in Apple Mail.
 - Use Chinese-first copy with concise English/Japanese labels where useful.
+- Keep final output complete and polished with clear heading hierarchy.
 - Subject should include: [AutoLife] Lightmind Daily Intelligence Update
 - Do not invent facts outside the provided digest.
 - Keep the Web Search Signals section evidence-based and link-backed.
