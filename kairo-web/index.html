@@ -1133,6 +1133,292 @@
           grid-template-columns: repeat(4, 1fr);
         }
       }
+
+      /* ===========================
+       Calendar Page
+    =========================== */
+      .cal-hero-card {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(249, 115, 22, 0.04));
+        border: 1px solid rgba(245, 158, 11, 0.22);
+        border-left: 4px solid var(--lp-amber);
+        border-radius: var(--lp-radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      .cal-hero-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: var(--lp-amber);
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+      }
+      .cal-hero-time {
+        font-family: var(--lp-mono);
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--lp-text-strong);
+        line-height: 1;
+        margin-bottom: 0.35rem;
+      }
+      .cal-hero-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--lp-text-strong);
+        margin-bottom: 0.3rem;
+      }
+      .cal-hero-meta {
+        font-size: 0.75rem;
+        color: var(--lp-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .cal-countdown {
+        font-family: var(--lp-mono);
+        font-size: 0.75rem;
+        color: var(--lp-amber);
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 999px;
+        padding: 0.12rem 0.5rem;
+      }
+
+      /* Quick add strip */
+      #cal-add-strip {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        padding: 0.45rem 0.7rem;
+        background: var(--lp-bg-card);
+        border: 1px solid var(--lp-border);
+        border-radius: var(--lp-radius-lg);
+        margin-bottom: 1rem;
+      }
+      #cal-add-strip input[type="date"],
+      #cal-add-strip input[type="time"] {
+        background: transparent;
+        border: none;
+        color: var(--lp-text);
+        font-family: var(--lp-mono);
+        font-size: 0.78rem;
+        outline: none;
+        flex-shrink: 0;
+        padding: 0;
+        min-width: 0;
+        color-scheme: dark;
+      }
+      #cal-add-strip input[type="date"] {
+        width: 100px;
+      }
+      #cal-add-strip input[type="time"] {
+        width: 58px;
+      }
+      #cal-add-strip input[type="text"] {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--lp-text);
+        font-family: var(--lp-font);
+        font-size: 0.85rem;
+        outline: none;
+        min-width: 0;
+      }
+      #cal-add-strip input::placeholder {
+        color: var(--lp-muted);
+      }
+      #cal-add-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--lp-amber), var(--lp-orange));
+        border: none;
+        color: #0a0f1e;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+        box-shadow: 0 2px 8px var(--lp-glow);
+        line-height: 1;
+      }
+      #cal-add-btn:active {
+        transform: scale(0.88);
+      }
+
+      /* Calendar timeline */
+      .cal-day-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 1rem 0 0.45rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--lp-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .cal-day-today-pill {
+        font-size: 0.6rem;
+        font-weight: 700;
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--lp-amber);
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        border-radius: 999px;
+        padding: 0.05rem 0.4rem;
+        letter-spacing: 0.05em;
+      }
+      .cal-event {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--lp-bg-card);
+        border-radius: var(--lp-radius);
+        margin-bottom: 0.35rem;
+        border-left: 3px solid transparent;
+        transition: opacity 0.2s;
+      }
+      .cal-event.cal-event-past {
+        opacity: 0.42;
+      }
+      .cal-event[data-type="meeting"] {
+        border-left-color: #3b82f6;
+      }
+      .cal-event[data-type="important"] {
+        border-left-color: var(--lp-amber);
+      }
+      .cal-event[data-type="study"] {
+        border-left-color: #a78bfa;
+      }
+      .cal-event[data-type="health"] {
+        border-left-color: var(--lp-teal);
+      }
+      .cal-event[data-type="personal"] {
+        border-left-color: #f472b6;
+      }
+      .cal-event[data-type="work"] {
+        border-left-color: #3b82f6;
+      }
+      .cal-event-time {
+        font-family: var(--lp-mono);
+        font-size: 0.75rem;
+        color: var(--lp-muted);
+        flex-shrink: 0;
+        width: 44px;
+        padding-top: 0.1rem;
+      }
+      .cal-event-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .cal-event-title {
+        font-size: 0.88rem;
+        font-weight: 500;
+        color: var(--lp-text-strong);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cal-event-sub {
+        font-size: 0.72rem;
+        color: var(--lp-muted);
+        margin-top: 0.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cal-event-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-shrink: 0;
+      }
+      .cal-badge {
+        font-size: 0.58rem;
+        font-weight: 700;
+        padding: 0.08rem 0.38rem;
+        border-radius: 999px;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+      }
+      .cal-badge-feishu {
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.22);
+      }
+      .cal-badge-local {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--lp-amber);
+        border: 1px solid rgba(245, 158, 11, 0.22);
+      }
+      .cal-badge-mock {
+        background: rgba(113, 113, 122, 0.12);
+        color: var(--lp-muted);
+        border: 1px solid rgba(113, 113, 122, 0.2);
+      }
+      .cal-badge-queue {
+        background: rgba(167, 139, 250, 0.12);
+        color: #a78bfa;
+        border: 1px solid rgba(167, 139, 250, 0.22);
+      }
+      .cal-now-line {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+      }
+      .cal-now-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--lp-amber);
+        animation: glow-pulse 1.5s infinite;
+        flex-shrink: 0;
+      }
+      .cal-now-bar {
+        flex: 1;
+        height: 1px;
+        background: rgba(245, 158, 11, 0.28);
+      }
+      .cal-now-label {
+        font-family: var(--lp-mono);
+        font-size: 0.65rem;
+        color: var(--lp-amber);
+        flex-shrink: 0;
+      }
+      .cal-delete-btn {
+        background: none;
+        border: none;
+        color: var(--lp-muted);
+        font-size: 0.78rem;
+        cursor: pointer;
+        padding: 0.1rem 0.2rem;
+        border-radius: 4px;
+        line-height: 1;
+        opacity: 0.55;
+        transition:
+          opacity 0.15s,
+          color 0.15s;
+      }
+      .cal-delete-btn:hover {
+        opacity: 1;
+        color: #ef4444;
+      }
+
+      @media (max-width: 374px) {
+        .nav-label {
+          font-size: 0.5rem;
+        }
+        .nav-icon {
+          font-size: 1.1rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1219,7 +1505,7 @@
           <!-- Today's Calendar -->
           <div class="section-header">
             <span class="sh-label">今日日曆</span>
-            <span class="sh-action">查看全部</span>
+            <span class="sh-action" id="cal-view-all">查看全部</span>
           </div>
           <div id="calendar-list" class="card-list"></div>
 
@@ -1343,7 +1629,53 @@
         </section>
 
         <!-- ===========================
-           Page 4: Capture
+           Page 4: Calendar
+      =========================== -->
+        <section class="page" id="page-calendar" data-page="calendar">
+          <div class="page-header">
+            <div class="page-title">行程表</div>
+            <div
+              id="cal-today-date"
+              style="font-size: 0.72rem; color: var(--lp-muted); font-family: var(--lp-mono)"
+            ></div>
+          </div>
+
+          <!-- NEXT UP Hero -->
+          <div id="cal-hero"></div>
+
+          <!-- Quick Add Strip -->
+          <div id="cal-add-strip" role="form" aria-label="快速新增事件">
+            <input type="date" id="cal-add-date" aria-label="日期" />
+            <input type="time" id="cal-add-time" aria-label="時間" />
+            <input
+              type="text"
+              id="cal-add-title"
+              placeholder="新增事件…"
+              maxlength="100"
+              aria-label="事件名稱"
+            />
+            <button id="cal-add-btn" aria-label="新增事件">＋</button>
+          </div>
+
+          <!-- View Filter Tabs -->
+          <div class="filter-tabs" role="tablist" aria-label="日曆檢視">
+            <button class="filter-tab active" data-cal-view="today" role="tab" aria-selected="true">
+              今天
+            </button>
+            <button class="filter-tab" data-cal-view="week" role="tab" aria-selected="false">
+              本週
+            </button>
+            <button class="filter-tab" data-cal-view="all" role="tab" aria-selected="false">
+              全部
+            </button>
+          </div>
+
+          <!-- Timeline -->
+          <div id="cal-timeline" class="card-list" role="list" aria-label="事件列表"></div>
+        </section>
+
+        <!-- ===========================
+           Page 5: Capture
       =========================== -->
         <section class="page" id="page-capture" data-page="capture">
           <div class="page-header">
@@ -1521,6 +1853,17 @@
         >
           <span class="nav-icon" aria-hidden="true">✅</span>
           <span class="nav-label">任務</span>
+        </a>
+        <a
+          class="nav-tab"
+          href="#calendar"
+          data-page="calendar"
+          aria-label="行程"
+          role="tab"
+          aria-selected="false"
+        >
+          <span class="nav-icon" aria-hidden="true">📅</span>
+          <span class="nav-label">行程</span>
         </a>
         <a
           class="nav-tab"
