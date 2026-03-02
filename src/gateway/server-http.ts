@@ -43,6 +43,8 @@ import {
 } from "./hooks.js";
 import { sendUnauthorized } from "./http-common.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
+import { handleKairoWebApiRequest } from "./kairo-web-api.js";
+import { handleKairoWebRequest } from "./kairo-web-handler.js";
 import { handleLandingPageRequest } from "./landing-page.js";
 import { resolveGatewayClientIp } from "./net.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
@@ -337,6 +339,15 @@ export function createGatewayHttpServer(opts: {
       if (await handleHooksRequest(req, res)) {
         return;
       }
+      // Kairo Web API (/api/*, needs auth from remote)
+      if (
+        await handleKairoWebApiRequest(req, res, {
+          auth: resolvedAuth,
+          trustedProxies,
+        })
+      ) {
+        return;
+      }
       if (
         await handleToolsInvokeHttpRequest(req, res, {
           auth: resolvedAuth,
@@ -395,6 +406,10 @@ export function createGatewayHttpServer(opts: {
       }
       // Landing page (public, no auth required)
       if (handleLandingPageRequest(req, res)) {
+        return;
+      }
+      // Kairo Web PWA (/app/*, public static files)
+      if (handleKairoWebRequest(req, res)) {
         return;
       }
       if (controlUiEnabled) {
