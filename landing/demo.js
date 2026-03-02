@@ -888,7 +888,7 @@
         // Replay after 3.5s
         replayTimer = setTimeout(() => playScenario(idx), 3500);
       }
-    } catch (_e) {
+    } catch {
       // Silently ignore cancellation errors
     }
   }
