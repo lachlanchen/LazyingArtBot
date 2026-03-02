@@ -107,7 +107,7 @@ async function createCardFixture(
     "  token: fb_test",
     "  watch_type: none",
     "  expected_horizon_days: null",
-    `${deletedLine}`,
+    deletedLine,
     "---",
     "",
     "## 原文",

@@ -259,11 +259,11 @@ async function checkBootstrapCronJobs(): Promise<void> {
   if (Array.isArray(rawJobs)) {
     jobNames = rawJobs
       .filter((j): j is Record<string, unknown> => typeof j === "object" && j !== null)
-      .map((j) => String(j["name"] ?? ""));
+      .map((j) => (j["name"] as string) ?? "");
   } else if (rawJobs && typeof rawJobs === "object") {
     jobNames = Object.values(rawJobs as Record<string, unknown>)
       .filter((j): j is Record<string, unknown> => typeof j === "object" && j !== null)
-      .map((j) => String(j["name"] ?? ""));
+      .map((j) => (j["name"] as string) ?? "");
   }
 
   const missing: string[] = [];

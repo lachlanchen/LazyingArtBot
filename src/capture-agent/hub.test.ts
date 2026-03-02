@@ -8,11 +8,9 @@ import {
   resolveHubRoot,
   safeReadDir,
   slugifyTitle,
-  buildCardMarkdown,
   escapeTableCell,
   typeEmoji,
   resolveMainPath,
-  resolvePathSet,
 } from "./hub.js";
 
 const NOW: CaptureDateParts = {

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
+import { resolveHubPaths } from "../../capture-agent/hub.js";
 
 const HUB_CONTEXT_MAX_CHARS = 5600;
 const TZ = "Asia/Shanghai";
