@@ -12,13 +12,14 @@ import type {
   CaptureResolvedPaths,
   CaptureType,
 } from "./types.js";
+import { resolveStateDir } from "../config/paths.js";
 
 export function resolveHubRoot(): string {
   const fromEnv = process.env.CAPTURE_HUB_ROOT?.trim();
   if (fromEnv) {
     return fromEnv;
   }
-  return path.join(os.homedir(), ".openclaw", "workspace", "automation", "assistant_hub");
+  return path.join(resolveStateDir(), "workspace", "automation", "assistant_hub");
 }
 
 export function resolveHubPaths(root = resolveHubRoot()): CaptureResolvedPaths {
@@ -155,7 +156,10 @@ function frontmatterArray(values: string[]): string {
   return `[${values.map((value) => JSON.stringify(value)).join(", ")}]`;
 }
 
-export function buildCardMarkdown(frontmatter: CaptureCardFrontmatter, body: CaptureContentParts): string {
+export function buildCardMarkdown(
+  frontmatter: CaptureCardFrontmatter,
+  body: CaptureContentParts,
+): string {
   const lines: string[] = [];
   lines.push("---");
   lines.push(`id: ${frontmatter.id}`);
@@ -174,7 +178,9 @@ export function buildCardMarkdown(frontmatter: CaptureCardFrontmatter, body: Cap
   lines.push(`confidence: ${frontmatter.confidence.toFixed(2)}`);
   lines.push(`alts: ${frontmatterArray(frontmatter.alts)}`);
   lines.push(`dedupe_hint: ${frontmatter.dedupeHint}`);
-  lines.push(`next_best_action: ${frontmatter.nextBestAction ? frontmatterScalar(frontmatter.nextBestAction) : "null"}`);
+  lines.push(
+    `next_best_action: ${frontmatter.nextBestAction ? frontmatterScalar(frontmatter.nextBestAction) : "null"}`,
+  );
   lines.push(`links: ${frontmatterArray(frontmatter.links)}`);
   lines.push(`attachments: ${frontmatterArray(frontmatter.attachments)}`);
   lines.push("remind_schedule:");
@@ -235,7 +241,10 @@ async function safeReadDir(dirPath: string): Promise<string[]> {
   }
 }
 
-export async function nextDailyId(paths: CaptureResolvedPaths, now: CaptureDateParts): Promise<string> {
+export async function nextDailyId(
+  paths: CaptureResolvedPaths,
+  now: CaptureDateParts,
+): Promise<string> {
   const datePrefix = `${now.ymd}-`;
   const files = await Promise.all([
     safeReadDir(paths.tasks),
@@ -305,7 +314,11 @@ export function resolveMainPath(params: {
   }
 }
 
-export function resolvePathSet(paths: CaptureResolvedPaths, now: CaptureDateParts, source: string): CapturePathSet {
+export function resolvePathSet(
+  paths: CaptureResolvedPaths,
+  now: CaptureDateParts,
+  source: string,
+): CapturePathSet {
   return {
     mainPath: "",
     inboxPath: path.join(paths.inbox, `${now.ymd}_${source}_inbox.md`),

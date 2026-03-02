@@ -1,0 +1,33 @@
+{
+  "_comment": "Kairo minimal config — copy to ~/.openclaw/openclaw.json and fill in values",
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "YOUR_BOT_TOKEN_HERE",
+      "dmPolicy": "open"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai/gpt-4o-mini"
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "name": "Kairo"
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "channel": "telegram",
+      "accountId": "main",
+      "agentId": "main"
+    }
+  ],
+  "gateway": {
+    "port": 18789
+  }
+}
