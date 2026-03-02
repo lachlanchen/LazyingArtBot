@@ -1,0 +1,1295 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Kairo — 个人全能 AI 秘书。零摩擦捕捉，閉環追蹤，主動推送。自托管，本地數據，無訂閱費。"
+    />
+    <title>Kairo · 个人全能 AI 秘书</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ─────────────────────────────────────────────
+       DESIGN TOKENS
+    ───────────────────────────────────────────── */
+      :root {
+        --lp-bg: #0a0f1e;
+        --lp-bg-surface: #12141a;
+        --lp-bg-card: #1a1d25;
+        --lp-text: #e4e4e7;
+        --lp-text-strong: #fafafa;
+        --lp-muted: #71717a;
+        --lp-border: rgba(245, 158, 11, 0.15);
+        --lp-amber: #f59e0b;
+        --lp-orange: #f97316;
+        --lp-teal: #14b8a6;
+        --lp-blue: #3b82f6;
+        --lp-glow: rgba(245, 158, 11, 0.2);
+        --lp-radius: 8px;
+        --lp-radius-lg: 16px;
+        --lp-font: "Sora", -apple-system, "Noto Sans SC", "PingFang SC", sans-serif;
+        --lp-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      }
+
+      /* ─────────────────────────────────────────────
+       RESET + BASE
+    ───────────────────────────────────────────── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--lp-font);
+        background: var(--lp-bg);
+        color: var(--lp-text);
+        line-height: 1.6;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      img,
+      svg {
+        display: block;
+      }
+
+      /* ─────────────────────────────────────────────
+       UTILITY
+    ───────────────────────────────────────────── */
+      .amber-grad {
+        background: linear-gradient(90deg, var(--lp-amber), var(--lp-orange));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .section-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--lp-amber);
+        margin-bottom: 0.75rem;
+      }
+
+      /* scroll-reveal */
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity 0.65s ease,
+          transform 0.65s ease;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .reveal-d1 {
+        transition-delay: 0.1s;
+      }
+      .reveal-d2 {
+        transition-delay: 0.2s;
+      }
+      .reveal-d3 {
+        transition-delay: 0.3s;
+      }
+      .reveal-d4 {
+        transition-delay: 0.4s;
+      }
+      .reveal-d5 {
+        transition-delay: 0.5s;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .reveal {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+      }
+
+      /* ─────────────────────────────────────────────
+       NAV
+    ───────────────────────────────────────────── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.08);
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 900;
+      }
+      .nav-brand .logo-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--lp-amber), var(--lp-orange));
+        box-shadow: 0 0 8px var(--lp-glow);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        list-style: none;
+      }
+      .nav-links a {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--lp-muted);
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--lp-amber);
+      }
+
+      .nav-cta {
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.45rem 1.1rem;
+        border-radius: var(--lp-radius);
+        border: 1px solid var(--lp-amber);
+        color: var(--lp-amber);
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      .nav-cta:hover {
+        background: var(--lp-amber);
+        color: #0a0f1e;
+      }
+
+      /* ─────────────────────────────────────────────
+       S1: HERO
+    ───────────────────────────────────────────── */
+      #hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      #hero-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+      }
+
+      .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 15, 30, 0.42);
+        z-index: 1;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 2rem 1.5rem;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      .logo-wordmark {
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: center;
+      }
+      .logo-svg {
+        width: 220px;
+        height: auto;
+      }
+
+      .hero-cn-sub {
+        font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+        font-size: clamp(1.1rem, 3vw, 1.5rem);
+        font-weight: 300;
+        color: var(--lp-text-strong);
+        letter-spacing: 0.08em;
+        margin-bottom: 1.25rem;
+      }
+
+      .hero-tagline {
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
+        color: var(--lp-muted);
+        max-width: 560px;
+        margin: 0 auto 2rem;
+        font-style: italic;
+        line-height: 1.75;
+      }
+
+      .hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        justify-content: center;
+        margin-bottom: 2.5rem;
+      }
+      .pill {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        padding: 0.3rem 0.85rem;
+        border-radius: 999px;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: var(--lp-amber);
+        background: rgba(245, 158, 11, 0.07);
+      }
+
+      .hero-ctas {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        font-family: var(--lp-font);
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.75rem 1.8rem;
+        border-radius: var(--lp-radius);
+        cursor: pointer;
+        transition: all 0.22s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: none;
+      }
+      .btn-outline {
+        background: transparent;
+        border: 1.5px solid rgba(245, 158, 11, 0.5);
+        color: var(--lp-amber);
+      }
+      .btn-outline:hover {
+        background: rgba(245, 158, 11, 0.08);
+        border-color: var(--lp-amber);
+      }
+      .btn-filled {
+        background: linear-gradient(135deg, var(--lp-amber), var(--lp-orange));
+        color: #0a0f1e;
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+      }
+      .btn-filled:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 28px rgba(245, 158, 11, 0.45);
+      }
+
+      .hero-scroll-hint {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--lp-muted);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        animation: float 2.4s ease-in-out infinite;
+      }
+      .scroll-arrow {
+        width: 20px;
+        height: 20px;
+        border-right: 2px solid var(--lp-muted);
+        border-bottom: 2px solid var(--lp-muted);
+        transform: rotate(45deg);
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateX(-50%) translateY(0);
+        }
+        50% {
+          transform: translateX(-50%) translateY(6px);
+        }
+      }
+
+      /* ─────────────────────────────────────────────
+       SHARED SECTION WRAPPER
+    ───────────────────────────────────────────── */
+      .section-wrap {
+        padding: 5rem 2rem;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      @media (max-width: 768px) {
+        .section-wrap {
+          padding: 3rem 1.25rem;
+        }
+      }
+
+      /* ─────────────────────────────────────────────
+       S2: PROCESS
+    ───────────────────────────────────────────── */
+      #process {
+        background: var(--lp-bg-surface);
+        border-top: 1px solid rgba(245, 158, 11, 0.06);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.06);
+      }
+
+      .process-header {
+        text-align: center;
+        margin-bottom: 3.5rem;
+      }
+      .process-heading {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        color: var(--lp-text-strong);
+      }
+
+      .process-flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .process-card {
+        flex: 1;
+        min-width: 200px;
+        max-width: 280px;
+        background: var(--lp-bg-card);
+        border: 1px solid var(--lp-border);
+        border-radius: var(--lp-radius-lg);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        transition:
+          transform 0.25s,
+          border-color 0.25s,
+          box-shadow 0.25s;
+      }
+      .process-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--lp-amber);
+        box-shadow: 0 8px 32px var(--lp-glow);
+      }
+      .process-icon {
+        font-size: 2.2rem;
+        margin-bottom: 0.9rem;
+      }
+      .process-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--lp-text-strong);
+        margin-bottom: 0.5rem;
+      }
+      .process-desc {
+        font-size: 0.85rem;
+        color: var(--lp-muted);
+        line-height: 1.65;
+      }
+
+      .process-arrow {
+        display: flex;
+        align-items: center;
+        padding: 0 0.75rem;
+        color: var(--lp-amber);
+        font-size: 1.5rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      @media (max-width: 640px) {
+        .process-flow {
+          flex-direction: column;
+          align-items: center;
+        }
+        .process-arrow {
+          transform: rotate(90deg);
+          padding: 0.5rem 0;
+        }
+      }
+
+      /* ─────────────────────────────────────────────
+       S3: DEMO
+    ───────────────────────────────────────────── */
+      #demo {
+        background: var(--lp-bg);
+      }
+
+      .demo-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      .demo-heading {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        color: var(--lp-text-strong);
+      }
+      .demo-sub {
+        color: var(--lp-muted);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+
+      .demo-shell {
+        background: var(--lp-bg-surface);
+        border: 1px solid var(--lp-border);
+        border-radius: var(--lp-radius-lg);
+        overflow: hidden;
+        min-height: 600px;
+        display: flex;
+        flex-direction: column;
+      }
+      .demo-shell-bar {
+        background: #0d1117;
+        padding: 0.85rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+      }
+      .shell-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .shell-dot-red {
+        background: #ff5f57;
+      }
+      .shell-dot-yellow {
+        background: #febc2e;
+      }
+      .shell-dot-green {
+        background: #28c840;
+      }
+      .shell-bar-label {
+        font-family: var(--lp-mono);
+        font-size: 0.75rem;
+        color: var(--lp-muted);
+        margin-left: 0.5rem;
+      }
+
+      #chat-demo {
+        flex: 1;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .chat-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        color: var(--lp-muted);
+        font-size: 0.85rem;
+        font-style: italic;
+        letter-spacing: 0.04em;
+      }
+
+      /* ─────────────────────────────────────────────
+       S4: FEATURES
+    ───────────────────────────────────────────── */
+      #features {
+        background: var(--lp-bg-surface);
+      }
+
+      .features-header {
+        text-align: center;
+        margin-bottom: 3.5rem;
+      }
+      .features-heading {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        color: var(--lp-text-strong);
+      }
+
+      .features-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .features-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .feat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 520px) {
+        .feat-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .feat-card {
+        background: var(--lp-bg-card);
+        border: 1px solid var(--lp-border);
+        border-radius: var(--lp-radius-lg);
+        padding: 1.4rem 1.2rem 1.2rem;
+        transition:
+          border-color 0.25s,
+          box-shadow 0.25s,
+          transform 0.25s;
+        position: relative;
+      }
+      .feat-card:hover {
+        border-color: var(--lp-amber);
+        box-shadow: 0 4px 24px var(--lp-glow);
+        transform: translateY(-3px);
+      }
+      .feat-icon {
+        font-size: 1.4rem;
+        margin-bottom: 0.7rem;
+        display: inline-block;
+        background: rgba(245, 158, 11, 0.1);
+        padding: 0.4rem 0.5rem;
+        border-radius: var(--lp-radius);
+      }
+      .feat-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--lp-text-strong);
+        margin-bottom: 0.4rem;
+      }
+      .feat-desc {
+        font-size: 0.78rem;
+        color: var(--lp-muted);
+        line-height: 1.6;
+      }
+
+      /* 3-Agent Architecture Diagram */
+      .arch-panel {
+        background: var(--lp-bg-card);
+        border: 1px solid var(--lp-border);
+        border-radius: var(--lp-radius-lg);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .arch-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--lp-amber);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      .arch-svg-wrap {
+        display: flex;
+        justify-content: center;
+      }
+      .arch-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .arch-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        font-size: 0.78rem;
+        color: var(--lp-muted);
+      }
+      .arch-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .arch-dot-amber {
+        background: var(--lp-amber);
+        box-shadow: 0 0 6px var(--lp-glow);
+      }
+      .arch-dot-teal {
+        background: var(--lp-teal);
+      }
+      .arch-dot-blue {
+        background: var(--lp-blue);
+      }
+
+      /* ─────────────────────────────────────────────
+       S5: INSTALL
+    ───────────────────────────────────────────── */
+      #install {
+        background: #0d1117;
+        border-top: 1px solid rgba(245, 158, 11, 0.08);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.08);
+      }
+
+      .install-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+      .install-heading {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        color: var(--lp-text-strong);
+      }
+      .install-sub {
+        color: var(--lp-muted);
+        font-size: 0.88rem;
+        margin-top: 0.5rem;
+      }
+
+      .terminal {
+        background: #0a0a0f;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: var(--lp-radius-lg);
+        overflow: hidden;
+        position: relative;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .terminal-bar {
+        background: #161b22;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+      }
+      .terminal-title {
+        font-family: var(--lp-mono);
+        font-size: 0.72rem;
+        color: var(--lp-muted);
+        margin-left: 0.5rem;
+      }
+      .terminal-body {
+        padding: 1.75rem 1.5rem;
+        font-family: var(--lp-mono);
+        font-size: 0.85rem;
+        line-height: 2;
+        position: relative;
+      }
+      /* Scanline overlay */
+      .terminal-body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 3px,
+          rgba(0, 0, 0, 0.08) 3px,
+          rgba(0, 0, 0, 0.08) 4px
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      .terminal-body code {
+        position: relative;
+        z-index: 2;
+        display: block;
+      }
+      .term-prompt {
+        color: var(--lp-amber);
+      }
+      .term-cmd {
+        color: var(--lp-text-strong);
+      }
+      .term-comment {
+        color: var(--lp-muted);
+      }
+      .term-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 1em;
+        background: var(--lp-amber);
+        vertical-align: text-bottom;
+        animation: blink 1.1s step-end infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* ─────────────────────────────────────────────
+       S6: FOOTER
+    ───────────────────────────────────────────── */
+      footer {
+        background: var(--lp-bg);
+        padding: 2.25rem 2rem;
+        border-top: 1px solid rgba(245, 158, 11, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+      .footer-text {
+        font-size: 0.8rem;
+        color: var(--lp-muted);
+      }
+      .footer-sep {
+        color: rgba(113, 113, 122, 0.4);
+      }
+      .footer-link {
+        font-size: 0.8rem;
+        color: var(--lp-muted);
+        transition: color 0.2s;
+      }
+      .footer-link:hover {
+        color: var(--lp-amber);
+      }
+      .footer-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        color: var(--lp-amber);
+      }
+
+      /* ─────────────────────────────────────────────
+       RESPONSIVE NAV MOBILE
+    ───────────────────────────────────────────── */
+      @media (max-width: 640px) {
+        .nav-links {
+          display: none;
+        }
+        nav {
+          padding: 0.9rem 1.25rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ──────────── NAV ──────────── -->
+    <nav aria-label="Primary navigation">
+      <div class="nav-brand">
+        <div class="logo-dot"></div>
+        <span class="amber-grad">Kairo</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#process">工作流</a></li>
+        <li><a href="#demo">演示</a></li>
+        <li><a href="#features">功能</a></li>
+        <li><a href="#install">安裝</a></li>
+      </ul>
+      <a
+        href="https://github.com/lachlanchen/LazyingArtBot"
+        target="_blank"
+        rel="noopener"
+        class="nav-cta"
+        >GitHub →</a
+      >
+    </nav>
+
+    <main>
+      <!-- ──────────── S1: HERO ──────────── -->
+      <section id="hero" aria-label="Hero">
+        <canvas id="hero-canvas" aria-hidden="true"></canvas>
+        <div class="hero-overlay" aria-hidden="true"></div>
+
+        <div class="hero-content">
+          <div class="logo-wordmark reveal">
+            <svg
+              viewBox="0 0 320 80"
+              xmlns="http://www.w3.org/2000/svg"
+              class="logo-svg"
+              role="img"
+              aria-label="Kairo"
+            >
+              <defs>
+                <linearGradient id="kLogoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#f59e0b" />
+                  <stop offset="100%" stop-color="#f97316" />
+                </linearGradient>
+              </defs>
+              <text
+                x="0"
+                y="68"
+                font-family="'Sora','Helvetica Neue',sans-serif"
+                font-size="80"
+                font-weight="900"
+                fill="url(#kLogoGrad)"
+                letter-spacing="-2"
+              >
+                Kairo
+              </text>
+            </svg>
+          </div>
+
+          <p class="hero-cn-sub reveal reveal-d1">个人全能 AI 秘书</p>
+
+          <p class="hero-tagline reveal reveal-d2">
+            You think. Kairo remembers, organizes, and finds you at exactly the right moment.
+          </p>
+
+          <div class="hero-pills reveal reveal-d3">
+            <span class="pill">自托管</span>
+            <span class="pill">本地數據</span>
+            <span class="pill">零訂閱</span>
+          </div>
+
+          <div class="hero-ctas reveal reveal-d4">
+            <a
+              href="https://github.com/lachlanchen/LazyingArtBot"
+              target="_blank"
+              rel="noopener"
+              class="btn btn-outline"
+              >GitHub →</a
+            >
+            <a href="#demo" class="btn btn-filled">看 Demo ↓</a>
+          </div>
+        </div>
+
+        <div class="hero-scroll-hint" aria-hidden="true">
+          <span>SCROLL</span>
+          <div class="scroll-arrow"></div>
+        </div>
+      </section>
+
+      <!-- ──────────── S2: PROCESS ──────────── -->
+      <section id="process" aria-labelledby="process-heading">
+        <div class="section-wrap">
+          <div class="process-header">
+            <p class="section-label reveal">核心工作流</p>
+            <h2 id="process-heading" class="process-heading reveal reveal-d1">
+              從一條消息，到閉環完成
+            </h2>
+          </div>
+
+          <div class="process-flow">
+            <div class="process-card reveal">
+              <div class="process-icon">📥</div>
+              <div class="process-title">捕捉</div>
+              <p class="process-desc">一條消息進<br />自動建卡 · 提取任務<br />無需二次整理</p>
+            </div>
+
+            <div class="process-arrow reveal reveal-d1" aria-hidden="true">→</div>
+
+            <div class="process-card reveal reveal-d2">
+              <div class="process-icon">🔄</div>
+              <div class="process-title">追蹤</div>
+              <p class="process-desc">閉環不遺漏<br />reasoning_queue 跟進<br />到期自動提醒</p>
+            </div>
+
+            <div class="process-arrow reveal reveal-d3" aria-hidden="true">→</div>
+
+            <div class="process-card reveal reveal-d4">
+              <div class="process-icon">📣</div>
+              <div class="process-title">出擊</div>
+              <p class="process-desc">主動找你<br />晨報 · TTS 語音<br />精準時機推送</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────── S3: DEMO ──────────── -->
+      <section id="demo" aria-labelledby="demo-heading">
+        <div class="section-wrap">
+          <div class="demo-header">
+            <p class="section-label reveal">實際演示</p>
+            <h2 id="demo-heading" class="demo-heading reveal reveal-d1">看 Kairo 如何工作</h2>
+            <p class="demo-sub reveal reveal-d2">真實對話 · 真實場景 · 零手動整理</p>
+          </div>
+
+          <div class="demo-shell reveal reveal-d2">
+            <div class="demo-shell-bar">
+              <div class="shell-dot shell-dot-red"></div>
+              <div class="shell-dot shell-dot-yellow"></div>
+              <div class="shell-dot shell-dot-green"></div>
+              <span class="shell-bar-label">Kairo · Telegram 秘書頻道</span>
+            </div>
+            <div id="chat-demo">
+              <div class="chat-placeholder">載入演示中…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────── S4: FEATURES ──────────── -->
+      <section id="features" aria-labelledby="features-heading">
+        <div class="section-wrap">
+          <div class="features-header">
+            <p class="section-label reveal">全功能矩陣</p>
+            <h2 id="features-heading" class="features-heading reveal reveal-d1">
+              不只是聊天機器人
+            </h2>
+          </div>
+
+          <div class="features-layout">
+            <!-- Feature Cards Grid -->
+            <div class="feat-grid">
+              <div class="feat-card reveal">
+                <div class="feat-icon">📥</div>
+                <div class="feat-title">零摩擦捕捉</div>
+                <p class="feat-desc">一條消息，Kairo 自動建卡排程，無需格式。</p>
+              </div>
+              <div class="feat-card reveal reveal-d1">
+                <div class="feat-icon">⏰</div>
+                <div class="feat-title">智能晨報</div>
+                <p class="feat-desc">日曆 + 郵件 + 待辦，每天 7:10 精準推送。</p>
+              </div>
+              <div class="feat-card reveal reveal-d2">
+                <div class="feat-icon">🔄</div>
+                <div class="feat-title">閉環追蹤</div>
+                <p class="feat-desc">reasoning_queue 自動跟進，到期主動提醒，不遺漏。</p>
+              </div>
+              <div class="feat-card reveal reveal-d3">
+                <div class="feat-icon">🔒</div>
+                <div class="feat-title">本地優先</div>
+                <p class="feat-desc">所有數據純 Markdown，自托管，永無訂閱費。</p>
+              </div>
+              <div class="feat-card reveal reveal-d4">
+                <div class="feat-icon">🗣️</div>
+                <div class="feat-title">TTS 語音</div>
+                <p class="feat-desc">Qwen-TTS 驅動，課程 + 通知語音播報，聽比看快。</p>
+              </div>
+              <div class="feat-card reveal reveal-d5">
+                <div class="feat-icon">📊</div>
+                <div class="feat-title">用量日報</div>
+                <p class="feat-desc">Token 消耗透明，每日匯報，成本完全可控。</p>
+              </div>
+            </div>
+
+            <!-- 3-Agent Architecture Diagram -->
+            <div class="arch-panel reveal reveal-d2">
+              <div class="arch-title">3-Agent 架構</div>
+
+              <div class="arch-svg-wrap">
+                <svg
+                  viewBox="0 0 300 220"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="300"
+                  height="220"
+                  aria-label="3-Agent Architecture Diagram"
+                >
+                  <defs>
+                    <linearGradient id="agGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#f59e0b" />
+                      <stop offset="100%" stop-color="#f97316" />
+                    </linearGradient>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <!-- Connecting lines -->
+                  <line
+                    x1="150"
+                    y1="75"
+                    x2="75"
+                    y2="155"
+                    stroke="#f59e0b"
+                    stroke-width="1.5"
+                    stroke-opacity="0.5"
+                    stroke-dasharray="5,3"
+                  />
+                  <line
+                    x1="150"
+                    y1="75"
+                    x2="225"
+                    y2="155"
+                    stroke="#f59e0b"
+                    stroke-width="1.5"
+                    stroke-opacity="0.5"
+                    stroke-dasharray="5,3"
+                  />
+
+                  <!-- Planner node -->
+                  <circle
+                    cx="150"
+                    cy="50"
+                    r="36"
+                    fill="#1a1d25"
+                    stroke="url(#agGrad)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                  />
+                  <text
+                    x="150"
+                    y="46"
+                    text-anchor="middle"
+                    font-family="Sora,sans-serif"
+                    font-size="9"
+                    font-weight="700"
+                    fill="#f59e0b"
+                  >
+                    PLANNER
+                  </text>
+                  <text
+                    x="150"
+                    y="58"
+                    text-anchor="middle"
+                    font-family="Noto Sans SC,sans-serif"
+                    font-size="8"
+                    fill="#e4e4e7"
+                  >
+                    Ken 對話
+                  </text>
+
+                  <!-- Executor node -->
+                  <circle
+                    cx="75"
+                    cy="170"
+                    r="36"
+                    fill="#1a1d25"
+                    stroke="#14b8a6"
+                    stroke-width="1.5"
+                  />
+                  <text
+                    x="75"
+                    y="166"
+                    text-anchor="middle"
+                    font-family="Sora,sans-serif"
+                    font-size="8"
+                    font-weight="700"
+                    fill="#14b8a6"
+                  >
+                    EXECUTOR
+                  </text>
+                  <text
+                    x="75"
+                    y="178"
+                    text-anchor="middle"
+                    font-family="Noto Sans SC,sans-serif"
+                    font-size="8"
+                    fill="#e4e4e7"
+                  >
+                    任務執行
+                  </text>
+
+                  <!-- Reviewer node -->
+                  <circle
+                    cx="225"
+                    cy="170"
+                    r="36"
+                    fill="#1a1d25"
+                    stroke="#3b82f6"
+                    stroke-width="1.5"
+                  />
+                  <text
+                    x="225"
+                    y="166"
+                    text-anchor="middle"
+                    font-family="Sora,sans-serif"
+                    font-size="8"
+                    font-weight="700"
+                    fill="#3b82f6"
+                  >
+                    REVIEWER
+                  </text>
+                  <text
+                    x="225"
+                    y="178"
+                    text-anchor="middle"
+                    font-family="Noto Sans SC,sans-serif"
+                    font-size="8"
+                    fill="#e4e4e7"
+                  >
+                    心跳巡邏
+                  </text>
+
+                  <!-- Spawn label -->
+                  <text
+                    x="100"
+                    y="120"
+                    text-anchor="middle"
+                    font-family="Sora,sans-serif"
+                    font-size="7.5"
+                    fill="#f59e0b"
+                    opacity="0.7"
+                  >
+                    spawn
+                  </text>
+                  <text
+                    x="200"
+                    y="120"
+                    text-anchor="middle"
+                    font-family="Sora,sans-serif"
+                    font-size="7.5"
+                    fill="#f59e0b"
+                    opacity="0.7"
+                  >
+                    spawn
+                  </text>
+                </svg>
+              </div>
+
+              <div class="arch-legend">
+                <div class="arch-legend-item">
+                  <div class="arch-dot arch-dot-amber"></div>
+                  <span
+                    ><strong style="color: var(--lp-text)">Planner</strong> — Ken 的主對話，接收
+                    Telegram / Feishu</span
+                  >
+                </div>
+                <div class="arch-legend-item">
+                  <div class="arch-dot arch-dot-teal"></div>
+                  <span
+                    ><strong style="color: var(--lp-text)">Executor</strong> — 所有 cron
+                    任務執行，獨立工作空間</span
+                  >
+                </div>
+                <div class="arch-legend-item">
+                  <div class="arch-dot arch-dot-blue"></div>
+                  <span
+                    ><strong style="color: var(--lp-text)">Reviewer</strong> — 每 30 分鐘心跳巡邏 +
+                    週期反思</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────── S5: INSTALL ──────────── -->
+      <section id="install" aria-labelledby="install-heading">
+        <div class="section-wrap">
+          <div class="install-header">
+            <p class="section-label reveal">快速開始</p>
+            <h2 id="install-heading" class="install-heading reveal reveal-d1">3 步啟動</h2>
+            <p class="install-sub reveal reveal-d2">開源免費 · 一行安裝 · 數分鐘上線</p>
+          </div>
+
+          <div class="terminal reveal reveal-d3">
+            <div class="terminal-bar">
+              <div class="shell-dot shell-dot-red"></div>
+              <div class="shell-dot shell-dot-yellow"></div>
+              <div class="shell-dot shell-dot-green"></div>
+              <span class="terminal-title">bash — kairo install</span>
+            </div>
+            <div class="terminal-body">
+              <code>
+                <span class="term-comment"># Step 1 — Clone the repo</span><br />
+                <span class="term-prompt">$ </span
+                ><span class="term-cmd"
+                  >git clone https://github.com/lachlanchen/LazyingArtBot.git</span
+                ><br />
+                <br />
+                <span class="term-comment"
+                  ># Step 2 — Run installer (checks Node ≥22, builds, sets up systemd)</span
+                ><br />
+                <span class="term-prompt">$ </span
+                ><span class="term-cmd">cd LazyingArtBot &amp;&amp; ./install.sh</span><br />
+                <br />
+                <span class="term-comment"># Step 3 — Configure your channels and AI model</span
+                ><br />
+                <span class="term-prompt">$ </span
+                ><span class="term-cmd">vim ~/.openclaw/openclaw.json</span><br />
+                <br />
+                <span class="term-comment"># Done — Kairo is live on port 18789 ✓</span><br />
+                <span class="term-prompt">$ </span><span class="term-cursor"></span>
+              </code>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ──────────── S6: FOOTER ──────────── -->
+    <footer>
+      <span class="footer-text">Kairo © 2026</span>
+      <span class="footer-sep">·</span>
+      <a
+        href="https://github.com/lachlanchen/LazyingArtBot"
+        target="_blank"
+        rel="noopener"
+        class="footer-link"
+        >GitHub</a
+      >
+      <span class="footer-sep">·</span>
+      <a
+        href="https://github.com/lachlanchen/LazyingArtBot/blob/main/LICENSE"
+        target="_blank"
+        rel="noopener"
+        class="footer-link"
+        >MIT License</a
+      >
+      <span class="footer-sep">·</span>
+      <span class="footer-badge">自托管，永不收費</span>
+    </footer>
+
+    <!-- ──────────── SCROLL REVEAL OBSERVER ──────────── -->
+    <script>
+      (function () {
+        var els = document.querySelectorAll(".reveal");
+        if (!window.IntersectionObserver) {
+          els.forEach(function (el) {
+            el.classList.add("visible");
+          });
+          return;
+        }
+        var obs = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) {
+                e.target.classList.add("visible");
+                obs.unobserve(e.target);
+              }
+            });
+          },
+          { threshold: 0.12 },
+        );
+        els.forEach(function (el) {
+          obs.observe(el);
+        });
+
+        // Immediately reveal hero elements (above fold)
+        document.querySelectorAll("#hero .reveal").forEach(function (el) {
+          el.classList.add("visible");
+        });
+      })();
+    </script>
+
+    <!-- Agent 3: Hero Generative Art Canvas -->
+    <script src="hero-art.js"></script>
+    <!-- Agent 2: Chat Demo -->
+    <script src="demo.js"></script>
+  </body>
+</html>

@@ -43,6 +43,7 @@ import {
 } from "./hooks.js";
 import { sendUnauthorized } from "./http-common.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
+import { handleLandingPageRequest } from "./landing-page.js";
 import { resolveGatewayClientIp } from "./net.js";
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
@@ -391,6 +392,10 @@ export function createGatewayHttpServer(opts: {
         if (await canvasHost.handleHttpRequest(req, res)) {
           return;
         }
+      }
+      // Landing page (public, no auth required)
+      if (handleLandingPageRequest(req, res)) {
+        return;
       }
       if (controlUiEnabled) {
         if (
