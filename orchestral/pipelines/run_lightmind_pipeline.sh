@@ -39,8 +39,8 @@ LIGHTMIND_WEBSITE="https://lightmind.art"
 LIGHTMIND_GITHUB_PROFILE="https://github.com/lachlanchen?tab=repositories"
 LIGHTMIND_WEB_SEARCH_QUERIES=()
 LIGHTMIND_WEB_QUERY_BUDGET=6
-LIGHTMIND_WEB_QUERY_PLANNER_PROMPT="$PROMPT_DIR/lm_web_search_query_planner_prompt.md"
-LIGHTMIND_LEGAL_PROMPT_FILE="$PROMPT_DIR/lm_legal_dept_prompt.md"
+LIGHTMIND_WEB_QUERY_PLANNER_PROMPT="$PROMPT_DIR/company/lm_web_search_query_planner_prompt.md"
+LIGHTMIND_LEGAL_PROMPT_FILE="$PROMPT_DIR/company/lm_legal_dept_prompt.md"
 WEB_SEARCH_OUTPUT_DIR="$WORKSPACE/AutoLife/MetaNotes/web_search"
 WEB_OUTPUT_DIR="$WEB_SEARCH_OUTPUT_DIR"
 RUN_RESOURCE_ANALYSIS=1
@@ -910,7 +910,7 @@ PY
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
     --prompt-file "$LIGHTMIND_WEB_QUERY_PLANNER_PROMPT" \
-    --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
+    --schema "$PROMPT_DIR/websearch/web_search_query_planner_schema.json" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
@@ -1102,8 +1102,8 @@ PY
   if ! python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
-    --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
-    --schema "$PROMPT_DIR/web_search_query_planner_schema.json" \
+    --prompt-file "$PROMPT_DIR/websearch/web_search_query_planner_prompt.md" \
+    --schema "$PROMPT_DIR/websearch/web_search_query_planner_schema.json" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
@@ -1647,8 +1647,8 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
     --reasoning "$REASONING" \
     --max-manifest-files 500 \
     --max-text-snippets 40000 \
-    --prompt-file "$PROMPT_DIR/resource_analysis_prompt.md" \
-    --schema-file "$PROMPT_DIR/resource_analysis_schema.json" \
+    --prompt-file "$PROMPT_DIR/company/resource_analysis_prompt.md" \
+    --schema-file "$PROMPT_DIR/company/resource_analysis_schema.json" \
     "${RESOURCE_ANALYSIS_ARGS[@]}" \
     > "$ARTIFACT_DIR/resource_analysis.log" 2>&1
   RC=$?
@@ -1886,7 +1886,7 @@ log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
   --context-file "$CONTEXT_FILE" \
   --company-focus "$LIGHTMIND_COMPANY_NAME" \
   "${LIGHTMIND_MARKET_REFERENCE_ARGS[@]}" \
-  --prompt-file "$PROMPT_DIR/lm_market_research_prompt.md" \
+  --prompt-file "$PROMPT_DIR/company/lm_market_research_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -1927,7 +1927,7 @@ PY
     --context-file "$ACADEMIC_CONTEXT" \
     --company-focus "$LIGHTMIND_COMPANY_NAME" \
     "${LIGHTMIND_ACADEMIC_REFERENCE_ARGS[@]}" \
-    --prompt-file "$PROMPT_DIR/lm_academic_research_prompt.md" \
+    --prompt-file "$PROMPT_DIR/company/lm_academic_research_prompt.md" \
     --model "$MODEL" \
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
@@ -2068,7 +2068,7 @@ log "Step $PLAN_STEP/$TOTAL_STEPS: milestone plan draft"
   --web-summary-file "$WEB_SUMMARY_FILE" \
   --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --reference-source "$LIGHTMIND_WEBSITE" \
-  --prompt-file "$PROMPT_DIR/lm_plan_draft_prompt.md" \
+  --prompt-file "$PROMPT_DIR/company/lm_plan_draft_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -2100,7 +2100,7 @@ log "Step $MENTOR_STEP/$TOTAL_STEPS: entrepreneurship mentor"
   --milestone-html-file "$PLAN_HTML" \
   --company-focus "$LIGHTMIND_COMPANY_NAME" \
   --reference-source "$LIGHTMIND_WEBSITE" \
-  --prompt-file "$PROMPT_DIR/lm_entrepreneurship_mentor_prompt.md" \
+  --prompt-file "$PROMPT_DIR/company/lm_entrepreneurship_mentor_prompt.md" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --safety "$SAFETY" \
@@ -2304,7 +2304,7 @@ if [[ "$SEND_EMAIL" == "1" ]]; then
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
     --approval "$APPROVAL" \
-    --prompt-tools-dir "$PROMPT_DIR" \
+    --prompt-tools-dir "$PROMPT_DIR/runtime" \
     --skip-git-check \
     --send \
     >"$EMAIL_LOG" 2>&1
@@ -2317,7 +2317,7 @@ else
     --reasoning "$REASONING" \
     --safety "$SAFETY" \
     --approval "$APPROVAL" \
-    --prompt-tools-dir "$PROMPT_DIR" \
+    --prompt-tools-dir "$PROMPT_DIR/runtime" \
     --skip-git-check \
     >"$EMAIL_LOG" 2>&1
   log "Email draft generated (send disabled)"

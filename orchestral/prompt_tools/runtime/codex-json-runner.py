@@ -34,7 +34,7 @@ DEFAULT_MODEL = "gpt-5.3-codex-spark"
 DEFAULT_REASONING = "high"
 DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
 DEFAULT_APPROVAL = os.environ.get("CODEX_APPROVAL", "never")
-DEFAULT_PROMPT_FILE = PROMPT_TOOLS_DIR / "json_task_prompt.md"
+DEFAULT_PROMPT_FILE = SCRIPT_DIR / "json_task_prompt.md"
 
 
 def utc_now_iso() -> str:

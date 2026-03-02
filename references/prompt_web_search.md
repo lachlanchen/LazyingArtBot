@@ -10,9 +10,9 @@ This document defines how to run the local Selenium-powered web search prompt to
 - `orchestral/prompt_tools/websearch/prompt_web_search_google.sh`
 - `orchestral/prompt_tools/websearch/prompt_web_search_google_scholar.sh`
 - `orchestral/prompt_tools/websearch/prompt_web_search_google_news.sh`
-- `orchestral/prompt_tools/prompt_web_search_click_prompt.md`
-- `orchestral/prompt_tools/prompt_web_search_immersive_prompt.md`
-- `orchestral/prompt_tools/prompt_web_search_prompt.md`
+- `orchestral/prompt_tools/websearch/prompt_web_search_click_prompt.md`
+- `orchestral/prompt_tools/websearch/prompt_web_search_immersive_prompt.md`
+- `orchestral/prompt_tools/websearch/prompt_web_search_prompt.md`
 - `scripts/web_search_selenium_cli/run_search.sh`
 - `scripts/web_search_selenium_cli/search_cli.py`
 

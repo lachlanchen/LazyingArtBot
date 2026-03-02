@@ -111,7 +111,7 @@ payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
 PY
 
 orchestral/prompt_tools/runtime/run_auto_ops.sh \
-  --prompt "$REPO_DIR/orchestral/prompt_tools/daily_rituals_ping_prompt.md" \
+  --prompt "$REPO_DIR/orchestral/prompt_tools/reminders/daily_rituals_ping_prompt.md" \
   --label "daily-ritual-ping" \
   --payload "$TMP_PAYLOAD" \
   --model "$MODEL" \

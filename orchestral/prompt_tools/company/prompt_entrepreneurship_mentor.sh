@@ -16,8 +16,8 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-mentor"
-PROMPT_FILE="orchestral/prompt_tools/entrepreneurship_mentor_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/entrepreneurship_mentor_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/la_ops_schema.json"
 COMPANY_FOCUS="Lazying.art"
 REFERENCE_SOURCES=(
   "https://lazying.art"
@@ -44,8 +44,8 @@ Options:
   --label <name>             Run label (default: la-mentor)
   --company-focus <text>     Company focus label (default: Lazying.art)
   --reference-source <u>     Reference source URL/text (repeatable)
-  --prompt-file <path>       Prompt template (default: orchestral/prompt_tools/entrepreneurship_mentor_prompt.md)
-  --schema-file <path>       Output schema (default: orchestral/prompt_tools/la_ops_schema.json)
+  --prompt-file <path>       Prompt template (default: orchestral/prompt_tools/company/entrepreneurship_mentor_prompt.md)
+  --schema-file <path>       Output schema (default: orchestral/prompt_tools/company/la_ops_schema.json)
   -h, --help                 Show help
 USAGE
 }

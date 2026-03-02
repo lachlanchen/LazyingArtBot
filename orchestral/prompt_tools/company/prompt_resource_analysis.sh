@@ -7,8 +7,8 @@ cd "$REPO_DIR"
 COMPANY="Company"
 OUTPUT_DIR="/tmp/codex-resource-analysis"
 MARKDOWN_OUTPUT_DIR=""
-PROMPT_FILE="orchestral/prompt_tools/resource_analysis_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/resource_analysis_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/resource_analysis_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/resource_analysis_schema.json"
 MODEL="gpt-5.3-codex-spark"
 REASONING="high"
 LABEL="resource-analysis"
@@ -22,8 +22,8 @@ Usage: prompt_resource_analysis.sh [options]
 Options:
   --company <name>               Company scope label (default: Company)
   --resource-root <path>         Add resource root (repeatable)
-  --prompt-file <path>           Prompt template (default: orchestral/prompt_tools/resource_analysis_prompt.md)
-  --schema-file <path>           Output schema file (default: orchestral/prompt_tools/resource_analysis_schema.json)
+  --prompt-file <path>           Prompt template (default: orchestral/prompt_tools/company/resource_analysis_prompt.md)
+  --schema-file <path>           Output schema file (default: orchestral/prompt_tools/company/resource_analysis_schema.json)
   --output-dir <path>            Codex artifact dir (default: /tmp/codex-resource-analysis)
   --markdown-output <path>       Directory for generated markdown reference docs (required)
   --model <name>                 Codex model (default: gpt-5.3-codex-spark)

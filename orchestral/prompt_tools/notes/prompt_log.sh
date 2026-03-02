@@ -48,8 +48,8 @@ mkdir -p "$OUTPUT_DIR"
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir "$OUTPUT_DIR" \
-  --prompt-file orchestral/prompt_tools/log_prompt.md \
-  --schema orchestral/prompt_tools/log_entry_schema.json \
+  --prompt-file orchestral/prompt_tools/notes/log_prompt.md \
+  --schema orchestral/prompt_tools/notes/log_entry_schema.json \
   --model gpt-5.3-codex-spark \
   --reasoning low \
   --label log-entry \

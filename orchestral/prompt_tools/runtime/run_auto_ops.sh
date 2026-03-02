@@ -63,7 +63,7 @@ python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$PAYLOAD" \
   --output-dir "$OUTPUT_DIR" \
   --prompt-file "$PROMPT_FILE" \
-  --schema orchestral/prompt_tools/auto_ops_schema.json \
+  --schema orchestral/prompt_tools/runtime/auto_ops_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label "$LABEL" \

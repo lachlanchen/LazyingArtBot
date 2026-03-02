@@ -112,7 +112,7 @@ Example:
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
-  --schema orchestral/prompt_tools/email_send_schema.json \
+  --schema orchestral/prompt_tools/runtime/email_send_schema.json \
   --model gpt-5.1-codex-mini \
   --reasoning medium
 ```
@@ -137,9 +137,9 @@ Shared latest pointers:
 
 - Directory: `orchestral/prompt_tools/`
 - Files:
-  - `common_tools.md` - shared tool semantics and guardrails
-  - `email_send_prompt.md` - system/task prompt for email drafting
-  - `email_send_schema.json` - strict JSON schema contract
+  - `runtime/common_tools.md` - shared tool semantics and guardrails
+  - `runtime/email_send_prompt.md` - system/task prompt for email drafting
+  - `runtime/email_send_schema.json` - strict JSON schema contract
 
 Design goal:
 

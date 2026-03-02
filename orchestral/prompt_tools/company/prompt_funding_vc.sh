@@ -17,8 +17,8 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="funding-vc"
-PROMPT_FILE="orchestral/prompt_tools/funding_vc_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/funding_vc_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/la_ops_schema.json"
 REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
 
@@ -41,8 +41,8 @@ Options:
   --output-dir <path>         Artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>              Run label (default: funding-vc)
   --reference-source <u>      Reference source URL/text (repeatable)
-  --prompt-file <path>        Prompt template (default: orchestral/prompt_tools/funding_vc_prompt.md)
-  --schema-file <path>        Output schema (default: orchestral/prompt_tools/la_ops_schema.json)
+  --prompt-file <path>        Prompt template (default: orchestral/prompt_tools/company/funding_vc_prompt.md)
+  --schema-file <path>        Output schema (default: orchestral/prompt_tools/company/la_ops_schema.json)
   -h, --help                  Show help
 USAGE
 }

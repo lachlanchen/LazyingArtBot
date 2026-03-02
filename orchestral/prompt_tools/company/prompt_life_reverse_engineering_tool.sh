@@ -280,8 +280,8 @@ PY
 python3 "$REPO_DIR/orchestral/prompt_tools/runtime/codex-json-runner.py" \
   --input-json "$TMP_PAYLOAD" \
   --output-dir "$OUTPUT_DIR" \
-  --prompt-file "$REPO_DIR/orchestral/prompt_tools/life_reverse_engineering_prompt.md" \
-  --schema "$REPO_DIR/orchestral/prompt_tools/life_reverse_engineering_schema.json" \
+  --prompt-file "$REPO_DIR/orchestral/prompt_tools/company/life_reverse_engineering_prompt.md" \
+  --schema "$REPO_DIR/orchestral/prompt_tools/company/life_reverse_engineering_schema.json" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label "$LABEL" \
@@ -289,7 +289,7 @@ python3 "$REPO_DIR/orchestral/prompt_tools/runtime/codex-json-runner.py" \
   >/dev/null
 
 PLAN_JSON="$OUTPUT_DIR/latest-result.json"
-python3 "$REPO_DIR/orchestral/prompt_tools/life_reverse_reminder_apply.py" \
+python3 "$REPO_DIR/orchestral/prompt_tools/company/life_reverse_reminder_apply.py" \
   --plan-json "$PLAN_JSON" \
   --state-json "$STATE_JSON" \
   --state-md "$STATE_MD" \

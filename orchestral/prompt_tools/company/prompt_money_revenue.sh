@@ -18,8 +18,8 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="money-revenue"
-PROMPT_FILE="orchestral/prompt_tools/money_revenue_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/money_revenue_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/la_ops_schema.json"
 REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
 
@@ -42,8 +42,8 @@ Options:
   --approval <policy>          Codex approval policy (default: never)
   --output-dir <path>          Artifact directory (default: /tmp/codex-la-pipeline)
   --label <name>               Run label (default: money-revenue)
-  --prompt-file <path>         Prompt template (default: orchestral/prompt_tools/money_revenue_prompt.md)
-  --schema-file <path>         Output schema (default: orchestral/prompt_tools/la_ops_schema.json)
+  --prompt-file <path>         Prompt template (default: orchestral/prompt_tools/company/money_revenue_prompt.md)
+  --schema-file <path>         Output schema (default: orchestral/prompt_tools/company/la_ops_schema.json)
   --reference-source <u>       Reference source URL/text (repeatable)
   -h, --help                  Show help
 USAGE

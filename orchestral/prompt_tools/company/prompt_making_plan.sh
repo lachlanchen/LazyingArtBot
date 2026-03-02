@@ -53,7 +53,7 @@ with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-RESULT=$(orchestral/prompt_tools/runtime/run_auto_ops.sh --prompt orchestral/prompt_tools/making_plan_prompt.md --label plan --payload "$TMP")
+RESULT=$(orchestral/prompt_tools/runtime/run_auto_ops.sh --prompt orchestral/prompt_tools/company/making_plan_prompt.md --label plan --payload "$TMP")
 rm -f "$TMP"
 
 echo "$RESULT"

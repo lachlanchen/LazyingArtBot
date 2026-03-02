@@ -21,8 +21,8 @@ MODEL="gpt-5.3-codex"
 REASONING="medium"
 SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
-PROMPT_FILE="orchestral/prompt_tools/email_writer_incremental_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/email_writer_incremental_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/email/email_writer_incremental_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/email/email_writer_incremental_schema.json"
 
 usage() {
   cat <<'USAGE'

@@ -124,8 +124,8 @@ PY
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$TMP_PAYLOAD" \
   --output-dir "$OUTPUT_DIR" \
-  --prompt-file "$REPO_DIR/orchestral/prompt_tools/grocery_prompt.md" \
-  --schema "$REPO_DIR/orchestral/prompt_tools/grocery_schema.json" \
+  --prompt-file "$REPO_DIR/orchestral/prompt_tools/reminders/grocery_prompt.md" \
+  --schema "$REPO_DIR/orchestral/prompt_tools/reminders/grocery_schema.json" \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label "groceries" \

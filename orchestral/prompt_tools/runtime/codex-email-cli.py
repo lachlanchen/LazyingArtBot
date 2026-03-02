@@ -20,7 +20,7 @@ import os
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROMPT_TOOLS_DIR = SCRIPT_DIR.parent
-DEFAULT_PROMPT_TOOLS = PROMPT_TOOLS_DIR
+DEFAULT_PROMPT_TOOLS = SCRIPT_DIR
 DEFAULT_MODEL = "gpt-5.3-codex-spark"
 DEFAULT_REASONING = "high"
 DEFAULT_SAFETY = os.environ.get("CODEX_SAFETY", "danger-full-access")
@@ -65,6 +65,29 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def resolve_runtime_assets_dir(prompt_tools_dir: Path) -> Path:
+    direct = prompt_tools_dir
+    nested = prompt_tools_dir / "runtime"
+
+    def has_required_files(base: Path) -> bool:
+        return (
+            (base / "email_send_prompt.md").exists()
+            and (base / "common_tools.md").exists()
+            and (base / "email_send_schema.json").exists()
+        )
+
+    if has_required_files(direct):
+        return direct
+    if has_required_files(nested):
+        return nested
+
+    raise RuntimeError(
+        "Could not locate runtime email assets under "
+        f"{prompt_tools_dir}. Expected files: email_send_prompt.md, "
+        "common_tools.md, email_send_schema.json"
+    )
+
+
 def build_prompt(
     *,
     instruction: str,
@@ -72,10 +95,10 @@ def build_prompt(
     cc_hint: list[str],
     bcc_hint: list[str],
     from_hint: str | None,
-    prompt_tools_dir: Path,
+    runtime_assets_dir: Path,
 ) -> str:
-    base_prompt = read_text(prompt_tools_dir / "email_send_prompt.md")
-    common_tools = read_text(prompt_tools_dir / "common_tools.md")
+    base_prompt = read_text(runtime_assets_dir / "email_send_prompt.md")
+    common_tools = read_text(runtime_assets_dir / "common_tools.md")
     now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
     payload = {
@@ -459,7 +482,8 @@ def main() -> int:
     from_hint = parse_single_email(args.from_address)
 
     prompt_tools_dir = Path(args.prompt_tools_dir).expanduser().resolve()
-    schema_path = prompt_tools_dir / "email_send_schema.json"
+    runtime_assets_dir = resolve_runtime_assets_dir(prompt_tools_dir)
+    schema_path = runtime_assets_dir / "email_send_schema.json"
     if not schema_path.exists():
         raise RuntimeError(f"Schema file missing: {schema_path}")
 
@@ -469,7 +493,7 @@ def main() -> int:
         cc_hint=cc_hint,
         bcc_hint=bcc_hint,
         from_hint=from_hint,
-        prompt_tools_dir=prompt_tools_dir,
+        runtime_assets_dir=runtime_assets_dir,
     )
 
     action_raw = run_codex(

@@ -11,8 +11,8 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-la-pipeline"
 LABEL="la-market"
-PROMPT_FILE="orchestral/prompt_tools/la_market_research_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/la_market_research_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/la_ops_schema.json"
 COMPANY_FOCUS="Lazying.art"
 REFERENCE_SOURCES=()
 CUSTOM_REFERENCE_SOURCES=0
@@ -31,8 +31,8 @@ Options:
   --label <name>          Run label (default: la-market)
   --company-focus <text>  Company focus label (default: Lazying.art)
   --reference-source <u>  Reference source URL/text (repeatable)
-  --prompt-file <path>    Prompt template (default: orchestral/prompt_tools/la_market_research_prompt.md)
-  --schema-file <path>    Output schema (default: orchestral/prompt_tools/la_ops_schema.json)
+  --prompt-file <path>    Prompt template (default: orchestral/prompt_tools/company/la_market_research_prompt.md)
+  --schema-file <path>    Output schema (default: orchestral/prompt_tools/company/la_ops_schema.json)
   -h, --help              Show help
 USAGE
 }

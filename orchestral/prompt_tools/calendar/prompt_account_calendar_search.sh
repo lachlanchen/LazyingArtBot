@@ -78,8 +78,8 @@ PY
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir /tmp/codex-account-calendar-move \
-  --prompt-file orchestral/prompt_tools/account_calendar_search_prompt.md \
-  --schema orchestral/prompt_tools/account_calendar_search_schema.json \
+  --prompt-file orchestral/prompt_tools/calendar/account_calendar_search_prompt.md \
+  --schema orchestral/prompt_tools/calendar/account_calendar_search_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label account-calendar-search \

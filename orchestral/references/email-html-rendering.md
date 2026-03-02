@@ -28,7 +28,7 @@ for all test sends.
 ## Files Updated
 
 - `orchestral/prompt_tools/runtime/codex-email-cli.py`
-- `orchestral/prompt_tools/email_send_prompt.md`
+- `orchestral/prompt_tools/runtime/email_send_prompt.md`
 
 ## Quick Test
 

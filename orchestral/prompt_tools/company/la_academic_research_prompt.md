@@ -38,7 +38,7 @@ Rules:
 - Keep output concise and structured for notes + execution planning.
 - If no high-confidence signal or search evidence is missing, return `notes: []` with a short summary and `evidence_status: incomplete`.
 
-Output requirements (`notes`, exact schema from `orchestral/prompt_tools/la_ops_schema.json`):
+Output requirements (`notes`, exact schema from `orchestral/prompt_tools/company/la_ops_schema.json`):
 
 1. `summary`: 2–4 sentences, CN-first with short EN/JP labels where useful.
 2. `notes`: at most 2 note objects. If there are 2+, keep unique topics and highest confidence only.

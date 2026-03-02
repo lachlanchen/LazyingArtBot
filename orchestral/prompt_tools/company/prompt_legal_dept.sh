@@ -15,8 +15,8 @@ SAFETY="${CODEX_SAFETY:-danger-full-access}"
 APPROVAL="${CODEX_APPROVAL:-never}"
 OUTPUT_DIR="/tmp/codex-legal-review"
 LABEL="legal-dept"
-PROMPT_FILE="orchestral/prompt_tools/legal_dept_prompt.md"
-SCHEMA_FILE="orchestral/prompt_tools/la_ops_schema.json"
+PROMPT_FILE="orchestral/prompt_tools/company/legal_dept_prompt.md"
+SCHEMA_FILE="orchestral/prompt_tools/company/la_ops_schema.json"
 REFERENCE_SOURCES=(
   "https://www.gov.hk/"
   "https://www.gov.cn/"
@@ -32,8 +32,8 @@ LEGAL_WEB_SCROLL_STEPS=2
 LEGAL_WEB_SCROLL_PAUSE=0.8
 LEGAL_WEB_HOLD_SECONDS=8
 LEGAL_WEB_QUERIES=()
-LEGAL_WEB_QUERY_PLANNER_PROMPT="orchestral/prompt_tools/legal_web_search_query_planner_prompt.md"
-LEGAL_WEB_QUERY_SCHEMA="orchestral/prompt_tools/web_search_query_planner_schema.json"
+LEGAL_WEB_QUERY_PLANNER_PROMPT="orchestral/prompt_tools/company/legal_web_search_query_planner_prompt.md"
+LEGAL_WEB_QUERY_SCHEMA="orchestral/prompt_tools/websearch/web_search_query_planner_schema.json"
 
 parse_web_query() {
   local raw="$1"
@@ -375,8 +375,8 @@ Options:
   --approval <policy>            Approval mode (default: never)
   --output-dir <path>            Output artifact directory (default: /tmp/codex-legal-review)
   --label <name>                 Run label (default: legal-dept)
-  --prompt-file <path>           Prompt file (default: orchestral/prompt_tools/legal_dept_prompt.md)
-  --schema-file <path>           JSON schema (default: orchestral/prompt_tools/la_ops_schema.json)
+  --prompt-file <path>           Prompt file (default: orchestral/prompt_tools/company/legal_dept_prompt.md)
+  --schema-file <path>           JSON schema (default: orchestral/prompt_tools/company/la_ops_schema.json)
   --reference-source <u>         Reference source URL/text (repeatable)
   -h, --help                    Show help
 USAGE

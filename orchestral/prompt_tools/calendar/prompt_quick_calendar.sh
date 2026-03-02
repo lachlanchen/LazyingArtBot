@@ -88,8 +88,8 @@ PY
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir "$OUTPUT_DIR" \
-  --prompt-file orchestral/prompt_tools/prompt_quick_calendar_prompt.md \
-  --schema orchestral/prompt_tools/quick_reminder_schema.json \
+  --prompt-file orchestral/prompt_tools/calendar/prompt_quick_calendar_prompt.md \
+  --schema orchestral/prompt_tools/reminders/quick_reminder_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label quick-calendar \

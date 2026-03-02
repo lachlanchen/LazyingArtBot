@@ -69,8 +69,8 @@ PY
 python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json "$TMP" \
   --output-dir /tmp/codex-lazyingart-migration \
-  --prompt-file orchestral/prompt_tools/lazyingart_migration_search_prompt.md \
-  --schema orchestral/prompt_tools/lazyingart_migration_search_schema.json \
+  --prompt-file orchestral/prompt_tools/migration/lazyingart_migration_search_prompt.md \
+  --schema orchestral/prompt_tools/migration/lazyingart_migration_search_schema.json \
   --model "$MODEL" \
   --reasoning "$REASONING" \
   --label lazyingart-migration-search \

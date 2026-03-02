@@ -6,8 +6,8 @@ prompt chains.
 ## Script
 
 - `orchestral/prompt_tools/company/prompt_resource_analysis.sh`
-- Prompt: `orchestral/prompt_tools/resource_analysis_prompt.md`
-- Output schema: `orchestral/prompt_tools/resource_analysis_schema.json`
+- Prompt: `orchestral/prompt_tools/company/resource_analysis_prompt.md`
+- Output schema: `orchestral/prompt_tools/company/resource_analysis_schema.json`
 
 ## Example (Lightmind)
 
