@@ -456,7 +456,7 @@
   function renderPage(page) {
     switch (page) {
       case "dashboard":
-        renderDashboard();
+        void renderDashboard();
         break;
       case "chat":
         /* chat is maintained */ break;
@@ -652,7 +652,7 @@
     let events;
     try {
       events = await fetchCalendarData();
-    } catch (e) {
+    } catch {
       events = MOCK.calendarFull;
     }
 
@@ -815,7 +815,7 @@
   function getLocalCalendarEvents() {
     try {
       return JSON.parse(localStorage.getItem("kw_calendar_events") || "[]");
-    } catch (e) {
+    } catch {
       return [];
     }
   }
@@ -836,7 +836,7 @@
     events.push(item);
     try {
       localStorage.setItem("kw_calendar_events", JSON.stringify(events.slice(-100)));
-    } catch (e) {}
+    } catch {}
     return item;
   }
 
@@ -846,7 +846,7 @@
     });
     try {
       localStorage.setItem("kw_calendar_events", JSON.stringify(events));
-    } catch (e) {}
+    } catch {}
   }
 
   var calendarCache = null;
@@ -1647,7 +1647,7 @@
               "新行程: " + titleVal + " @ " + dateVal + (timeVal ? " " + timeVal : ""),
               ["calendar"],
             );
-          } catch (e) {
+          } catch {
             // ignore
           }
         }
