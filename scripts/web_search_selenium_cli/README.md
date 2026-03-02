@@ -65,7 +65,7 @@ Artifacts:
 You can also call the prompt wrapper:
 
 ```bash
-orchestral/prompt_tools/prompt_web_search_batch.sh \
+orchestral/prompt_tools/websearch/prompt_web_search_batch.sh \
   --query "wearable glass paper" \
   --kind scholar \
   --top-results 3

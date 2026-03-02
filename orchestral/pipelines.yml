@@ -9,13 +9,13 @@ pipelines:
     outputs:
       notes_root: "~/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt"
     prompt_tools:
-      market: orchestral/prompt_tools/prompt_la_market.sh
-      plan: orchestral/prompt_tools/prompt_la_plan.sh
-      money: orchestral/prompt_tools/prompt_money_revenue.sh
-      funding: orchestral/prompt_tools/prompt_funding_vc.sh
-      note_reader: orchestral/prompt_tools/prompt_la_note_reader.sh
-      note_save: orchestral/prompt_tools/prompt_la_note_save.sh
-      web_search: orchestral/prompt_tools/prompt_web_search_immersive.sh
+      market: orchestral/prompt_tools/company/prompt_la_market.sh
+      plan: orchestral/prompt_tools/company/prompt_la_plan.sh
+      money: orchestral/prompt_tools/company/prompt_money_revenue.sh
+      funding: orchestral/prompt_tools/company/prompt_funding_vc.sh
+      note_reader: orchestral/prompt_tools/notes/prompt_la_note_reader.sh
+      note_save: orchestral/prompt_tools/notes/prompt_la_note_save.sh
+      web_search: orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh
 
   - name: lightmind-daily
     label: Lightmind Pipeline
@@ -27,12 +27,12 @@ pipelines:
     outputs:
       notes_root: "~/.openclaw/workspace/AutoLife/MetaNotes/Companies/Lightmind"
     prompt_tools:
-      market: orchestral/prompt_tools/prompt_la_market.sh
-      plan: orchestral/prompt_tools/prompt_la_plan.sh
-      entrepreneur: orchestral/prompt_tools/prompt_entrepreneurship_mentor.sh
-      legal: orchestral/prompt_tools/prompt_legal_dept.sh
-      money: orchestral/prompt_tools/prompt_money_revenue.sh
-      note_reader: orchestral/prompt_tools/prompt_la_note_reader.sh
-      note_save: orchestral/prompt_tools/prompt_la_note_save.sh
-      web_search: orchestral/prompt_tools/prompt_web_search_immersive.sh
-      quick_reminder: orchestral/prompt_tools/prompt_quick_reminder.sh
+      market: orchestral/prompt_tools/company/prompt_la_market.sh
+      plan: orchestral/prompt_tools/company/prompt_la_plan.sh
+      entrepreneur: orchestral/prompt_tools/company/prompt_entrepreneurship_mentor.sh
+      legal: orchestral/prompt_tools/company/prompt_legal_dept.sh
+      money: orchestral/prompt_tools/company/prompt_money_revenue.sh
+      note_reader: orchestral/prompt_tools/notes/prompt_la_note_reader.sh
+      note_save: orchestral/prompt_tools/notes/prompt_la_note_save.sh
+      web_search: orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh
+      quick_reminder: orchestral/prompt_tools/reminders/prompt_quick_reminder.sh

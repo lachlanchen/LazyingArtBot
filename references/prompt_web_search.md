@@ -4,12 +4,12 @@ This document defines how to run the local Selenium-powered web search prompt to
 
 ## Files
 
-- `orchestral/prompt_tools/prompt_web_search.sh`
-- `orchestral/prompt_tools/prompt_web_search_click.sh`
-- `orchestral/prompt_tools/prompt_web_search_immersive.sh`
-- `orchestral/prompt_tools/prompt_web_search_google.sh`
-- `orchestral/prompt_tools/prompt_web_search_google_scholar.sh`
-- `orchestral/prompt_tools/prompt_web_search_google_news.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_click.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_google.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_google_scholar.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_google_news.sh`
 - `orchestral/prompt_tools/prompt_web_search_click_prompt.md`
 - `orchestral/prompt_tools/prompt_web_search_immersive_prompt.md`
 - `orchestral/prompt_tools/prompt_web_search_prompt.md`
@@ -60,14 +60,14 @@ Assume `RUN_ID=20260219-010101`.
 ## Quick commands
 
 ```bash
-orchestral/prompt_tools/prompt_web_search.sh
-orchestral/prompt_tools/prompt_web_search.sh --headless --results 8 --run-id test-1
-orchestral/prompt_tools/prompt_web_search.sh --query "site:science.org CRISPR" --query "site:nature.com GPT-4" --output-dir /tmp/web-search
-orchestral/prompt_tools/prompt_web_search.sh --open-url https://www.google.com --attach --debug-port 9222
-orchestral/prompt_tools/prompt_web_search.sh --open-url https://accounts.google.com/ --keep-open --hold-seconds 30 --output-dir ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs
-orchestral/prompt_tools/prompt_web_search_google_scholar.sh --query "wearable glass" --results 5 --result-index 1 --keep-open --summary-max-chars 2500
-orchestral/prompt_tools/prompt_web_search_immersive.sh --query "site:nature.com quantum sensing" --engine google --keep-open --scroll-steps 6 --scroll-pause 1 --output-dir ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs
-orchestral/prompt_tools/prompt_web_search_immersive.sh --query "site:arxiv.org multimodal" --open-url https://www.google.com --attach --debug-port 9222 --click-x 420 --click-y 560
+orchestral/prompt_tools/websearch/prompt_web_search.sh
+orchestral/prompt_tools/websearch/prompt_web_search.sh --headless --results 8 --run-id test-1
+orchestral/prompt_tools/websearch/prompt_web_search.sh --query "site:science.org CRISPR" --query "site:nature.com GPT-4" --output-dir /tmp/web-search
+orchestral/prompt_tools/websearch/prompt_web_search.sh --open-url https://www.google.com --attach --debug-port 9222
+orchestral/prompt_tools/websearch/prompt_web_search.sh --open-url https://accounts.google.com/ --keep-open --hold-seconds 30 --output-dir ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs
+orchestral/prompt_tools/websearch/prompt_web_search_google_scholar.sh --query "wearable glass" --results 5 --result-index 1 --keep-open --summary-max-chars 2500
+orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh --query "site:nature.com quantum sensing" --engine google --keep-open --scroll-steps 6 --scroll-pause 1 --output-dir ~/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs
+orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh --query "site:arxiv.org multimodal" --open-url https://www.google.com --attach --debug-port 9222 --click-x 420 --click-y 560
 ```
 
 ## Notes

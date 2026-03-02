@@ -54,7 +54,7 @@ orchestral/scripts/search_account_calendar_reminder_summary.sh
 
 ## Prompt tools
 
-- Search tool: `orchestral/prompt_tools/prompt_lazyingart_migration_search.sh`
-- Move tool: `orchestral/prompt_tools/prompt_lazyingart_migration_move.sh`
+- Search tool: `orchestral/prompt_tools/migration/prompt_lazyingart_migration_search.sh`
+- Move tool: `orchestral/prompt_tools/migration/prompt_lazyingart_migration_move.sh`
 
 These tools call Codex with prompts that explicitly reference the scripts above.

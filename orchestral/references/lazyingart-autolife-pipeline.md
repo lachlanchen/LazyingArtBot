@@ -76,10 +76,10 @@ Reminder planning input:
 ```bash
 cd /Users/lachlan/Local/Clawbot
 chmod +x orchestral/pipelines/run_lazyingart_pipeline.sh orchestral/pipelines/setup_lazyingart_pipeline_cron.sh
-chmod +x orchestral/prompt_tools/prompt_la_market.sh orchestral/prompt_tools/prompt_la_plan.sh
-chmod +x orchestral/prompt_tools/prompt_entrepreneurship_mentor.sh
-chmod +x orchestral/prompt_tools/prompt_life_reverse_engineering_tool.sh
-chmod +x orchestral/prompt_tools/prompt_la_note_reader.sh orchestral/prompt_tools/prompt_la_note_save.sh
+chmod +x orchestral/prompt_tools/company/prompt_la_market.sh orchestral/prompt_tools/company/prompt_la_plan.sh
+chmod +x orchestral/prompt_tools/company/prompt_entrepreneurship_mentor.sh
+chmod +x orchestral/prompt_tools/company/prompt_life_reverse_engineering_tool.sh
+chmod +x orchestral/prompt_tools/notes/prompt_la_note_reader.sh orchestral/prompt_tools/notes/prompt_la_note_save.sh
 orchestral/pipelines/setup_lazyingart_pipeline_cron.sh --to lachchen@qq.com --from lachlan.miao.chen@gmail.com
 ```
 

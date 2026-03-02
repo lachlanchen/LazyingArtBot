@@ -27,13 +27,13 @@ for all test sends.
 
 ## Files Updated
 
-- `orchestral/prompt_tools/codex-email-cli.py`
+- `orchestral/prompt_tools/runtime/codex-email-cli.py`
 - `orchestral/prompt_tools/email_send_prompt.md`
 
 ## Quick Test
 
 ```bash
-python3 /Users/lachlan/Local/Clawbot/orchestral/prompt_tools/codex-email-cli.py \
+python3 /Users/lachlan/Local/Clawbot/orchestral/prompt_tools/runtime/codex-email-cli.py \
   --instruction "Send a compact HTML status update with heading, bullets, and table." \
   --to lachchen@qq.com \
   --from lachlan.miao.chen@gmail.com \

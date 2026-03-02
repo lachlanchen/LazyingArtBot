@@ -318,7 +318,7 @@ PY
 
 update_incremental_email() {
   local stage_label="$1"
-  "$PROMPT_DIR/prompt_email_writer_incremental.sh" \
+  "$PROMPT_DIR/email/prompt_email_writer_incremental.sh" \
     --company-focus "$LA_PRIMARY_BRAND" \
     --stage "$stage_label" \
     --output-dir "$EMAIL_INCREMENTAL_DIR" \
@@ -791,7 +791,7 @@ run_web_search_queries() {
     if [[ "$WEB_SEARCH_HEADLESS" == "1" ]]; then
       web_search_args+=(--headless)
     fi
-    if ! "$PROMPT_DIR/prompt_web_search_immersive.sh" "${web_search_args[@]}" >"$query_log_file" 2>&1; then
+    if ! "$PROMPT_DIR/websearch/prompt_web_search_immersive.sh" "${web_search_args[@]}" >"$query_log_file" 2>&1; then
       printf '%s\n' "- ❌ Web search failed for: $query_text" >> "$query_summary_file"
       printf '<p>⚠️ %s (%s): failed, see query log.</p>' "$query_text" "$query_kind" >> "$query_html_file"
       idx=$((idx + 1))
@@ -881,7 +881,7 @@ payload = {
 Path(sys.argv[1]).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
-  if ! python3 orchestral/prompt_tools/codex-json-runner.py \
+  if ! python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
     --prompt-file "$LA_WEB_QUERY_PLANNER_PROMPT" \
@@ -1126,7 +1126,7 @@ payload = {
 Path(sys.argv[1]).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
-  if ! python3 orchestral/prompt_tools/codex-json-runner.py \
+  if ! python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
     --input-json "$planner_input" \
     --output-dir "$planner_output_dir" \
     --prompt-file "$PROMPT_DIR/web_search_query_planner_prompt.md" \
@@ -1454,7 +1454,7 @@ if [[ "$RUN_RESOURCE_ANALYSIS" == "1" ]]; then
 
   log "Step 0: analyze resources and build reference summary"
   set +e
-  "$PROMPT_DIR/prompt_resource_analysis.sh" \
+  "$PROMPT_DIR/company/prompt_resource_analysis.sh" \
     --company "LazyingArt" \
     --output-dir "$RESOURCE_ANALYSIS_RUN_DIR" \
     --markdown-output "$RESOURCE_ANALYSIS_MARKDOWN_DIR" \
@@ -1648,7 +1648,7 @@ STEP_CURSOR=$((STEP_CURSOR + 1))
 EMAIL_STEP=$STEP_CURSOR
 
 log "Step ${READ_NOTE_STEP}/$TOTAL_STEPS: read current milestone note from AutoLife"
-"$PROMPT_DIR/prompt_la_note_reader.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_reader.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1675,7 +1675,7 @@ if [[ "$RUN_WEB_SEARCH" == "1" ]]; then
     echo "  top_results_per_query: $WEB_SEARCH_TOP_RESULTS"
     cat "$WEB_SUMMARY_FILE"
   } >> "$CONTEXT_FILE"
-  "$PROMPT_DIR/prompt_la_note_save.sh" \
+  "$PROMPT_DIR/notes/prompt_la_note_save.sh" \
     --account "iCloud" \
     --root-folder "AutoLife" \
     --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1701,7 +1701,7 @@ for source in "${ACADEMIC_RSS_SOURCES[@]}"; do
 done
 
 log "Step ${MARKET_STEP}/$TOTAL_STEPS: market research"
-"$PROMPT_DIR/prompt_la_market.sh" \
+"$PROMPT_DIR/company/prompt_la_market.sh" \
   --context-file "$CONTEXT_FILE" \
   --company-focus "$LA_PRIMARY_BRAND" \
   "${LA_MARKET_REFERENCE_ARGS[@]}" \
@@ -1716,7 +1716,7 @@ extract_summary "$MARKET_RESULT" "$MARKET_SUMMARY"
 cp "$MARKET_RESULT" "$NOTES_ROOT/last_market_result.json"
 cp "$MARKET_HTML" "$NOTES_ROOT/last_market.html"
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1741,7 +1741,7 @@ PY
 )"
   build_academic_context_websearch "$ACADEMIC_CONTEXT" "$ACADEMIC_QUERIES_JSON" "$ACADEMIC_MAX_RESULTS" "${ACADEMIC_RSS_SOURCES[@]}"
 
-  "$PROMPT_DIR/prompt_la_market.sh" \
+  "$PROMPT_DIR/company/prompt_la_market.sh" \
     --context-file "$ACADEMIC_CONTEXT" \
     --company-focus "$LA_PRIMARY_BRAND" \
     "${LA_ACADEMIC_REFERENCE_ARGS[@]}" \
@@ -1758,7 +1758,7 @@ PY
   cp "$ACADEMIC_RESULT" "$NOTES_ROOT/last_academic_result.json"
   cp "$ACADEMIC_HTML" "$NOTES_ROOT/last_academic.html"
 
-  "$PROMPT_DIR/prompt_la_note_save.sh" \
+  "$PROMPT_DIR/notes/prompt_la_note_save.sh" \
     --account "iCloud" \
     --root-folder "AutoLife" \
     --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1776,7 +1776,7 @@ merge_market_and_academic_summaries "$MARKET_SUMMARY" "$ACADEMIC_SUMMARY" "$PLAN
 
 if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
   log "Step ${LEGAL_STEP}/$TOTAL_STEPS: legal compliance and tax review (HK + Mainland + US)"
-  "$PROMPT_DIR/prompt_legal_dept.sh" \
+  "$PROMPT_DIR/company/prompt_legal_dept.sh" \
     --company-focus "$LA_PRIMARY_BRAND" \
     --legal-root "$LEGAL_INPUT_ROOT" \
     --context-file "$CONTEXT_FILE" \
@@ -1799,7 +1799,7 @@ if [[ "$RUN_LEGAL_DEPT" == "1" ]]; then
   cp "$LEGAL_RESULT" "$NOTES_ROOT/last_legal_result.json"
   cp "$LEGAL_HTML" "$NOTES_ROOT/last_legal.html"
 
-  "$PROMPT_DIR/prompt_la_note_save.sh" \
+  "$PROMPT_DIR/notes/prompt_la_note_save.sh" \
     --account "iCloud" \
     --root-folder "AutoLife" \
     --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1818,7 +1818,7 @@ update_incremental_email "legal"
 } >> "$CONTEXT_FILE"
 
 log "Step ${FUNDING_STEP}/$TOTAL_STEPS: funding and VC opportunities"
-"$PROMPT_DIR/prompt_funding_vc.sh" \
+"$PROMPT_DIR/company/prompt_funding_vc.sh" \
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --resource-summary-file "$RESOURCE_APPEND_PATH" \
@@ -1838,7 +1838,7 @@ extract_summary "$FUNDING_RESULT" "$FUNDING_SUMMARY"
 cp "$FUNDING_RESULT" "$NOTES_ROOT/last_funding_result.json"
 cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1848,7 +1848,7 @@ cp "$FUNDING_HTML" "$NOTES_ROOT/last_funding.html"
 update_incremental_email "funding"
 
 log "Step ${MONEY_STEP}/$TOTAL_STEPS: monetization and revenue strategy"
-"$PROMPT_DIR/prompt_money_revenue.sh" \
+"$PROMPT_DIR/company/prompt_money_revenue.sh" \
   --context-file "$CONTEXT_FILE" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --funding-summary-file "$FUNDING_SUMMARY" \
@@ -1869,7 +1869,7 @@ extract_summary "$MONEY_REVENUE_RESULT" "$MONEY_REVENUE_SUMMARY"
 cp "$MONEY_REVENUE_RESULT" "$NOTES_ROOT/last_money_revenue_result.json"
 cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1879,7 +1879,7 @@ cp "$MONEY_REVENUE_HTML" "$NOTES_ROOT/last_money_revenue.html"
 update_incremental_email "money_revenue"
 
 log "Step ${PLAN_STEP}/$TOTAL_STEPS: milestone plan draft"
-"$PROMPT_DIR/prompt_la_plan.sh" \
+"$PROMPT_DIR/company/prompt_la_plan.sh" \
   --note-html "$CURRENT_MILESTONE_HTML" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
@@ -1896,7 +1896,7 @@ extract_summary "$PLAN_RESULT" "$PLAN_SUMMARY"
 cp "$PLAN_RESULT" "$NOTES_ROOT/last_plan_result.json"
 cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1906,7 +1906,7 @@ cp "$PLAN_HTML" "$NOTES_ROOT/last_plan.html"
 update_incremental_email "plan"
 
 log "Step ${MENTOR_STEP}/$TOTAL_STEPS: entrepreneurship mentor"
-"$PROMPT_DIR/prompt_entrepreneurship_mentor.sh" \
+"$PROMPT_DIR/company/prompt_entrepreneurship_mentor.sh" \
   --market-summary-file "$PLAN_INPUT_SUMMARY" \
   --plan-summary-file "$PLAN_SUMMARY" \
   --academic-summary-file "$PLAN_INPUT_SUMMARY" \
@@ -1924,7 +1924,7 @@ extract_summary "$MENTOR_RESULT" "$MENTOR_SUMMARY"
 cp "$MENTOR_RESULT" "$NOTES_ROOT/last_mentor_result.json"
 cp "$MENTOR_HTML" "$NOTES_ROOT/last_mentor.html"
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -1935,7 +1935,7 @@ update_incremental_email "mentor"
 
 if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
   log "Step ${LIFE_STEP}/$TOTAL_STEPS: life reverse reminder planning"
-  "$PROMPT_DIR/prompt_life_reverse_engineering_tool.sh" \
+  "$PROMPT_DIR/company/prompt_life_reverse_engineering_tool.sh" \
     --input-md "$LIFE_INPUT_MD" \
     --company-focus "$LA_PRIMARY_BRAND" \
     --state-md "$LIFE_STATE_MD" \
@@ -1961,7 +1961,7 @@ if [[ "$RUN_LIFE_REMINDER" == "1" ]]; then
     cp "$LIFE_MD" "$NOTES_ROOT/last_life_plan.md"
     cp "$LIFE_HTML" "$NOTES_ROOT/last_life_plan.html"
 
-    "$PROMPT_DIR/prompt_la_note_save.sh" \
+    "$PROMPT_DIR/notes/prompt_la_note_save.sh" \
       --account "iCloud" \
       --root-folder "AutoLife" \
       --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -2071,7 +2071,7 @@ content = (
 out.write_text(content, encoding="utf-8")
 PY
 
-"$PROMPT_DIR/prompt_la_note_save.sh" \
+"$PROMPT_DIR/notes/prompt_la_note_save.sh" \
   --account "iCloud" \
   --root-folder "AutoLife" \
   --folder-path "🏢 Companies/🐼 Lazying.art" \
@@ -2100,7 +2100,7 @@ EOF
 
 EMAIL_LOG="$ARTIFACT_DIR/email.log"
 if [[ "$SEND_EMAIL" == "1" ]]; then
-  cat "$EMAIL_INSTRUCTION" | python3 "$PROMPT_DIR/codex-email-cli.py" \
+  cat "$EMAIL_INSTRUCTION" | python3 "$PROMPT_DIR/runtime/codex-email-cli.py" \
     --to "$TO_ADDR" \
     --from "$FROM_ADDR" \
     --model "$MODEL" \
@@ -2113,7 +2113,7 @@ if [[ "$SEND_EMAIL" == "1" ]]; then
     >"$EMAIL_LOG" 2>&1
   log "Email sent to $TO_ADDR"
 else
-  cat "$EMAIL_INSTRUCTION" | python3 "$PROMPT_DIR/codex-email-cli.py" \
+  cat "$EMAIL_INSTRUCTION" | python3 "$PROMPT_DIR/runtime/codex-email-cli.py" \
     --to "$TO_ADDR" \
     --from "$FROM_ADDR" \
     --model "$MODEL" \

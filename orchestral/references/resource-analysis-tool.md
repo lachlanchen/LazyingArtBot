@@ -5,14 +5,14 @@ prompt chains.
 
 ## Script
 
-- `orchestral/prompt_tools/prompt_resource_analysis.sh`
+- `orchestral/prompt_tools/company/prompt_resource_analysis.sh`
 - Prompt: `orchestral/prompt_tools/resource_analysis_prompt.md`
 - Output schema: `orchestral/prompt_tools/resource_analysis_schema.json`
 
 ## Example (Lightmind)
 
 ```bash
-orchestral/prompt_tools/prompt_resource_analysis.sh \
+orchestral/prompt_tools/company/prompt_resource_analysis.sh \
   --company "Lightmind" \
   --resource-root "/Users/lachlan/Library/Containers/com.tencent.WeWorkMac/Data/WeDrive/LightMind Tech Ltd./LightMind Tech Ltd./LightMind_Confidential" \
   --resource-root "/Users/lachlan/Documents/LazyingArtBotIO/LightMind/Input" \

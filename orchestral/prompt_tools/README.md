@@ -2,12 +2,38 @@
 
 This directory is the dedicated home for LAB Codex prompt-driven tooling.
 
+## Runtime runners
+
+Runtime entrypoints now live under `runtime/`:
+
+- `runtime/codex-noninteractive.sh`
+- `runtime/codex-email-cli.py`
+- `runtime/codex-json-runner.py`
+- `runtime/run_auto_ops.sh`
+
+Compatibility wrappers are kept at top-level (`orchestral/prompt_tools/*.sh|*.py`) so existing callers continue to work.
+
+## Prompt tool groups
+
+- `company/` company pipeline stage tools (`prompt_la_market.sh`, `prompt_legal_dept.sh`, `prompt_funding_vc.sh`, etc.)
+- `websearch/` web/news/search and playlist tools
+- `email/` incremental email composition tools
+- `notes/` notes read/write/log tools
+- `calendar/` calendar planning + account-calendar migration helpers
+- `reminders/` quick reminder, daily ritual, groceries helpers
+- `migration/` LazyingArt migration planners
+- `git/` commit helper wrappers
+
+## Legacy top-level compatibility
+
+Top-level script names remain available as wrappers so cronjobs, automations, and older scripts do not break immediately. New callers should prefer grouped paths.
+
 ## Core runners
 
-- `codex-noninteractive.sh` – Minimal non-interactive Codex wrapper with explicit model/reasoning.
-- `codex-email-cli.py` – Codex-assisted email draft/send flow (Apple Mail).
-- `codex-json-runner.py` – Standard JSON-in / JSON-out Codex runner for reusable automation pipelines.
-- `run_auto_ops.sh` – Helper wrapper that feeds payloads + prompt templates into `codex-json-runner.py` with the AutoLife operations schema.
+- `runtime/codex-noninteractive.sh` – Minimal non-interactive Codex wrapper with explicit model/reasoning.
+- `runtime/codex-email-cli.py` – Codex-assisted email draft/send flow (Apple Mail).
+- `runtime/codex-json-runner.py` – Standard JSON-in / JSON-out Codex runner for reusable automation pipelines.
+- `runtime/run_auto_ops.sh` – Helper wrapper that feeds payloads + prompt templates into `codex-json-runner.py` with the AutoLife operations schema.
 
 ## AutoLife prompt suite (delegation-first)
 
@@ -124,7 +150,7 @@ Coordinator scripts:
 
 ## Standard paradigm
 
-Use `codex-json-runner.py` (directly or via `run_auto_ops.sh`) as common practice:
+Use `runtime/codex-json-runner.py` (directly or via `runtime/run_auto_ops.sh`) as common practice:
 
 1. Provide `--input-json` (task payload).
 2. Provide `--output-dir` (artifact/result folder).
@@ -150,7 +176,7 @@ Plus shared latest pointers:
 ## Example
 
 ```bash
-python3 orchestral/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
   --schema orchestral/prompt_tools/email_send_schema.json \

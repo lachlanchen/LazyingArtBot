@@ -63,7 +63,7 @@ orchestral/scripts/move_events_from_account_calendar_to_lazyingart.sh \
 
 ## Prompt tools
 
-- `orchestral/prompt_tools/prompt_account_calendar_search.sh`
-- `orchestral/prompt_tools/prompt_account_calendar_move.sh`
+- `orchestral/prompt_tools/calendar/prompt_account_calendar_search.sh`
+- `orchestral/prompt_tools/calendar/prompt_account_calendar_move.sh`
 
 These wrappers run the scripts above, then ask Codex to audit/plan using structured JSON output.

@@ -39,7 +39,7 @@ All Codex prompt-driven scripts now live in:
 
 ### 1) Codex non-interactive wrapper
 
-- Path: `orchestral/prompt_tools/codex-noninteractive.sh`
+- Path: `orchestral/prompt_tools/runtime/codex-noninteractive.sh`
 - Purpose: stable shell wrapper around `codex exec` with explicit model/reasoning.
 - Key options:
   - `--model <name>`
@@ -52,7 +52,7 @@ All Codex prompt-driven scripts now live in:
 Example:
 
 ```bash
-./orchestral/prompt_tools/codex-noninteractive.sh \
+./orchestral/prompt_tools/runtime/codex-noninteractive.sh \
   --model gpt-5.1-codex-mini \
   --reasoning medium \
   --prompt "Reply with exactly: OK"
@@ -60,7 +60,7 @@ Example:
 
 ### 2) Codex email CLI (Apple Mail sender)
 
-- Path: `orchestral/prompt_tools/codex-email-cli.py`
+- Path: `orchestral/prompt_tools/runtime/codex-email-cli.py`
 - Purpose: use Codex to draft structured email, then optionally send via macOS Mail.
 - Behavior:
   - Uses strict JSON output schema.
@@ -78,7 +78,7 @@ Key options:
 Dry-run:
 
 ```bash
-./orchestral/prompt_tools/codex-email-cli.py \
+./orchestral/prompt_tools/runtime/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -88,7 +88,7 @@ Dry-run:
 Send now:
 
 ```bash
-./orchestral/prompt_tools/codex-email-cli.py \
+./orchestral/prompt_tools/runtime/codex-email-cli.py \
   --to lachchen@qq.com \
   --instruction "Write a short friendly hello email." \
   --model gpt-5.1-codex-mini \
@@ -98,7 +98,7 @@ Send now:
 
 ### 3) Standardized JSON runner (common Codex practice)
 
-- Path: `orchestral/prompt_tools/codex-json-runner.py`
+- Path: `orchestral/prompt_tools/runtime/codex-json-runner.py`
 - Purpose: run any JSON-in / JSON-out Codex task with standardized artifacts.
 - Required input contract:
   - `--input-json <path>`
@@ -109,7 +109,7 @@ Send now:
 Example:
 
 ```bash
-python3 orchestral/prompt_tools/codex-json-runner.py \
+python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
   --input-json /tmp/task.json \
   --output-dir /tmp/codex-runs \
   --schema orchestral/prompt_tools/email_send_schema.json \

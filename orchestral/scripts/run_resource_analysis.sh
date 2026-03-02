@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="/Users/lachlan/Local/Clawbot"
-PROMPT_TOOL="$REPO_DIR/orchestral/prompt_tools/prompt_resource_analysis.sh"
+PROMPT_TOOL="$REPO_DIR/orchestral/prompt_tools/company/prompt_resource_analysis.sh"
 
 RUN_ID="$(TZ=Asia/Hong_Kong date '+%Y%m%d-%H%M%S')"
 COMPANY="Company"
