@@ -4,3 +4,6 @@
 [submodule "SillyTavern-WebSearch-Selenium"]
 	path = vendor/SillyTavern-WebSearch-Selenium
 	url = https://github.com/SillyTavern/SillyTavern-WebSearch-Selenium.git
+[submodule "AgInTi"]
+	path = AgInTi
+	url = git@github.com:lachlanchen/AgInTi.git
