@@ -5,6 +5,25 @@ import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
 const HUB_CONTEXT_MAX_CHARS = 5600;
 const TZ = "Asia/Shanghai";
 
+// ---- Module-level I/O cache (5-minute TTL) ----
+const _cache = new Map<string, { data: unknown; expiry: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCached<T>(key: string): T | undefined {
+  const entry = _cache.get(key);
+  if (!entry || Date.now() > entry.expiry) {
+    _cache.delete(key);
+    return undefined;
+  }
+  return entry.data as T;
+}
+
+function setCache<T>(key: string, data: T): T {
+  _cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+  return data;
+}
+// ---- End cache ----
+
 function getYmd(offsetDays = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
@@ -17,15 +36,22 @@ function getYmd(offsetDays = 0): string {
 }
 
 async function readTail(filePath: string, maxChars: number): Promise<string | null> {
+  const cacheKey = `${filePath}:${maxChars}`;
+  const cached = getCached<string | null>(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
     const content = await fs.readFile(filePath, "utf8");
     const trimmed = content.trim();
     if (!trimmed) {
-      return null;
+      return setCache(cacheKey, null);
     }
-    return trimmed.length > maxChars ? "...\n" + trimmed.slice(-maxChars) : trimmed;
+    const result = trimmed.length > maxChars ? "...\n" + trimmed.slice(-maxChars) : trimmed;
+    return setCache(cacheKey, result);
   } catch {
-    return null;
+    return setCache(cacheKey, null);
   }
 }
 
@@ -38,13 +64,20 @@ function extractUnchecked(content: string, maxLines = 10): string {
 }
 
 async function readDir(dirPath: string): Promise<string[]> {
+  const cacheKey = `dir:${dirPath}`;
+  const cached = getCached<string[]>(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
-    return entries
+    const result = entries
       .filter((e) => e.isFile() && e.name.endsWith(".md") && !e.name.startsWith("_"))
       .map((e) => path.join(dirPath, e.name));
+    return setCache(cacheKey, result);
   } catch {
-    return [];
+    return setCache(cacheKey, []);
   }
 }
 
@@ -53,9 +86,15 @@ async function readDirRecent(
   maxFiles: number,
   maxCharsEach: number,
 ): Promise<string | null> {
+  const cacheKey = `dirRecent:${dirPath}:${maxFiles}:${maxCharsEach}`;
+  const cached = getCached<string | null>(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const files = await readDir(dirPath);
   if (files.length === 0) {
-    return null;
+    return setCache(cacheKey, null);
   }
 
   // Sort by mtime descending (most recent first)
@@ -74,13 +113,20 @@ async function readDirRecent(
       snippets.push(`### ${path.basename(f, ".md")}\n${content}`);
     }
   }
-  return snippets.length > 0 ? snippets.join("\n\n") : null;
+  const result = snippets.length > 0 ? snippets.join("\n\n") : null;
+  return setCache(cacheKey, result);
 }
 
 async function readAllBelief(dirPath: string, maxCharsEach: number): Promise<string | null> {
+  const cacheKey = `belief:${dirPath}:${maxCharsEach}`;
+  const cached = getCached<string | null>(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const files = await readDir(dirPath);
   if (files.length === 0) {
-    return null;
+    return setCache(cacheKey, null);
   }
   const snippets: string[] = [];
   for (const f of files.toSorted()) {
@@ -89,7 +135,8 @@ async function readAllBelief(dirPath: string, maxCharsEach: number): Promise<str
       snippets.push(`### ${path.basename(f, ".md")}\n${content}`);
     }
   }
-  return snippets.length > 0 ? snippets.join("\n\n") : null;
+  const result = snippets.length > 0 ? snippets.join("\n\n") : null;
+  return setCache(cacheKey, result);
 }
 
 export async function buildHubContext(): Promise<string> {
@@ -125,17 +172,22 @@ export async function buildHubContext(): Promise<string> {
   if (gmail && gmail.split("\n").filter((l) => l.trim()).length > 1) {
     emailSections.push(gmail);
   }
-  try {
-    const workEntries = await fs.readdir(hubPaths.work);
-    const mailFiles = workEntries.filter((f) => f.endsWith("-mail.md")).toSorted(); // stable order
-    for (const f of mailFiles) {
-      const content = await readTail(path.join(hubPaths.work, f), 400);
-      if (content && content.split("\n").filter((l) => l.trim()).length > 1) {
-        emailSections.push(content);
-      }
+  const workDirCacheKey = `rawdir:${hubPaths.work}`;
+  let workEntries = getCached<string[]>(workDirCacheKey);
+  if (workEntries === undefined) {
+    try {
+      workEntries = await fs.readdir(hubPaths.work);
+    } catch {
+      workEntries = [];
     }
-  } catch {
-    /* work dir not ready yet */
+    setCache(workDirCacheKey, workEntries);
+  }
+  const mailFiles = workEntries.filter((f) => f.endsWith("-mail.md")).toSorted(); // stable order
+  for (const f of mailFiles) {
+    const content = await readTail(path.join(hubPaths.work, f), 400);
+    if (content && content.split("\n").filter((l) => l.trim()).length > 1) {
+      emailSections.push(content);
+    }
   }
   if (emailSections.length > 0) {
     sections.push(`## 郵件\n${emailSections.join("\n\n")}`);

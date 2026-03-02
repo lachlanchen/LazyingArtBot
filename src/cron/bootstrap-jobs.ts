@@ -3,6 +3,7 @@ import { resolveHubPaths } from "../capture-agent/hub.js";
 
 const DAILY_BRIEFING_JOB_NAME = "每日晨報";
 const MONTHLY_DIGEST_JOB_NAME = "月度記憶壓縮";
+const QUEUE_ARCHIVE_JOB_NAME = "佇列歸檔";
 
 function buildDailyBriefingMessage(): string {
   const hubPaths = resolveHubPaths();
@@ -109,6 +110,33 @@ export async function ensureBootstrapJobs(cron: CronService): Promise<void> {
         payload: {
           kind: "agentTurn",
           message: buildMonthlyDigestMessage(),
+          deliver: true,
+          channel: "last",
+          bestEffortDeliver: true,
+        },
+      });
+    }
+    if (!jobs.some((j) => j.name === QUEUE_ARCHIVE_JOB_NAME)) {
+      await cron.add({
+        name: QUEUE_ARCHIVE_JOB_NAME,
+        description:
+          "auto-created: monthly archive of consumed reasoning_queue and feedback_signals",
+        schedule: { kind: "cron", expr: "0 4 2 * *", tz: "Asia/Shanghai" },
+        agentId: "reviewer",
+        sessionTarget: "isolated",
+        wakeMode: "now",
+        enabled: true,
+        payload: {
+          kind: "agentTurn",
+          message: [
+            "【佇列歸檔】",
+            "",
+            "請執行佇列歸檔腳本：",
+            "  node scripts/capture/queue-archive.ts",
+            "",
+            "歸檔 reasoning_queue.jsonl 和 feedback_signals.jsonl 中 90 天前已消費的條目到 archive/ 子目錄。",
+            "完成後回覆一行確認：「佇列歸檔完成：reasoning_queue 歸檔 N 條，feedback_signals 歸檔 M 條」",
+          ].join("\n"),
           deliver: true,
           channel: "last",
           bestEffortDeliver: true,

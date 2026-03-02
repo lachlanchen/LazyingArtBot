@@ -36,7 +36,7 @@ import {
 } from "./hub.js";
 
 const TZ = "Asia/Shanghai";
-const DEDUPE_FILE_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+const DEDUPE_FILE_AGE_MS = 7 * 24 * 60 * 60 * 1000; // extended from 3d to 7d for wider dedup window
 const TITLE_SIMILARITY_THRESHOLD = 0.72;
 const CONTEXT_READ_LIMIT = 6_000;
 

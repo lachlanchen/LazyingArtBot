@@ -11,18 +11,102 @@ import { toTelegramCaptureInput } from "../../adapters/telegram-capture-adapter.
 import { toWechatCaptureInput } from "../../adapters/wechat-capture-adapter.js";
 import { toWhatsAppCaptureInput } from "../../adapters/whatsapp-capture-adapter.js";
 import { getValidToken } from "../../agents/tools/feishu-calendar-tool.js";
-import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
+import { resolveHubPaths, resolveHubRoot, safeReadDir } from "../../capture-agent/hub.js";
 import { runCaptureAgent } from "../../capture-agent/run.js";
 import { getGlobalCron } from "../../cron/global-cron.js";
 
-// Stub implementations for delete-from-hub command (not yet fully implemented)
-function parseDeleteRequest(_text: string): { query: string } | null {
-  return null;
+function parseDeleteRequest(text: string): { query: string } | null {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^(?:刪除|删除|移除|取消|delete|remove)\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+  const query = match[1].trim();
+  return query.length > 0 ? { query } : null;
 }
+
+async function removeFromIndexFiles(
+  hubPaths: ReturnType<typeof resolveHubPaths>,
+  id: string,
+): Promise<number> {
+  let removed = 0;
+  const indexFiles = [
+    path.join(hubPaths.work, "tasks_master.md"),
+    path.join(hubPaths.work, "waiting.md"),
+  ];
+  for (const fp of indexFiles) {
+    const content = await fs.readFile(fp, "utf8").catch(() => null);
+    if (!content) {
+      continue;
+    }
+    const lines = content.split("\n");
+    const filtered = lines.filter((l) => !l.includes(`(id:${id})`));
+    if (filtered.length < lines.length) {
+      await fs.writeFile(fp, filtered.join("\n"), "utf8");
+      removed += lines.length - filtered.length;
+    }
+  }
+  return removed;
+}
+
 async function deleteFromAssistantHub(
-  _query: string,
+  query: string,
 ): Promise<{ removedLines: number; touchedFiles: number }> {
-  return { removedLines: 0, touchedFiles: 0 };
+  const hubPaths = resolveHubPaths();
+  const dirs = [
+    hubPaths.tasks,
+    hubPaths.projects,
+    hubPaths.ideas,
+    hubPaths.highlights,
+    hubPaths.people,
+    hubPaths.questions,
+    hubPaths.beliefs,
+    hubPaths.references,
+  ];
+
+  let touchedFiles = 0;
+  let removedLines = 0;
+  const lowerQuery = query.toLowerCase();
+
+  for (const dir of dirs) {
+    const files = await safeReadDir(dir);
+    for (const filePath of files) {
+      if (!filePath.endsWith(".md")) {
+        continue;
+      }
+      const content = await fs.readFile(filePath, "utf8").catch(() => null);
+      if (!content) {
+        continue;
+      }
+
+      // Extract title from frontmatter
+      const titleMatch = content.match(/^title:\s*(.+)$/m);
+      const title = titleMatch?.[1]?.replace(/^["'|]|["'|]$/g, "").trim() ?? "";
+
+      if (!title.toLowerCase().includes(lowerQuery)) {
+        continue;
+      }
+
+      // Skip if already marked deleted
+      if (/^status:\s*deleted/m.test(content)) {
+        continue;
+      }
+
+      // Add status: deleted to frontmatter
+      const updated = content.replace(/^(---\n[\s\S]*?)(\n---)/m, "$1\nstatus: deleted$2");
+      const lifecycle = `\n- deleted: ${new Date().toISOString().slice(0, 10)} (query: ${query})\n`;
+      await fs.writeFile(filePath, updated + lifecycle, "utf8");
+      touchedFiles++;
+
+      // Clean up index file references
+      const idMatch = content.match(/^id:\s*(.+)$/m);
+      if (idMatch) {
+        removedLines += await removeFromIndexFiles(hubPaths, idMatch[1].trim());
+      }
+    }
+  }
+
+  return { removedLines, touchedFiles };
 }
 
 export type MaybeRunCaptureResult = {

@@ -222,7 +222,7 @@ export function buildCardMarkdown(
   return `${lines.join("\n")}\n`;
 }
 
-async function safeReadDir(dirPath: string): Promise<string[]> {
+export async function safeReadDir(dirPath: string): Promise<string[]> {
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const out: string[] = [];
