@@ -767,6 +767,9 @@ export async function runHeartbeatOnce(opts: {
     const heartbeatMirrorTargets = heartbeat?.mirrorTo ?? [];
     if (!shouldSkipMain && normalized.text.trim() && heartbeatMirrorTargets.length > 0) {
       for (const mirror of heartbeatMirrorTargets) {
+        if (!mirror.to) {
+          continue;
+        }
         try {
           await deliverOutboundPayloads({
             cfg,

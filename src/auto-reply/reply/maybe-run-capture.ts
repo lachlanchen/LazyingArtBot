@@ -15,6 +15,16 @@ import { resolveHubPaths, resolveHubRoot } from "../../capture-agent/hub.js";
 import { runCaptureAgent } from "../../capture-agent/run.js";
 import { getGlobalCron } from "../../cron/global-cron.js";
 
+// Stub implementations for delete-from-hub command (not yet fully implemented)
+function parseDeleteRequest(_text: string): { query: string } | null {
+  return null;
+}
+async function deleteFromAssistantHub(
+  _query: string,
+): Promise<{ removedLines: number; touchedFiles: number }> {
+  return { removedLines: 0, touchedFiles: 0 };
+}
+
 export type MaybeRunCaptureResult = {
   handled: boolean;
   payload?: ReplyPayload;
@@ -196,7 +206,7 @@ async function maybeScheduleCronReminder(
   // 4A — deduplication: skip if a job for this capture id already exists
   try {
     const existing = await cron.list({ includeDisabled: false });
-    const isDuplicate = existing.jobs.some(
+    const isDuplicate = existing.some(
       (j) => j.description?.includes(`capture id:${id}`) || j.name === `到期提醒：${title}`,
     );
     if (isDuplicate) {
@@ -240,6 +250,8 @@ async function maybeScheduleCronReminder(
     await cron.add({
       name: `到期提醒：${title}`,
       description: `capture id:${id} auto due-reminder`,
+      enabled: true,
+      wakeMode: "now",
       schedule: { kind: "at", at: atIso },
       sessionTarget: "isolated",
       deleteAfterRun: true,
