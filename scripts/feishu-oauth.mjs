@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-const APP_ID = "cli_a92aeaf256389cd3";
-const APP_SECRET = "hXdW0z6oMt4jShvylSwesggRSyEaUdnM";
+const APP_ID = process.env.FEISHU_APP_ID?.trim() || "cli_a92aeaf256389cd3";
+const APP_SECRET = process.env.FEISHU_APP_SECRET?.trim() || "hXdW0z6oMt4jShvylSwesggRSyEaUdnM";
 const STATE_DIR =
   process.env.OPENCLAW_STATE_DIR?.trim() ||
   process.env.KAIRO_HOME?.trim() ||
