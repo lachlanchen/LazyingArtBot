@@ -15,7 +15,8 @@ import { resolveHubPaths, resolveHubRoot, safeReadDir } from "../../capture-agen
 import { runCaptureAgent } from "../../capture-agent/run.js";
 import { getGlobalCron } from "../../cron/global-cron.js";
 
-function parseDeleteRequest(text: string): { query: string } | null {
+/** @internal */
+export function parseDeleteRequest(text: string): { query: string } | null {
   const trimmed = text.trim();
   const match = trimmed.match(/^(?:刪除|删除|移除|取消|delete|remove)\s+(.+)$/i);
   if (!match) {
@@ -49,7 +50,8 @@ async function removeFromIndexFiles(
   return removed;
 }
 
-async function deleteFromAssistantHub(
+/** @internal */
+export async function deleteFromAssistantHub(
   query: string,
 ): Promise<{ removedLines: number; touchedFiles: number }> {
   const hubPaths = resolveHubPaths();

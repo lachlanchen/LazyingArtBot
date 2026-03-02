@@ -139,13 +139,39 @@ async function readAllBelief(dirPath: string, maxCharsEach: number): Promise<str
   return setCache(cacheKey, result);
 }
 
-export async function buildHubContext(): Promise<string> {
+// ---- Adaptive section filtering by agent type ----
+
+export interface HubContextOpts {
+  agentId?: string;
+}
+
+// Sections to SKIP per agent type. "main" (Planner) always gets all sections.
+const AGENT_SECTION_SKIP: Record<string, Set<string>> = {
+  // Executor only needs task-execution context: daily log, tasks, waiting, calendar.
+  // Skip heavy narrative sections that are irrelevant for cron/task runs.
+  executor: new Set(["beliefs", "people", "patterns", "roadmap", "tophub", "monthly"]),
+  // Reviewer needs patterns, roadmap, monthly for reflection; skip ephemeral feed/email.
+  reviewer: new Set(["email", "tophub", "calendar", "people", "beliefs"]),
+};
+
+function shouldIncludeSection(agentId: string | undefined, section: string): boolean {
+  if (!agentId || agentId === "main") {
+    return true;
+  }
+  const skip = AGENT_SECTION_SKIP[agentId];
+  return !skip?.has(section);
+}
+
+// ---- End adaptive filtering ----
+
+export async function buildHubContext(opts?: HubContextOpts): Promise<string> {
+  const agentId = opts?.agentId;
   const hubPaths = resolveHubPaths();
   const today = getYmd(0);
   const yesterday = getYmd(-1);
   const sections: string[] = [];
 
-  // Today's daily log (recent entries)
+  // Today's daily log (recent entries) — always included for all agents
   const todayLog = await readTail(path.join(hubPaths.dailyLogs, `${today}.md`), 1500);
   if (todayLog) {
     sections.push(`## 今日記錄 (${today})\n${todayLog}`);
@@ -157,7 +183,7 @@ export async function buildHubContext(): Promise<string> {
     }
   }
 
-  // Unchecked tasks
+  // Unchecked tasks — always included for all agents
   const tasksMaster = await readTail(path.join(hubPaths.work, "tasks_master.md"), 4000);
   if (tasksMaster) {
     const unchecked = extractUnchecked(tasksMaster, 8);
@@ -167,79 +193,95 @@ export async function buildHubContext(): Promise<string> {
   }
 
   // Email inboxes — gmail.md + all *-mail.md (auto-discovered, new providers need no code change)
-  const emailSections: string[] = [];
-  const gmail = await readTail(path.join(hubPaths.work, "gmail.md"), 400);
-  if (gmail && gmail.split("\n").filter((l) => l.trim()).length > 1) {
-    emailSections.push(gmail);
-  }
-  const workDirCacheKey = `rawdir:${hubPaths.work}`;
-  let workEntries = getCached<string[]>(workDirCacheKey);
-  if (workEntries === undefined) {
-    try {
-      workEntries = await fs.readdir(hubPaths.work);
-    } catch {
-      workEntries = [];
+  if (shouldIncludeSection(agentId, "email")) {
+    const emailSections: string[] = [];
+    const gmail = await readTail(path.join(hubPaths.work, "gmail.md"), 400);
+    if (gmail && gmail.split("\n").filter((l) => l.trim()).length > 1) {
+      emailSections.push(gmail);
     }
-    setCache(workDirCacheKey, workEntries);
-  }
-  const mailFiles = workEntries.filter((f) => f.endsWith("-mail.md")).toSorted(); // stable order
-  for (const f of mailFiles) {
-    const content = await readTail(path.join(hubPaths.work, f), 400);
-    if (content && content.split("\n").filter((l) => l.trim()).length > 1) {
-      emailSections.push(content);
+    const workDirCacheKey = `rawdir:${hubPaths.work}`;
+    let workEntries = getCached<string[]>(workDirCacheKey);
+    if (workEntries === undefined) {
+      try {
+        workEntries = await fs.readdir(hubPaths.work);
+      } catch {
+        workEntries = [];
+      }
+      setCache(workDirCacheKey, workEntries);
     }
-  }
-  if (emailSections.length > 0) {
-    sections.push(`## 郵件\n${emailSections.join("\n\n")}`);
+    const mailFiles = workEntries.filter((f) => f.endsWith("-mail.md")).toSorted(); // stable order
+    for (const f of mailFiles) {
+      const content = await readTail(path.join(hubPaths.work, f), 400);
+      if (content && content.split("\n").filter((l) => l.trim()).length > 1) {
+        emailSections.push(content);
+      }
+    }
+    if (emailSections.length > 0) {
+      sections.push(`## 郵件\n${emailSections.join("\n\n")}`);
+    }
   }
 
   // Tophub hot topics (written by tophub-digest cron at 07:08)
-  const tophub = await readTail(path.join(hubPaths.work, "tophub-digest.md"), 400);
-  if (tophub && tophub.split("\n").filter((l) => l.trim()).length > 3) {
-    sections.push(`## 今日熱榜\n${tophub}`);
+  if (shouldIncludeSection(agentId, "tophub")) {
+    const tophub = await readTail(path.join(hubPaths.work, "tophub-digest.md"), 400);
+    if (tophub && tophub.split("\n").filter((l) => l.trim()).length > 3) {
+      sections.push(`## 今日熱榜\n${tophub}`);
+    }
   }
 
   // Calendar (written by daily-calendar cron at 07:00)
-  const calendarRaw = await readTail(path.join(hubPaths.work, "calendar.md"), 1200);
-  if (calendarRaw && calendarRaw.includes("|")) {
-    sections.push(`## 日曆\n${calendarRaw}`);
+  if (shouldIncludeSection(agentId, "calendar")) {
+    const calendarRaw = await readTail(path.join(hubPaths.work, "calendar.md"), 1200);
+    if (calendarRaw && calendarRaw.includes("|")) {
+      sections.push(`## 日曆\n${calendarRaw}`);
+    }
   }
 
   // Roadmap (quarterly milestones & goals)
-  const roadmap = await readTail(path.join(hubPaths.knowledge, "roadmap.md"), 600);
-  if (roadmap) {
-    sections.push(`## 路線圖\n${roadmap}`);
+  if (shouldIncludeSection(agentId, "roadmap")) {
+    const roadmap = await readTail(path.join(hubPaths.knowledge, "roadmap.md"), 600);
+    if (roadmap) {
+      sections.push(`## 路線圖\n${roadmap}`);
+    }
   }
 
-  // Waiting / watch items
+  // Waiting / watch items — always included for all agents
   const waiting = await readTail(path.join(hubPaths.work, "waiting.md"), 800);
   if (waiting && !waiting.startsWith("# waiting\n\n") && waiting !== "# waiting") {
     sections.push(`## 追蹤中\n${waiting}`);
   }
 
   // Monthly digests (last 2 months, written by monthly compression cron on 1st)
-  const monthlyDigestDir = path.join(hubPaths.knowledge, "monthly_digest");
-  const monthlyContext = await readDirRecent(monthlyDigestDir, 2, 300);
-  if (monthlyContext) {
-    sections.push(`## 近期月摘要\n${monthlyContext}`);
+  if (shouldIncludeSection(agentId, "monthly")) {
+    const monthlyDigestDir = path.join(hubPaths.knowledge, "monthly_digest");
+    const monthlyContext = await readDirRecent(monthlyDigestDir, 2, 300);
+    if (monthlyContext) {
+      sections.push(`## 近期月摘要\n${monthlyContext}`);
+    }
   }
 
   // Behaviour patterns (maintained by LLM weekly on Mondays)
-  const patterns = await readTail(path.join(hubPaths.knowledge, "patterns.md"), 400);
-  if (patterns && patterns.split("\n").filter((l) => l.trim()).length > 2) {
-    sections.push(`## 行為模式\n${patterns}`);
+  if (shouldIncludeSection(agentId, "patterns")) {
+    const patterns = await readTail(path.join(hubPaths.knowledge, "patterns.md"), 400);
+    if (patterns && patterns.split("\n").filter((l) => l.trim()).length > 2) {
+      sections.push(`## 行為模式\n${patterns}`);
+    }
   }
 
   // People / contact cards (most recently updated, up to 3)
-  const peopleContext = await readDirRecent(hubPaths.people, 3, 400);
-  if (peopleContext) {
-    sections.push(`## 相關聯絡人\n${peopleContext}`);
+  if (shouldIncludeSection(agentId, "people")) {
+    const peopleContext = await readDirRecent(hubPaths.people, 3, 400);
+    if (peopleContext) {
+      sections.push(`## 相關聯絡人\n${peopleContext}`);
+    }
   }
 
   // Wisdom / beliefs (all files, condensed)
-  const beliefsContext = await readAllBelief(hubPaths.beliefs, 300);
-  if (beliefsContext) {
-    sections.push(`## 決策智慧\n${beliefsContext}`);
+  if (shouldIncludeSection(agentId, "beliefs")) {
+    const beliefsContext = await readAllBelief(hubPaths.beliefs, 300);
+    if (beliefsContext) {
+      sections.push(`## 決策智慧\n${beliefsContext}`);
+    }
   }
 
   if (sections.length === 0) {

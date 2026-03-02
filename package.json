@@ -73,6 +73,7 @@
     "moltbot:capture:notebooklm-tool-mock": "node --import tsx scripts/capture/notebooklm-tool-mock.ts",
     "moltbot:capture:notebooklm-worker": "node --import tsx scripts/capture/notebooklm-worker.ts",
     "moltbot:capture:stale-checker": "node --import tsx scripts/capture/stale-checker.ts",
+    "moltbot:capture:usage-daily-summary": "node --import tsx scripts/capture/usage-daily-summary.ts",
     "moltbot:capture:watch-checker": "node --import tsx scripts/capture/watch-checker.ts",
     "moltbot:capture:wechat-webhook": "node --import tsx scripts/capture/wechat-capture-webhook.ts",
     "moltbot:capture:weekly-reflection": "node --import tsx scripts/capture/weekly-reflection.ts",

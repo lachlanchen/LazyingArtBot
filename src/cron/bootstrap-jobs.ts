@@ -4,6 +4,7 @@ import { resolveHubPaths } from "../capture-agent/hub.js";
 const DAILY_BRIEFING_JOB_NAME = "每日晨報";
 const MONTHLY_DIGEST_JOB_NAME = "月度記憶壓縮";
 const QUEUE_ARCHIVE_JOB_NAME = "佇列歸檔";
+const USAGE_DAILY_SUMMARY_JOB_NAME = "每日用量摘要";
 
 function buildDailyBriefingMessage(): string {
   const hubPaths = resolveHubPaths();
@@ -136,6 +137,32 @@ export async function ensureBootstrapJobs(cron: CronService): Promise<void> {
             "",
             "歸檔 reasoning_queue.jsonl 和 feedback_signals.jsonl 中 90 天前已消費的條目到 archive/ 子目錄。",
             "完成後回覆一行確認：「佇列歸檔完成：reasoning_queue 歸檔 N 條，feedback_signals 歸檔 M 條」",
+          ].join("\n"),
+          deliver: true,
+          channel: "last",
+          bestEffortDeliver: true,
+        },
+      });
+    }
+    if (!jobs.some((j) => j.name === USAGE_DAILY_SUMMARY_JOB_NAME)) {
+      await cron.add({
+        name: USAGE_DAILY_SUMMARY_JOB_NAME,
+        description: "auto-created: daily token usage summary at 22:00",
+        schedule: { kind: "cron", expr: "0 22 * * *", tz: "Asia/Shanghai" },
+        agentId: "reviewer",
+        sessionTarget: "isolated",
+        wakeMode: "now",
+        enabled: true,
+        payload: {
+          kind: "agentTurn",
+          message: [
+            "【每日用量摘要】",
+            "",
+            "請執行每日 Token 用量統計腳本：",
+            "  cd /opt/LazyingArtBot && (pnpm moltbot:capture:usage-daily-summary || node --import tsx scripts/capture/usage-daily-summary.ts)",
+            "",
+            "取得輸出後，使用 message 工具將結果原文發送到 telegram，accountId=channel2，target=1898430254。",
+            "如果腳本不存在或報錯，發送「今日用量統計暫不可用」。",
           ].join("\n"),
           deliver: true,
           channel: "last",

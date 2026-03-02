@@ -186,7 +186,7 @@ export async function runPreparedReply(
   const inboundMetaPrompt = buildInboundMetaSystemPrompt(
     isNewSession ? sessionCtx : { ...sessionCtx, ThreadStarterBody: undefined },
   );
-  const hubContext = !isHeartbeat ? await buildHubContext() : "";
+  const hubContext = !isHeartbeat ? await buildHubContext({ agentId }) : "";
   const extraSystemPrompt = [inboundMetaPrompt, groupIntro, groupSystemPrompt, hubContext]
     .filter(Boolean)
     .join("\n\n");

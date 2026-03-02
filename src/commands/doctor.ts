@@ -35,6 +35,7 @@ import {
   maybeScanExtraGatewayServices,
 } from "./doctor-gateway-services.js";
 import { noteSourceInstallIssues } from "./doctor-install.js";
+import { runKairoChecks } from "./doctor-kairo.js";
 import {
   noteMacLaunchAgentOverrides,
   noteMacLaunchctlGatewayEnvOverrides,
@@ -308,6 +309,8 @@ export async function doctorCommand(
       runtime.error(`- ${path}: ${issue.message}`);
     }
   }
+
+  await runKairoChecks();
 
   outro("Doctor complete.");
 }
