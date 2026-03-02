@@ -78,7 +78,7 @@ Quick test run (topic query):
 ```bash
 run_id="site-nature-quantum-$(date +%Y%m%d-%H%M%S)"
 out_dir="$HOME/.openclaw/workspace/AutoLife/MetaNotes/web_search_runs"
-bash orchestral/prompt_tools/prompt_web_search_immersive.sh \
+bash orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh \
   --query "site:nature.com quantum computing" \
   --engine google \
   --results 5 \

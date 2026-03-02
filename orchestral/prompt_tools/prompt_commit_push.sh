@@ -1,4 +1,0 @@
-#!/usr/bin/env zsh
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/git/prompt_commit_push.sh" "$@"

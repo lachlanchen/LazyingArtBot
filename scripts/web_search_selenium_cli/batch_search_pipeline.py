@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 
 REPO_DIR = Path(__file__).resolve().parents[2]
 RUN_SEARCH_TOOL = REPO_DIR / "scripts" / "web_search_selenium_cli" / "run_search.sh"
-CODEX_TOOL = REPO_DIR / "orchestral" / "prompt_tools" / "codex-noninteractive.sh"
+CODEX_TOOL = REPO_DIR / "orchestral" / "prompt_tools" / "runtime" / "codex-noninteractive.sh"
 
 
 AUTO_SCHOLAR_MARKERS = [

@@ -4,14 +4,14 @@ Use this as a general web-search fallback contract when one query needs a
 non-immersive call path.
 
 Use the local Selenium search wrapper through
-`orchestral/prompt_tools/prompt_web_search_immersive.sh` for all web-search tasks
+`orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh` for all web-search tasks
 unless a fixed workflow requires another wrapper.
 
-- For compatibility fallback only: `orchestral/prompt_tools/prompt_web_search_click.sh`
+- For single-click flow: `orchestral/prompt_tools/websearch/prompt_web_search_click.sh`
 - Legacy fixed-engine wrappers:
-  - `orchestral/prompt_tools/prompt_web_search_google.sh`
-  - `orchestral/prompt_tools/prompt_web_search_google_scholar.sh`
-  - `orchestral/prompt_tools/prompt_web_search_google_news.sh`
+  - `orchestral/prompt_tools/websearch/prompt_web_search_google.sh`
+  - `orchestral/prompt_tools/websearch/prompt_web_search_google_scholar.sh`
+  - `orchestral/prompt_tools/websearch/prompt_web_search_google_news.sh`
 
 Task:
 
@@ -71,7 +71,7 @@ Operational defaults:
 
 Execution pattern from pipelines:
 
-1. `orchestral/prompt_tools/prompt_web_search_immersive.sh --engine <google|google-scholar|google-news> --query "<query>" --results <n> --open-top-results <n> --summarize-open-url --scroll-steps 3 --scroll-pause 0.9`
+1. `orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh --engine <google|google-scholar|google-news> --query "<query>" --results <n> --open-top-results <n> --summarize-open-url --scroll-steps 3 --scroll-pause 0.9`
 2. Read `query-*.json`/`query-*.txt` and pick links.
 3. Re-run via `--open-result --result-index N` only for priority links.
 4. In final notes/email include links and short evidence-backed snippets.

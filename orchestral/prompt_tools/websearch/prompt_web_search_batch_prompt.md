@@ -4,7 +4,7 @@ You are the design specification for the **batch** web search Codex tool.
 
 Tool to use:
 
-- `orchestral/prompt_tools/prompt_web_search_batch.sh`
+- `orchestral/prompt_tools/websearch/prompt_web_search_batch.sh`
 
 Goal:
 
@@ -50,7 +50,7 @@ Default arguments:
 Use command:
 
 ```
-orchestral/prompt_tools/prompt_web_search_batch.sh \
+orchestral/prompt_tools/websearch/prompt_web_search_batch.sh \
   --query "wearable glass paper" \
   --kind scholar \
   --top-results 4 \

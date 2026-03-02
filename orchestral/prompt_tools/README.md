@@ -11,7 +11,8 @@ Runtime entrypoints now live under `runtime/`:
 - `runtime/codex-json-runner.py`
 - `runtime/run_auto_ops.sh`
 
-Compatibility wrappers are kept at top-level (`orchestral/prompt_tools/*.sh|*.py`) so existing callers continue to work.
+Top-level wrappers under `orchestral/prompt_tools/*.sh|*.py` have been removed.
+All callers must use grouped canonical paths.
 
 ## Prompt tool groups
 
@@ -24,9 +25,23 @@ Compatibility wrappers are kept at top-level (`orchestral/prompt_tools/*.sh|*.py
 - `migration/` LazyingArt migration planners
 - `git/` commit helper wrappers
 
-## Legacy top-level compatibility
+## Organization rules
 
-Top-level script names remain available as wrappers so cronjobs, automations, and older scripts do not break immediately. New callers should prefer grouped paths.
+- Runtime executors and shared JSON/schema plumbing: `runtime/`
+- Company pipelines and strategy/legal/funding prompts: `company/`
+- Note/log/read-write flows: `notes/`
+- Calendar planning and account-calendar migration: `calendar/`
+- Reminders and rituals/grocery quick flows: `reminders/`
+- Migration-specific tools: `migration/`
+- Web/News/Scholar/playlist search stack: `websearch/`
+- Email composition prompts: `email/`
+- Git-related prompt helpers: `git/`
+- Philosophy and descriptive docs: `docs/`
+
+Constraint for future edits:
+
+- Do not reintroduce top-level compatibility wrappers.
+- Add/update implementations only in grouped folders.
 
 ## Core runners
 

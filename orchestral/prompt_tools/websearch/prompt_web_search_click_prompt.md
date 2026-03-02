@@ -2,9 +2,9 @@
 
 Tool to use:
 
-- `orchestral/prompt_tools/prompt_web_search_click.sh`
-- Prefer `orchestral/prompt_tools/prompt_web_search_immersive.sh` when multi-result scraping and results-page screenshots are needed.
-- Use `orchestral/prompt_tools/prompt_web_search_click.sh` when only one explicit click is required.
+- `orchestral/prompt_tools/websearch/prompt_web_search_click.sh`
+- Prefer `orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh` when multi-result scraping and results-page screenshots are needed.
+- Use `orchestral/prompt_tools/websearch/prompt_web_search_click.sh` when only one explicit click is required.
 
 Output root:
 
@@ -60,11 +60,11 @@ Artifacts:
 
 Use this flow when you need explicit result opening in one click:
 
-1. Run `orchestral/prompt_tools/prompt_web_search_click.sh` with `--result-index` and `--open-result`.
+1. Run `orchestral/prompt_tools/websearch/prompt_web_search_click.sh` with `--result-index` and `--open-result`.
 2. If a click needs cookies/session reuse, use `--attach`.
 3. Use outputs above in downstream notes/email context.
 4. If this one-click flow misses multi-result evidence, switch to a richer run:
-   `orchestral/prompt_tools/prompt_web_search_immersive.sh --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 1.0`
+   `orchestral/prompt_tools/websearch/prompt_web_search_immersive.sh --open-top-results <top_n> --summarize-open-url --scroll-steps 3 --scroll-pause 1.0`
    - choose `<top_n>` from `top_results_per_query` / `opened_count` rather than hard-coding 3.
 
 Notes:
