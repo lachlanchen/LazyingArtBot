@@ -16,6 +16,10 @@ LABEL="la-life-reverse"
 REMINDER_LIST="LazyingArt"
 SLOT_PREFIX="RevEng"
 WRITE_REMINDER=1
+CREATE_REMINDER_SCRIPT="$HOME/.openclaw/workspace/automation/automail2note/create_reminder.applescript"
+if [[ ! -f "$CREATE_REMINDER_SCRIPT" && -f "$HOME/.openclaw/workspace/automation/create_reminder.applescript" ]]; then
+  CREATE_REMINDER_SCRIPT="$HOME/.openclaw/workspace/automation/create_reminder.applescript"
+fi
 STATE_JSON="$HOME/.openclaw/workspace/AutoLife/MetaNotes/Companies/LazyingArt/life_reminder_state.json"
 STATE_MD="$HOME/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md"
 REPORT_JSON=""
@@ -35,6 +39,7 @@ Options:
   --mentor-summary-file <p>    Optional mentor summary text file
   --state-json <path>          Reminder state JSON (default: workspace AutoLife state)
   --state-md <path>            Reminder state markdown mirror (default: ~/Documents/LazyingArtBotIO/LazyingArt/Output/LazyingArtLifeReminderState.md)
+  --create-reminder-script <p> AppleScript path used to create reminders
   --no-write-reminder          Generate plan only; do not write reminders
   --slot-prefix <text>         Prefix used in reminder titles and duplication markers (default: RevEng)
   --report-json <path>         Output report json path (default: <output-dir>/life-reminder-report.json)
@@ -81,6 +86,10 @@ while [[ $# -gt 0 ]]; do
     --state-md)
       shift
       STATE_MD="${1:-}"
+      ;;
+    --create-reminder-script)
+      shift
+      CREATE_REMINDER_SCRIPT="${1:-}"
       ;;
     --report-json)
       shift
@@ -293,6 +302,7 @@ python3 "$REPO_DIR/orchestral/prompt_tools/company/life_reverse_reminder_apply.p
   --plan-json "$PLAN_JSON" \
   --state-json "$STATE_JSON" \
   --state-md "$STATE_MD" \
+  --create-reminder-script "$CREATE_REMINDER_SCRIPT" \
   --report-json "$REPORT_JSON" \
   --report-md "$REPORT_MD" \
   --report-html "$REPORT_HTML" \
