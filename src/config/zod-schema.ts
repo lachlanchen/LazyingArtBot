@@ -514,6 +514,16 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
+    github: z
+      .object({
+        token: z.string(),
+        username: z.string().optional(),
+        repo: z.string().default("kairo-brain"),
+        syncIntervalMinutes: z.number().min(1).default(5),
+        enabled: z.boolean().default(true),
+      })
+      .strict()
+      .optional(),
     memory: MemorySchema,
     skills: z
       .object({

@@ -5,9 +5,57 @@ const DAILY_BRIEFING_JOB_NAME = "每日晨報";
 const MONTHLY_DIGEST_JOB_NAME = "月度記憶壓縮";
 const QUEUE_ARCHIVE_JOB_NAME = "佇列歸檔";
 const USAGE_DAILY_SUMMARY_JOB_NAME = "每日用量摘要";
+const AUTH_HEALTH_CHECK_JOB_NAME = "Auth Token 健康檢查";
+
+const FIRST_RUN_SENTINEL_JOB_NAME = "首次啟動歡迎（標記）";
+const FIRST_RUN_WELCOME_JOB_NAME = "首次啟動歡迎訊息";
+const FIRST_RUN_BRIEFING_JOB_NAME = "首次啟動晨報";
+
+function buildFirstRunWelcomeMessage(): string {
+  return [
+    "🌟 Kairo 已啟動，你的 AI 秘書上線了",
+    "",
+    "我已完成初始化，以下功能立即可用：",
+    "",
+    "📝  說出任何事 → 我自動分類、建卡、設提醒",
+    "     「提醒我明天下午 3 點開會」",
+    "     「記一下：Jason 是百度前 PM」",
+    "",
+    "📋  每日晨報 — 07:10 自動發送（今日馬上發）",
+    "📚  語言課程 — 08:00",
+    "🏃  健康提醒 — 07:30",
+    "💓  心跳巡邏 — 每 30 分鐘（07:00-23:30）",
+    "",
+    "完成後請使用 message 工具發送到 telegram，accountId=channel2，target=1898430254。",
+  ].join("\n");
+}
 
 function buildDailyBriefingMessage(): string {
   const hubPaths = resolveHubPaths();
+  const formatInstructions = [
+    "請按以下格式輸出晨報（Telegram 友好格式）：",
+    "",
+    "📋 今日計劃 — {YYYY年M月D日 週X}",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "",
+    "🔴 立即行動（逾期 + 今日到期）",
+    "  • [優先級] 任務名 — 逾期 N 天 / 截止 HH:MM",
+    "  （若無此類任務，輸出「✅ 無緊急項目」）",
+    "",
+    "🟡 今日可處理（今日到期但非緊急）",
+    "  • [優先級] 任務名 — 截止 HH:MM",
+    "  （若無，省略此段）",
+    "",
+    "🟢 本週待辦",
+    "  • [優先級] 任務名 — 截止日期",
+    "  （最多列 5 條）",
+    "",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "💡 {一句行為洞察，如：上週有 3 個任務連續推遲，建議今日重新評估優先級}",
+    "",
+    "完成後請使用 message 工具發送到 telegram，accountId=channel2，target=1898430254。",
+  ].join("\n");
+
   return [
     `【每日工作晨報】`,
     ``,
@@ -22,11 +70,7 @@ function buildDailyBriefingMessage(): string {
     `   - 本週到期（due date 在今後 7 天內）`,
     `   - 無 due date / 長期`,
     ``,
-    `3. 向 Ken 發送簡潔晨報（繁體中文）：`,
-    `   📋 今日工作摘要 (YYYY-MM-DD)`,
-    `   ⚠️ 逾期 N 項 / 📅 今日到期 N 項 / 📆 本週到期 N 項`,
-    `   每項一行：優先級 + 標題 + due date`,
-    `   若全部完成 → 回覆「今日無待辦事項 ✅」`,
+    `3. ${formatInstructions}`,
     ``,
     `4. 如有逾期任務，判斷是否需要立即處理：`,
     `   可執行的 → 直接執行並更新狀態（status: done + tasks_master [x]）`,
@@ -79,11 +123,92 @@ function buildMonthlyDigestMessage(): string {
 }
 
 /**
+ * Detects a fresh install (no sentinel job exists) and schedules a one-time
+ * welcome message + immediate morning briefing.
+ * Idempotent — the sentinel job prevents re-running on subsequent startups.
+ */
+async function ensureFirstRunOnboarding(cron: CronService): Promise<void> {
+  const jobs = await cron.list({ includeDisabled: true });
+
+  // Already ran once — skip entirely
+  if (jobs.some((j) => j.name === FIRST_RUN_SENTINEL_JOB_NAME)) {
+    return;
+  }
+
+  const now = Date.now();
+  const in3s = new Date(now + 3_000).toISOString();
+  const in8s = new Date(now + 8_000).toISOString();
+
+  // 立即發歡迎消息（3 秒後）
+  if (!jobs.some((j) => j.name === FIRST_RUN_WELCOME_JOB_NAME)) {
+    await cron.add({
+      name: FIRST_RUN_WELCOME_JOB_NAME,
+      description: "首次啟動：發送歡迎消息",
+      schedule: { kind: "at", at: in3s, tz: "Asia/Shanghai" },
+      agentId: "executor",
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      enabled: true,
+      deleteAfterRun: true,
+      payload: {
+        kind: "agentTurn",
+        message: buildFirstRunWelcomeMessage(),
+        deliver: true,
+        channel: "telegram",
+        bestEffortDeliver: true,
+      },
+    });
+  }
+
+  // 立即跑晨報（8 秒後）
+  if (!jobs.some((j) => j.name === FIRST_RUN_BRIEFING_JOB_NAME)) {
+    await cron.add({
+      name: FIRST_RUN_BRIEFING_JOB_NAME,
+      description: "首次啟動：立即晨報",
+      schedule: { kind: "at", at: in8s, tz: "Asia/Shanghai" },
+      agentId: "executor",
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      enabled: true,
+      deleteAfterRun: true,
+      payload: {
+        kind: "agentTurn",
+        message: buildDailyBriefingMessage(),
+        deliver: true,
+        channel: "telegram",
+        bestEffortDeliver: true,
+      },
+    });
+  }
+
+  // 建立持久哨兵（disabled，永不執行，只用作標記）
+  await cron.add({
+    name: FIRST_RUN_SENTINEL_JOB_NAME,
+    description: "首次啟動完成標記（請勿刪除）",
+    schedule: { kind: "at", at: "2099-12-31T00:00:00.000Z", tz: "Asia/Shanghai" },
+    agentId: "executor",
+    sessionTarget: "isolated",
+    wakeMode: "now",
+    enabled: false,
+    deleteAfterRun: false,
+    payload: {
+      kind: "agentTurn",
+      message: "sentinel",
+      deliver: false,
+      channel: "last",
+      bestEffortDeliver: false,
+    },
+  });
+}
+
+/**
  * Ensures bootstrap cron jobs exist.
  * Idempotent — safe to call on every startup.
  */
 export async function ensureBootstrapJobs(cron: CronService): Promise<void> {
   try {
+    await ensureFirstRunOnboarding(cron);
+
     const jobs = await cron.list({ includeDisabled: true });
 
     if (!jobs.some((j) => j.name === DAILY_BRIEFING_JOB_NAME)) {
@@ -163,6 +288,35 @@ export async function ensureBootstrapJobs(cron: CronService): Promise<void> {
             "",
             "取得輸出後，使用 message 工具將結果原文發送到 telegram，accountId=channel2，target=1898430254。",
             "如果腳本不存在或報錯，發送「今日用量統計暫不可用」。",
+          ].join("\n"),
+          deliver: true,
+          channel: "last",
+          bestEffortDeliver: true,
+        },
+      });
+    }
+    if (!jobs.some((j) => j.name === AUTH_HEALTH_CHECK_JOB_NAME)) {
+      await cron.add({
+        name: AUTH_HEALTH_CHECK_JOB_NAME,
+        description: "auto-created: daily OAuth token expiry check at 09:00",
+        schedule: { kind: "cron", expr: "0 9 * * *", tz: "Asia/Shanghai" },
+        agentId: "executor",
+        sessionTarget: "isolated",
+        wakeMode: "now",
+        enabled: true,
+        payload: {
+          kind: "agentTurn",
+          message: [
+            "【Auth Token 健康檢查】",
+            "",
+            "請靜默執行以下操作：",
+            "1. 讀取 /root/.openclaw/agents/main/agent/auth-profiles.json",
+            "2. 找出所有有 expires 字段的 profile",
+            "3. 計算每個 profile 的剩餘時間（expires - 當前時間戳毫秒）",
+            "4. 如果任何 profile 剩餘時間 < 3 天（259200000 毫秒），",
+            "   使用 message 工具發送警告到 telegram，accountId=channel2，target=1898430254：",
+            "   ⚠️ Auth Token 即將過期：[profile_id] 剩餘 [X] 天，請重新授權。",
+            "5. 如果所有 token 狀態正常，不需要發送任何消息（靜默完成）",
           ].join("\n"),
           deliver: true,
           channel: "last",

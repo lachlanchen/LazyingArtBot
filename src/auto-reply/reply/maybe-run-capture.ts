@@ -14,6 +14,7 @@ import { getValidToken } from "../../agents/tools/feishu-calendar-tool.js";
 import { resolveHubPaths, resolveHubRoot, safeReadDir } from "../../capture-agent/hub.js";
 import { runCaptureAgent } from "../../capture-agent/run.js";
 import { getGlobalCron } from "../../cron/global-cron.js";
+import { notifyKairoFailure } from "../../infra/notify-failure.js";
 
 /** @internal */
 export function parseDeleteRequest(text: string): { query: string } | null {
@@ -264,29 +265,29 @@ async function maybeScheduleCronReminder(
     }>;
   },
   _ctx: FinalizedMsgContext,
-): Promise<void> {
+): Promise<{ scheduled: boolean; at: string | null }> {
   const item = out.items[0];
   if (!item) {
-    return;
+    return { scheduled: false, at: null };
   }
   const { type, title, id, due, nextBestAction } = item;
 
   // Only action/timeline items with a future due date
   if (type !== "action" && type !== "timeline") {
-    return;
+    return { scheduled: false, at: null };
   }
   if (!due) {
-    return;
+    return { scheduled: false, at: null };
   }
 
   const atIso = parseDueToIso(due);
   if (!atIso) {
-    return;
+    return { scheduled: false, at: null };
   }
 
   const cron = getGlobalCron();
   if (!cron) {
-    return;
+    return { scheduled: false, at: null };
   }
 
   // 4A — deduplication: skip if a job for this capture id already exists
@@ -296,7 +297,7 @@ async function maybeScheduleCronReminder(
       (j) => j.description?.includes(`capture id:${id}`) || j.name === `到期提醒：${title}`,
     );
     if (isDuplicate) {
-      return;
+      return { scheduled: false, at: null };
     }
   } catch {
     // if list fails, proceed anyway (best-effort)
@@ -351,8 +352,15 @@ async function maybeScheduleCronReminder(
         bestEffortDeliver: true,
       },
     });
-  } catch {
+    return { scheduled: true, at: atIso };
+  } catch (err) {
     // best-effort; don't fail capture if cron scheduling fails
+    void notifyKairoFailure({
+      system: "Cron 排程",
+      reason: String(err),
+      severity: "warn",
+    }).catch(() => {});
+    return { scheduled: false, at: null };
   }
 }
 
@@ -363,29 +371,29 @@ async function maybeCreateFeishuCalendarEvent(out: {
     id: string;
     due: string | null;
   }>;
-}): Promise<void> {
+}): Promise<"synced" | "skipped" | "failed"> {
   const item = out.items[0];
   if (!item) {
-    return;
+    return "skipped";
   }
 
   const { type, title, id, due } = item;
   if (type !== "action" && type !== "timeline") {
-    return;
+    return "skipped";
   }
   if (!due) {
-    return;
+    return "skipped";
   }
 
   const dateMatch = due.match(/^(\d{4}-\d{2}-\d{2})/);
   if (!dateMatch?.[1]) {
-    return;
+    return "skipped";
   }
   const dateStr = dateMatch[1];
 
   // Skip if already past
   if (new Date(`${dateStr}T23:59:59+08:00`) <= new Date()) {
-    return;
+    return "skipped";
   }
 
   // Use shared getValidToken() — handles expiry + auto-refresh with mutex.
@@ -401,7 +409,12 @@ async function maybeCreateFeishuCalendarEvent(out: {
       "[feishu-calendar-create] getValidToken threw unexpectedly, skipping calendar create:",
       tokenErr,
     );
-    return;
+    void notifyKairoFailure({
+      system: "飛書日曆",
+      reason: "Token 過期或 API 失敗",
+      severity: "warn",
+    }).catch(() => {});
+    return "failed";
   }
   if (!auth) {
     // getValidToken() already logs the specific reason (missing file / refresh failed).
@@ -411,7 +424,12 @@ async function maybeCreateFeishuCalendarEvent(out: {
       "(see [feishu-token] log lines above for the specific reason — missing file, expired,",
       "or refresh_token revoked — and re-authorize if needed)",
     );
-    return;
+    void notifyKairoFailure({
+      system: "飛書日曆",
+      reason: "Token 過期或 API 失敗",
+      severity: "warn",
+    }).catch(() => {});
+    return "failed";
   }
 
   const { token: accessToken, calendarId } = auth;
@@ -446,12 +464,75 @@ async function maybeCreateFeishuCalendarEvent(out: {
     const data = (await resp.json()) as { code?: number; msg?: string };
     if (data.code !== 0) {
       console.warn("[feishu-calendar-create] API error:", data.code, data.msg);
+      void notifyKairoFailure({
+        system: "飛書日曆",
+        reason: `API error ${data.code}: ${data.msg ?? ""}`,
+        context: title,
+        severity: "warn",
+      }).catch(() => {});
+      return "failed";
     } else {
       console.log(`[feishu-calendar-create] Created event "${title}" on ${dateStr}`);
+      return "synced";
     }
   } catch (e) {
     console.warn("[feishu-calendar-create] fetch error:", e);
+    void notifyKairoFailure({
+      system: "飛書日曆",
+      reason: String(e),
+      context: title,
+      severity: "warn",
+    }).catch(() => {});
+    return "failed";
   }
+}
+
+function buildRichCaptureAck(params: {
+  line1: string | undefined;
+  line2: string | undefined;
+  line3: string | undefined;
+  itemType?: string;
+  itemTitle?: string;
+  itemDue?: string | null;
+  calendarResult: "synced" | "skipped" | "failed";
+  reminderResult: { scheduled: boolean; at: string | null };
+}): string {
+  const { line1, line2, line3, itemType, itemTitle, calendarResult, reminderResult } = params;
+
+  const lines: string[] = [];
+
+  // 主 ACK 行
+  const typeLabel = itemType ? `[${itemType}]` : "";
+  const titleLabel = itemTitle ? ` ${itemTitle}` : "";
+  lines.push(`✅ 卡片已建立${typeLabel ? " — " + typeLabel : ""}${titleLabel}`);
+
+  // 飛書日曆狀態
+  if (calendarResult === "synced") {
+    lines.push(`✅ 飛書日曆已同步`);
+  } else if (calendarResult === "failed") {
+    lines.push(`⚠️ 飛書日曆同步失敗（已通知）`);
+  }
+  // calendarResult === "skipped" → 不顯示
+
+  // 提醒排程狀態
+  if (reminderResult.scheduled && reminderResult.at) {
+    const d = new Date(reminderResult.at);
+    const fmt = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    lines.push(`⏰ 到期提醒已排程 — ${fmt}`);
+  }
+
+  // 原始額外行（如有）
+  if (line2 && !lines.some((l) => l.includes(line2))) {
+    lines.push(line2);
+  }
+  if (line3 && !lines.some((l) => l.includes(line3))) {
+    lines.push(line3);
+  }
+
+  // 操作提示
+  lines.push(`↩️ 回覆 X 取消建卡`);
+
+  return lines.join("\n");
 }
 
 function isAlsoReplyEnabled(cfg: OpenClawConfig): boolean {
@@ -1576,9 +1657,8 @@ export async function maybeRunCapture(params: {
       outputMode: process.env.OUTPUT_MODE ?? "json",
     });
     await maybeUpdateHeartbeat(out);
-    await maybeScheduleCronReminder(out, ctx);
-    await maybeCreateFeishuCalendarEvent(out);
-    const lines = [out.ack.line1, out.ack.line2, out.ack.line3].filter(Boolean);
+    const reminderResult = await maybeScheduleCronReminder(out, ctx);
+    const calendarResult = await maybeCreateFeishuCalendarEvent(out);
 
     if (notebookLmQueued?.mode === "queue_capture_and_model") {
       return {
@@ -1586,8 +1666,19 @@ export async function maybeRunCapture(params: {
       };
     }
 
+    const firstItem = out.items?.[0];
+    const ackText = buildRichCaptureAck({
+      line1: out.ack?.line1,
+      line2: out.ack?.line2,
+      line3: out.ack?.line3,
+      itemType: firstItem?.type,
+      itemTitle: firstItem?.title,
+      itemDue: firstItem?.due ?? null,
+      calendarResult,
+      reminderResult,
+    });
     const notebookAck = notebookLmQueued ? buildNotebookLmQueueAck(notebookLmQueued) : "";
-    const combined = notebookAck ? [...lines, notebookAck].join("\n") : lines.join("\n");
+    const combined = notebookAck ? [ackText, notebookAck].join("\n") : ackText;
     const alsoReply = isAlsoReplyEnabled(cfg);
     return {
       handled: !alsoReply,

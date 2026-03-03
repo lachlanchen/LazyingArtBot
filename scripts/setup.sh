@@ -49,6 +49,15 @@ MODEL_BASE_URL=""
 # systemd
 SETUP_SYSTEMD=0
 
+# GitHub
+GH_TOKEN=""
+GH_USERNAME=""
+GH_REPO_NAME="kairo-brain"
+GH_PAGES_URL=""
+SETUP_PIN=""
+GITHUB_FIRST=0
+START_SERVICE_ONLY=0
+
 # ---------------------------------------------------------------------------
 # 工具函數
 # ---------------------------------------------------------------------------
@@ -96,6 +105,8 @@ write_file() {
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
+    --github-first) GITHUB_FIRST=1 ;;
+    --start-service) START_SERVICE_ONLY=1 ;;
     -h|--help)
       echo "Usage: $0 [--dry-run]"
       echo "  --dry-run   打印操作但不實際執行"
@@ -106,6 +117,36 @@ done
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo -e "${YELLOW}[DRY-RUN 模式] 不會實際修改任何文件${RESET}"
+fi
+
+# ── --start-service: only start/restart the gateway, skip setup ──
+if [[ "$START_SERVICE_ONLY" -eq 1 ]]; then
+  echo ""
+  info "--start-service 模式：僅重啟 Gateway 服務"
+  sudo rm -f /opt/LazyingArtBot/dist/.buildstamp 2>/dev/null || true
+  if sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service 2>/dev/null; then
+    for i in $(seq 1 12); do
+      sleep 5
+      if sudo ss -tlnp 2>/dev/null | grep -q ':18789'; then
+        success "Gateway 已啟動 ✅"
+        sudo ss -tlnp | grep ':18789' || true
+        exit 0
+      fi
+      echo -n "."
+    done
+    warn "Gateway 未在 60 秒內啟動，請檢查日誌"
+  else
+    warn "systemctl restart 失敗，嘗試手動啟動..."
+    nohup node /opt/LazyingArtBot/scripts/run-node.mjs gateway --port 18789 \
+      >> /tmp/kairo-gateway.log 2>&1 &
+    sleep 5
+    if sudo ss -tlnp 2>/dev/null | grep -q ':18789'; then
+      success "Gateway 已啟動（直接模式）✅"
+    else
+      warn "啟動失敗，請查看 /tmp/kairo-gateway.log"
+    fi
+  fi
+  exit 0
 fi
 
 # ---------------------------------------------------------------------------
@@ -183,6 +224,247 @@ fi
 
 echo ""
 success "環境檢查通過！"
+
+# =============================================================================
+# Phase 1b: GitHub 設定（優先）
+# =============================================================================
+header "Phase 1b: GitHub 設定"
+
+echo ""
+echo "Kairo 需要 GitHub 來："
+echo "  ✅ 建立你的個人管理頁面（任何設備都能打開）"
+echo "  ✅ 備份三個 AI 代理的工作記憶"
+echo "  ✅ 後續所有設定都在這個頁面完成（不需要再用終端）"
+echo ""
+echo "請打開以下鏈接，點 [Generate token] 後複製回來："
+echo ""
+echo -e "  ${CYAN}${BOLD}https://github.com/settings/tokens/new?description=Kairo-Brain&scopes=repo,workflow${RESET}"
+echo ""
+echo "（提示：需要 GitHub 帳號，免費註冊 github.com）"
+echo ""
+
+while true; do
+  read -rsp "GitHub Personal Access Token (ghp_...): " GH_TOKEN; echo
+  if [[ -z "$GH_TOKEN" ]]; then
+    warn "Token 不能為空"
+    continue
+  fi
+  # Validate token
+  info "驗證 GitHub Token..."
+  GH_RESPONSE="$(curl -sf -H "Authorization: token ${GH_TOKEN}"     https://api.github.com/user 2>/dev/null || echo '')"
+  if [[ -z "$GH_RESPONSE" ]]; then
+    error "Token 無效或網絡不通，請重試"
+    continue
+  fi
+  GH_USERNAME="$(echo "$GH_RESPONSE" | grep '"login"' | head -1 | sed 's/.*"login": *"\([^"]*\)".*/\1/')"
+  if [[ -z "$GH_USERNAME" ]]; then
+    error "無法獲取用戶名，請檢查 Token"
+    continue
+  fi
+  success "GitHub 用戶：${GH_USERNAME}"
+  break
+done
+
+# Store token securely
+SECRETS_DIR="${HOME}/.secrets"
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  mkdir -p "$SECRETS_DIR"
+  chmod 700 "$SECRETS_DIR"
+  printf '%s\n' "$GH_TOKEN" > "${SECRETS_DIR}/github-kairo.token"
+  chmod 600 "${SECRETS_DIR}/github-kairo.token"
+  success "Token 已保存到 ${SECRETS_DIR}/github-kairo.token"
+fi
+
+# Create GitHub repo
+info "建立 ${GH_USERNAME}/${GH_REPO_NAME} repo..."
+CREATE_RESP="$(curl -sf -X POST \
+  -H "Authorization: token ${GH_TOKEN}" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/user/repos \
+  -d "{\"name\":\"${GH_REPO_NAME}\",\"description\":\"Kairo AI Brain — 個人 AI 秘書記憶庫\",\"auto_init\":true,\"private\":false}" \
+  2>/dev/null || echo 'exists')"
+
+if echo "$CREATE_RESP" | grep -q '"full_name"'; then
+  success "Repo 建立成功"
+elif echo "$CREATE_RESP" | grep -q 'already exists\|exists'; then
+  info "Repo ${GH_USERNAME}/${GH_REPO_NAME} 已存在，繼續使用"
+else
+  # Try to check if repo exists
+  REPO_CHECK="$(curl -sf -H "Authorization: token ${GH_TOKEN}" \
+    "https://api.github.com/repos/${GH_USERNAME}/${GH_REPO_NAME}" 2>/dev/null || echo '')"
+  if [[ -n "$REPO_CHECK" ]]; then
+    info "Repo 已存在，繼續使用"
+  else
+    warn "建立 repo 時遇到問題，繼續嘗試..."
+  fi
+fi
+
+# Detect server public IP
+SERVER_IP="$(curl -4 -sf --max-time 5 https://ifconfig.me 2>/dev/null \
+  || curl -4 -sf --max-time 5 https://api.ipify.org 2>/dev/null \
+  || hostname -I 2>/dev/null | awk '{print $1}' \
+  || echo 'localhost')"
+SERVER_URL="http://${SERVER_IP}:18789"
+info "服務器地址：${SERVER_URL}"
+
+# Also detect LAN IP for clients on same network
+LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')"
+LAN_URL=""
+if [[ -n "$LAN_IP" && "$LAN_IP" != "$SERVER_IP" ]]; then
+  LAN_URL="http://${LAN_IP}:18789"
+fi
+
+# Generate SETUP PIN
+SETUP_PIN="$(LC_ALL=C tr -dc 'A-Z0-9' </dev/urandom 2>/dev/null | head -c 6 \
+  || openssl rand -hex 3 | tr '[:lower:]' '[:upper:]')"
+
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  mkdir -p "${HOME}/.openclaw"
+  printf '%s\n' "$SETUP_PIN" > "${HOME}/.openclaw/setup.pin"
+  chmod 600 "${HOME}/.openclaw/setup.pin"
+  # PIN expires in 24 hours (written as epoch + 86400)
+  printf '%s\n' "$(($(date +%s) + 86400))" > "${HOME}/.openclaw/setup.pin.expiry"
+fi
+
+# Push wizard files to GitHub repo
+SCRIPT_DIR_GITHUB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT_GITHUB="$(cd "${SCRIPT_DIR_GITHUB}/.." && pwd)"
+KAIRO_WEB_DIR="${REPO_ROOT_GITHUB}/kairo-web"
+
+if [[ -d "$KAIRO_WEB_DIR" ]] && [[ "$DRY_RUN" -eq 0 ]]; then
+  info "推送 wizard 頁面到 GitHub Pages..."
+  
+  # Create config.json for the wizard
+  CONFIG_JSON_CONTENT="{
+  \"serverUrl\": \"${SERVER_URL}\",
+  \"lanUrl\": \"${LAN_URL}\",
+  \"version\": \"1.0\",
+  \"setupComplete\": false
+}"
+  
+  WORK_DIR="$(mktemp -d)"
+  # Clone repo
+  if git clone --depth=1 "https://${GH_TOKEN}@github.com/${GH_USERNAME}/${GH_REPO_NAME}.git" \
+      "$WORK_DIR" 2>/dev/null; then
+    
+    # Copy wizard files
+    cp -r "${KAIRO_WEB_DIR}/." "${WORK_DIR}/"
+    
+    # Write config.json (serverUrl only, no secrets)
+    printf '%s\n' "$CONFIG_JSON_CONTENT" > "${WORK_DIR}/config.json"
+    
+    # Commit and push
+    cd "$WORK_DIR"
+    git config user.email "kairo-setup@localhost"
+    git config user.name "Kairo Setup"
+    git add -A
+    git commit -m "🚀 Kairo setup wizard" --quiet 2>/dev/null || true
+    git push --quiet 2>/dev/null && success "Wizard 頁面已推送" || warn "推送失敗，請手動推送"
+    
+    # Initialize workspace branches
+    for branch in "workspace/main" "workspace/executor" "workspace/reviewer"; do
+      git checkout --orphan "$branch" 2>/dev/null
+      git rm -rf . --quiet 2>/dev/null || true
+      printf '# Kairo Workspace — %s\n' "$branch" > README.md
+      git add README.md
+      git commit -m "init: workspace branch" --quiet 2>/dev/null || true
+      git push origin "$branch" --quiet 2>/dev/null || true
+    done
+    
+    cd - > /dev/null
+    rm -rf "$WORK_DIR"
+    success "Workspace 分支已建立（main / executor / reviewer）"
+  else
+    warn "無法克隆 repo，跳過文件推送"
+  fi
+fi
+
+# Enable GitHub Pages
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  curl -sf -X POST \
+    -H "Authorization: token ${GH_TOKEN}" \
+    -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/${GH_USERNAME}/${GH_REPO_NAME}/pages" \
+    -d '{"source":{"branch":"main","path":"/"}}' > /dev/null 2>&1 || true
+fi
+
+GH_PAGES_URL="https://${GH_USERNAME}.github.io/${GH_REPO_NAME}/"
+
+# ── Wait for GitHub Pages to go live ─────────────────────────────
+echo ""
+info "等待 GitHub Pages 生效（最多 3 分鐘）..."
+GH_PAGES_LIVE=0
+for i in $(seq 1 18); do
+  sleep 10
+  # Check Pages API for build status
+  PAGES_STATUS="$(curl -sf --max-time 8 \
+    -H "Authorization: token ${GH_TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/${GH_USERNAME}/${GH_REPO_NAME}/pages" 2>/dev/null \
+    | grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')"
+  # Check via HTTP directly - simpler than parsing API
+  HTTP_CODE="$(curl -sf --max-time 8 -o /dev/null -w "%{http_code}" \
+    "https://${GH_USERNAME}.github.io/${GH_REPO_NAME}/" 2>/dev/null || echo 0)"
+  if [[ "$HTTP_CODE" == "200" ]]; then
+    GH_PAGES_LIVE=1; break
+  fi
+  # Also accept "built" or "enabled" status as success even if HTTP not ready yet
+  if [[ "$PAGES_STATUS" == "built" ]] || [[ "$PAGES_STATUS" == "enabled" ]]; then
+    GH_PAGES_LIVE=1; break
+  fi
+  echo -n "[${i}0s] "
+done
+echo ""
+if [[ "$GH_PAGES_LIVE" -eq 1 ]]; then
+  success "GitHub Pages 已生效 ✅"
+else
+  warn "GitHub Pages 尚未生效，請稍後手動刷新 ${GH_PAGES_URL}"
+fi
+
+# ============================================================
+# Print the final setup URL and PIN — this is the key output
+# ============================================================
+echo ""
+echo -e "${GREEN}${BOLD}"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║           GitHub 設定完成！                                  ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo -e "${RESET}"
+echo -e "  ${BOLD}你的 Kairo 管理頁面：${RESET}"
+echo -e "  ${CYAN}${BOLD}${GH_PAGES_URL}${RESET}"
+echo ""
+echo -e "  ${BOLD}設定 PIN 碼：${RESET} ${YELLOW}${BOLD}${SETUP_PIN}${RESET}"
+echo "  （請記下這個 PIN，在管理頁面輸入）"
+echo ""
+echo "  ⏳ GitHub Pages 約需 1 分鐘生效"
+echo ""
+echo "  Telegram / LLM 等設定請在上方網頁完成，不需要繼續在終端操作。"
+echo ""
+
+success "Phase 1b 完成 — GitHub 已設定"
+
+# ── Auto-start gateway service ────────────────────────────────────
+echo ""
+info "自動啟動 Kairo Gateway 服務..."
+if sudo rm -f /opt/LazyingArtBot/dist/.buildstamp 2>/dev/null && \
+   sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service 2>/dev/null; then
+  # Wait up to 45 seconds for port to be available
+  for i in $(seq 1 9); do
+    sleep 5
+    if sudo ss -tlnp 2>/dev/null | grep -q ':18789'; then
+      success "Gateway 已啟動 ✅  (http://${SERVER_IP}:18789)"
+      break
+    fi
+    echo -n "."
+  done
+  if ! sudo ss -tlnp 2>/dev/null | grep -q ':18789'; then
+    warn "Gateway 未在 45 秒內啟動，請手動執行：openclaw-restart"
+  fi
+else
+  warn "無法自動啟動服務（需要 sudo 權限），請手動執行：openclaw-restart"
+fi
+
+echo ""
 
 # =============================================================================
 # Phase 2: KAIRO_HOME 設定
@@ -719,6 +1001,23 @@ fi
 
 success "openclaw.json 已生成"
 
+
+# =============================================================================
+# Phase 5b: GitHub Data Sync (uses token from Phase 1b)
+# =============================================================================
+# GitHub token already collected in Phase 1b — inject into config
+if [[ -n "$GH_TOKEN" ]] && [[ -n "$GH_USERNAME" ]]; then
+  if command -v jq &>/dev/null; then
+    TMP_OC="$(mktemp)"
+    jq --arg token "$GH_TOKEN" --arg repo "${GH_USERNAME}/${GH_REPO_NAME}" '
+      .github = { token: $token, repo: $repo, syncIntervalMinutes: 5, enabled: true }
+    ' "$CONFIG_FILE" > "$TMP_OC" && mv "$TMP_OC" "$CONFIG_FILE" && chmod 600 "$CONFIG_FILE"
+    success "GitHub sync 已配置 → ${GH_USERNAME}/${GH_REPO_NAME}"
+  else
+    warn "jq not found — GitHub sync block not injected"
+  fi
+fi
+
 # =============================================================================
 # Phase 6: 保存 Telegram Token 文件 & 複製 models.json
 # =============================================================================
@@ -859,8 +1158,8 @@ SERVICE_EOF
     mkdir -p "$SYSTEMD_USER_DIR"
     printf '%s\n' "$SERVICE_CONTENT" > "$SERVICE_FILE"
     chmod 644 "$SERVICE_FILE"
-    systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user enable openclaw-gateway.service 2>/dev/null || true
+    XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user daemon-reload 2>/dev/null || true
+    XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user enable openclaw-gateway.service 2>/dev/null || true
     success "systemd 服務已安裝: ${SERVICE_FILE}"
     info "啟用開機自啟: systemctl --user enable openclaw-gateway"
   fi
@@ -894,6 +1193,12 @@ if [[ "$SETUP_SYSTEMD" -eq 1 ]]; then
 fi
 
 echo ""
+if [[ -n "$GH_PAGES_URL" ]]; then
+  echo -e "${BOLD}你的 Kairo 管理頁面：${RESET}"
+  echo -e "  ${CYAN}${BOLD}${GH_PAGES_URL}${RESET}"
+  echo -e "  PIN 碼：${YELLOW}${BOLD}${SETUP_PIN}${RESET}"
+  echo ""
+fi
 echo -e "${BOLD}下一步:${RESET}"
 echo ""
 echo "  1. 啟動服務:"

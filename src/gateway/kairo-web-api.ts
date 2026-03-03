@@ -5,6 +5,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { authorizeGatewayConnect, isLocalDirectRequest, type ResolvedGatewayAuth } from "./auth.js";
 import { getBearerToken } from "./http-utils.js";
+import { handleSetupRequest } from "./kairo-web-setup-api.js";
 
 const API_PREFIX = "/api";
 
@@ -18,7 +19,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Setup-Pin");
   res.end(JSON.stringify(body));
 }
 
@@ -66,6 +67,110 @@ async function handleStatus(res: ServerResponse) {
     agents,
     pid: process.pid,
   });
+}
+
+// GET /api/health
+async function handleHealth(res: ServerResponse): Promise<void> {
+  try {
+    // Feishu token status
+    let feishu: { tokenPresent: boolean; tokenExpiredSoon: boolean; expiresInMinutes: number } = {
+      tokenPresent: false,
+      tokenExpiredSoon: false,
+      expiresInMinutes: 0,
+    };
+    try {
+      const tokenPath = path.join(STATE_DIR, "feishu_user_token.json");
+      if (fs.existsSync(tokenPath)) {
+        const raw = fs.readFileSync(tokenPath, "utf-8");
+        const tok = JSON.parse(raw) as {
+          access_token?: string;
+          expires_in?: number | string;
+          obtained_at?: number | string;
+        };
+        if (tok.access_token) {
+          const obtainedAtRaw = tok.obtained_at;
+          const obtainedAt = obtainedAtRaw
+            ? typeof obtainedAtRaw === "number"
+              ? obtainedAtRaw
+              : new Date(String(obtainedAtRaw)).getTime()
+            : 0;
+          const expiresIn = Number(tok.expires_in ?? 7200);
+          const remainingMs = obtainedAt + expiresIn * 1000 - Date.now();
+          const remainingMin = Math.floor(remainingMs / 60_000);
+          feishu = {
+            tokenPresent: true,
+            tokenExpiredSoon: remainingMs < 30 * 60_000,
+            expiresInMinutes: Math.max(0, remainingMin),
+          };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Cron job summary
+    let cronActive = 0,
+      cronDisabled = 0;
+    let nextJobName: string | null = null,
+      nextRunAtMs: number | null = null;
+    try {
+      const jobsPath = path.join(STATE_DIR, "cron", "jobs.json");
+      if (fs.existsSync(jobsPath)) {
+        const raw = fs.readFileSync(jobsPath, "utf-8");
+        const data = JSON.parse(raw) as {
+          jobs?: Array<{
+            name: string;
+            enabled?: boolean;
+            schedule?: { kind: string; at?: string };
+          }>;
+        };
+        const jobs = Array.isArray(data.jobs)
+          ? data.jobs
+          : Array.isArray(data)
+            ? ((data as unknown as typeof data.jobs) ?? [])
+            : [];
+        const now = Date.now();
+        for (const j of jobs as Array<{
+          name: string;
+          enabled?: boolean;
+          schedule?: { kind: string; at?: string };
+        }>) {
+          if (j.enabled === false) {
+            cronDisabled++;
+            continue;
+          }
+          cronActive++;
+          if (j.schedule?.kind === "at" && j.schedule.at && !j.name.includes("標記")) {
+            const at = new Date(j.schedule.at).getTime();
+            if (at > now && (nextRunAtMs === null || at < nextRunAtMs)) {
+              nextRunAtMs = at;
+              nextJobName = j.name;
+            }
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const startMs =
+      parseInt(process.env.OPENCLAW_START_MS ?? "0", 10) || Date.now() - process.uptime() * 1000;
+
+    sendJson(res, 200, {
+      ok: true,
+      ts: Date.now(),
+      uptime: Math.floor((Date.now() - startMs) / 1000),
+      agents: [
+        { id: "main", name: "Planner", status: "online" },
+        { id: "executor", name: "Executor", status: "online" },
+        { id: "reviewer", name: "Reviewer", status: "online" },
+      ],
+      feishu,
+      cron: { activeJobs: cronActive, disabledJobs: cronDisabled, nextJobName, nextRunAtMs },
+    });
+  } catch (err) {
+    sendJson(res, 500, { ok: false, error: String(err) });
+  }
 }
 
 // GET /api/cron
@@ -305,15 +410,16 @@ export async function handleKairoWebApiRequest(
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Setup-Pin");
     res.end();
     return true;
   }
 
-  if (req.method !== "GET") {
+  // POST is allowed for /api/setup/* (local-only)
+  if (req.method !== "GET" && req.method !== "POST") {
     res.statusCode = 405;
-    res.setHeader("Allow", "GET, OPTIONS");
+    res.setHeader("Allow", "GET, POST, OPTIONS");
     res.end("Method Not Allowed");
     return true;
   }
@@ -339,6 +445,15 @@ export async function handleKairoWebApiRequest(
 
   const subPath = pathname.slice(API_PREFIX.length).replace(/^\/+/, "");
 
+  // Setup API: local-only, handles both GET and POST
+  if (subPath === "setup/status" || subPath.startsWith("setup/")) {
+    if (!isLocal) {
+      sendError(res, 403, "Setup API is local-only");
+      return true;
+    }
+    return handleSetupRequest(req, res, subPath.slice("setup/".length));
+  }
+
   if (subPath === "status") {
     await handleStatus(res);
     return true;
@@ -357,6 +472,11 @@ export async function handleKairoWebApiRequest(
 
   if (subPath === "usage/today") {
     await handleUsageToday(res);
+    return true;
+  }
+
+  if (subPath === "health") {
+    await handleHealth(res);
     return true;
   }
 

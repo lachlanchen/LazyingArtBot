@@ -28,6 +28,7 @@ import {
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
+import { initGitHubSync } from "../infra/github-sync.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
 import { startHeartbeatRunner } from "../infra/heartbeat-runner.js";
 import { getMachineDisplayName } from "../infra/machine-name.js";
@@ -460,6 +461,15 @@ export async function startGatewayServer(
   let heartbeatRunner = startHeartbeatRunner({ cfg: cfgAtStart });
 
   void cron.start().catch((err) => logCron.error(`failed to start: ${String(err)}`));
+
+  // GitHub workspace sync
+  if (cfgAtStart.github?.token && cfgAtStart.github?.enabled !== false) {
+    const defaultAgentId = resolveDefaultAgentId(cfgAtStart);
+    const wsDir = resolveAgentWorkspaceDir(cfgAtStart, defaultAgentId);
+    void initGitHubSync(cfgAtStart.github, wsDir).catch((err) =>
+      log.error(`[github-sync] init failed: ${String(err)}`),
+    );
+  }
 
   const execApprovalManager = new ExecApprovalManager();
   const execApprovalForwarder = createExecApprovalForwarder();
