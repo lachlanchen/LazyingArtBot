@@ -32,6 +32,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # Deploy website folder only (custom domain: lab.lazying.art)
           path: "website"
       - name: Deploy to GitHub Pages
         id: deployment
