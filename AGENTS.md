@@ -1,226 +1,434 @@
-# Repository Guidelines
+# Kairo — AI Installation & Troubleshooting Prompt
 
-- Repo: https://github.com/openclaw/openclaw
-- GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
-
-## Project Structure & Module Organization
-
-- Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
-- Tests: colocated `*.test.ts`.
-- Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
-- Plugins/extensions: live under `extensions/*` (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
-- Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `openclaw` in `devDependencies` or `peerDependencies` instead (runtime resolves `openclaw/plugin-sdk` via jiti alias).
-- Installers served from `https://openclaw.ai/*`: live in the sibling repo `../openclaw.ai` (`public/install.sh`, `public/install-cli.sh`, `public/install.ps1`).
-- Messaging channels: always consider **all** built-in + extension channels when refactoring shared logic (routing, allowlists, pairing, command gating, onboarding, docs).
-  - Core channel docs: `docs/channels/`
-  - Core channel code: `src/telegram`, `src/discord`, `src/slack`, `src/signal`, `src/imessage`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
-  - Extensions (channel plugins): `extensions/*` (e.g. `extensions/msteams`, `extensions/matrix`, `extensions/zalo`, `extensions/zalouser`, `extensions/voice-call`)
-- When adding channels/extensions/apps/docs, update `.github/labeler.yml` and create matching GitHub labels (use existing channel/extension label colors).
-
-## Docs Linking (Mintlify)
-
-- Docs are hosted on Mintlify (docs.openclaw.ai).
-- Internal doc links in `docs/**/*.md`: root-relative, no `.md`/`.mdx` (example: `[Config](/configuration)`).
-- When working with documentation, read the mintlify skill.
-- Section cross-references: use anchors on root-relative paths (example: `[Hooks](/configuration#hooks)`).
-- Doc headings and anchors: avoid em dashes and apostrophes in headings because they break Mintlify anchor links.
-- When Peter asks for links, reply with full `https://docs.openclaw.ai/...` URLs (not root-relative).
-- When you touch docs, end the reply with the `https://docs.openclaw.ai/...` URLs you referenced.
-- README (GitHub): keep absolute docs URLs (`https://docs.openclaw.ai/...`) so links work on GitHub.
-- Docs content must be generic: no personal device names/hostnames/paths; use placeholders like `user@gateway-host` and “gateway host”.
-
-## Docs i18n (zh-CN)
-
-- `docs/zh-CN/**` is generated; do not edit unless the user explicitly asks.
-- Pipeline: update English docs → adjust glossary (`docs/.i18n/glossary.zh-CN.json`) → run `scripts/docs-i18n` → apply targeted fixes only if instructed.
-- Translation memory: `docs/.i18n/zh-CN.tm.jsonl` (generated).
-- See `docs/.i18n/README.md`.
-- The pipeline can be slow/inefficient; if it’s dragging, ping @jospalmbier on Discord instead of hacking around it.
-
-## exe.dev VM ops (general)
-
-- Access: stable path is `ssh exe.dev` then `ssh vm-name` (assume SSH key already set).
-- SSH flaky: use exe.dev web terminal or Shelley (web agent); keep a tmux session for long ops.
-- Update: `sudo npm i -g openclaw@latest` (global install needs root on `/usr/lib/node_modules`).
-- Config: use `openclaw config set ...`; ensure `gateway.mode=local` is set.
-- Discord: store raw token only (no `DISCORD_BOT_TOKEN=` prefix).
-- Restart: stop old gateway and run:
-  `pkill -9 -f openclaw-gateway || true; nohup openclaw gateway run --bind loopback --port 18789 --force > /tmp/openclaw-gateway.log 2>&1 &`
-- Verify: `openclaw channels status --probe`, `ss -ltnp | rg 18789`, `tail -n 120 /tmp/openclaw-gateway.log`.
-
-## Build, Test, and Development Commands
-
-- Runtime baseline: Node **22+** (keep Node + Bun paths working).
-- Install deps: `pnpm install`
-- Pre-commit hooks: `prek install` (runs same checks as CI)
-- Also supported: `bun install` (keep `pnpm-lock.yaml` + Bun patching in sync when touching deps/patches).
-- Prefer Bun for TypeScript execution (scripts, dev, tests): `bun <file.ts>` / `bunx <tool>`.
-- Run CLI in dev: `pnpm openclaw ...` (bun) or `pnpm dev`.
-- Node remains supported for running built output (`dist/*`) and production installs.
-- Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch. Release checklist: `docs/platforms/mac/release.md`.
-- Type-check/build: `pnpm build`
-- TypeScript checks: `pnpm tsgo`
-- Lint/format: `pnpm check`
-- Format check: `pnpm format` (oxfmt --check)
-- Format fix: `pnpm format:fix` (oxfmt --write)
-- Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
-
-## Coding Style & Naming Conventions
-
-- Language: TypeScript (ESM). Prefer strict typing; avoid `any`.
-- Formatting/linting via Oxlint and Oxfmt; run `pnpm check` before commits.
-- Add brief code comments for tricky or non-obvious logic.
-- Keep files concise; extract helpers instead of “V2” copies. Use existing patterns for CLI options and dependency injection via `createDefaultDeps`.
-- Aim to keep files under ~700 LOC; guideline only (not a hard guardrail). Split/refactor when it improves clarity or testability.
-- Naming: use **OpenClaw** for product/app/docs headings; use `openclaw` for CLI command, package/binary, paths, and config keys.
-
-## Release Channels (Naming)
-
-- stable: tagged releases only (e.g. `vYYYY.M.D`), npm dist-tag `latest`.
-- beta: prerelease tags `vYYYY.M.D-beta.N`, npm dist-tag `beta` (may ship without macOS app).
-- dev: moving head on `main` (no tag; git checkout main).
-
-## Testing Guidelines
-
-- Framework: Vitest with V8 coverage thresholds (70% lines/branches/functions/statements).
-- Naming: match source names with `*.test.ts`; e2e in `*.e2e.test.ts`.
-- Run `pnpm test` (or `pnpm test:coverage`) before pushing when you touch logic.
-- Do not set test workers above 16; tried already.
-- Live tests (real keys): `CLAWDBOT_LIVE_TEST=1 pnpm test:live` (OpenClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests). Docker: `pnpm test:docker:live-models`, `pnpm test:docker:live-gateway`. Onboarding Docker E2E: `pnpm test:docker:onboard`.
-- Full kit + what’s covered: `docs/testing.md`.
-- Pure test additions/fixes generally do **not** need a changelog entry unless they alter user-facing behavior or the user asks for one.
-- Mobile: before using a simulator, check for connected real devices (iOS + Android) and prefer them when available.
-
-## Commit & Pull Request Guidelines
-
-**Full maintainer PR workflow:** `.agents/skills/PR_WORKFLOW.md` -- triage order, quality bar, rebase rules, commit/changelog conventions, co-contributor policy, and the 3-step skill pipeline (`review-pr` > `prepare-pr` > `merge-pr`).
-
-- Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
-- Follow concise, action-oriented commit messages (e.g., `CLI: add verbose flag to send`).
-- Group related changes; avoid bundling unrelated refactors.
-- Read this when submitting a PR: `docs/help/submitting-a-pr.md` ([Submitting a PR](https://docs.openclaw.ai/help/submitting-a-pr))
-- Read this when submitting an issue: `docs/help/submitting-an-issue.md` ([Submitting an Issue](https://docs.openclaw.ai/help/submitting-an-issue))
-
-## Shorthand Commands
-
-- `sync`: if working tree is dirty, commit all changes (pick a sensible Conventional Commit message), then `git pull --rebase`; if rebase conflicts and cannot resolve, stop; otherwise `git push`.
-- Before any upstream fetch/merge/rebase from `openclaw/openclaw`, read `references/upstream-sync-local-first.md` first and follow its local-first conflict policy.
-- LAB Codex prompt tooling must stay under `scripts/prompt_tools/`; do not add new LAB Codex helper scripts at the top level `scripts/`.
-
-## Security & Configuration Tips
-
-- Web provider stores creds at `~/.openclaw/credentials/`; rerun `openclaw login` if logged out.
-- Pi sessions live under `~/.openclaw/sessions/` by default; the base directory is not configurable.
-- Environment variables: see `~/.profile`.
-- Never commit or publish real phone numbers, videos, or live configuration values. Use obviously fake placeholders in docs, tests, and examples.
-- Release flow: always read `docs/reference/RELEASING.md` and `docs/platforms/mac/release.md` before any release work; do not ask routine questions once those docs answer them.
-
-## Troubleshooting
-
-- Rebrand/migration issues or legacy config/service warnings: run `openclaw doctor` (see `docs/gateway/doctor.md`).
-
-## Agent-Specific Notes
-
-- Vocabulary: "makeup" = "mac app".
-- Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
-- When adding a new `AGENTS.md` anywhere in the repo, also add a `CLAUDE.md` symlink pointing to it (example: `ln -s AGENTS.md CLAUDE.md`).
-- Signal: "update fly" => `fly ssh console -a flawd-bot -C "bash -lc 'cd /data/clawd/openclaw && git pull --rebase origin main'"` then `fly machines restart e825232f34d058 -a flawd-bot`.
-- When working on a GitHub Issue or PR, print the full URL at the end of the task.
-- When answering questions, respond with high-confidence answers only: verify in code; do not guess.
-- Never update the Carbon dependency.
-- Any dependency with `pnpm.patchedDependencies` must use an exact version (no `^`/`~`).
-- Patching dependencies (pnpm patches, overrides, or vendored changes) requires explicit approval; do not do this by default.
-- CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
-- Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
-- Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the OpenClaw Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep openclaw` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
-- macOS logs: use `./scripts/clawlog.sh` to query unified logs for the OpenClaw subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
-- If shared guardrails are available locally, review them; otherwise follow this repo's guidance.
-- SwiftUI state management (iOS/macOS): prefer the `Observation` framework (`@Observable`, `@Bindable`) over `ObservableObject`/`@StateObject`; don’t introduce new `ObservableObject` unless required for compatibility, and migrate existing usages when touching related code.
-- Connection providers: when adding a new connection, update every UI surface and docs (macOS app, web UI, mobile if applicable, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
-- Version locations: `package.json` (CLI), `apps/android/app/build.gradle.kts` (versionName/versionCode), `apps/ios/Sources/Info.plist` + `apps/ios/Tests/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `apps/macos/Sources/OpenClaw/Resources/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `docs/install/updating.md` (pinned npm version), `docs/platforms/mac/release.md` (APP_VERSION/APP_BUILD examples), Peekaboo Xcode projects/Info.plists (MARKETING_VERSION/CURRENT_PROJECT_VERSION).
-- "Bump version everywhere" means all version locations above **except** `appcast.xml` (only touch appcast when cutting a new macOS Sparkle release).
-- **Restart apps:** “restart iOS/Android apps” means rebuild (recompile/install) and relaunch, not just kill/launch.
-- **Device checks:** before testing, verify connected real devices (iOS/Android) before reaching for simulators/emulators.
-- iOS Team ID lookup: `security find-identity -p codesigning -v` → use Apple Development (…) TEAMID. Fallback: `defaults read com.apple.dt.Xcode IDEProvisioningTeamIdentifiers`.
-- A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
-- Release signing/notary keys are managed outside the repo; follow internal release docs.
-- Notary auth env vars (`APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_API_KEY_P8`) are expected in your environment (per internal release docs).
-- **Multi-agent safety:** do **not** create/apply/drop `git stash` entries unless explicitly requested (this includes `git pull --rebase --autostash`). Assume other agents may be working; keep unrelated WIP untouched and avoid cross-cutting state changes.
-- **Multi-agent safety:** when the user says "push", you may `git pull --rebase` to integrate latest changes (never discard other agents' work). When the user says "commit", scope to your changes only. When the user says "commit all", commit everything in grouped chunks.
-- **Multi-agent safety:** do **not** create/remove/modify `git worktree` checkouts (or edit `.worktrees/*`) unless explicitly requested.
-- **Multi-agent safety:** do **not** switch branches / check out a different branch unless explicitly requested.
-- **Multi-agent safety:** running multiple agents is OK as long as each agent has its own session.
-- **Multi-agent safety:** when you see unrecognized files, keep going; focus on your changes and commit only those.
-- Lint/format churn:
-  - If staged+unstaged diffs are formatting-only, auto-resolve without asking.
-  - If commit/push already requested, auto-stage and include formatting-only follow-ups in the same commit (or a tiny follow-up commit if needed), no extra confirmation.
-  - Only ask when changes are semantic (logic/data/behavior).
-- Lobster seam: use the shared CLI palette in `src/terminal/palette.ts` (no hardcoded colors); apply palette to onboarding/config prompts and other TTY UI output as needed.
-- **Multi-agent safety:** focus reports on your edits; avoid guard-rail disclaimers unless truly blocked; when multiple agents touch the same file, continue if safe; end with a brief “other files present” note only if relevant.
-- Bug investigations: read source code of relevant npm dependencies and all related local code before concluding; aim for high-confidence root cause.
-- Code style: add brief comments for tricky logic; keep files under ~500 LOC when feasible (split/refactor as needed).
-- Tool schema guardrails (google-antigravity): avoid `Type.Union` in tool input schemas; no `anyOf`/`oneOf`/`allOf`. Use `stringEnum`/`optionalStringEnum` (Type.Unsafe enum) for string lists, and `Type.Optional(...)` instead of `... | null`. Keep top-level tool schema as `type: "object"` with `properties`.
-- Tool schema guardrails: avoid raw `format` property names in tool schemas; some validators treat `format` as a reserved keyword and reject the schema.
-- When asked to open a “session” file, open the Pi session logs under `~/.openclaw/agents/<agentId>/sessions/*.jsonl` (use the `agent=<id>` value in the Runtime line of the system prompt; newest unless a specific ID is given), not the default `sessions.json`. If logs are needed from another machine, SSH via Tailscale and read the same path there.
-- Do not rebuild the macOS app over SSH; rebuilds must be run directly on the Mac.
-- Never send streaming/partial replies to external messaging surfaces (WhatsApp, Telegram); only final replies should be delivered there. Streaming/tool events may still go to internal UIs/control channel.
-- Voice wake forwarding tips:
-  - Command template should stay `openclaw-mac agent --message "${text}" --thinking low`; `VoiceWakeForwarder` already shell-escapes `${text}`. Don’t add extra quotes.
-  - launchd PATH is minimal; ensure the app’s launch agent PATH includes standard system paths plus your pnpm bin (typically `$HOME/Library/pnpm`) so `pnpm`/`openclaw` binaries resolve when invoked via `openclaw-mac`.
-- For manual `openclaw message send` messages that include `!`, use the heredoc pattern noted below to avoid the Bash tool’s escaping.
-- Release guardrails: do not change version numbers without operator’s explicit consent; always ask permission before running any npm publish/release step.
-
-## NPM + 1Password (publish/verify)
-
-- Use the 1password skill; all `op` commands must run inside a fresh tmux session.
-- Sign in: `eval "$(op signin --account my.1password.com)"` (app unlocked + integration on).
-- OTP: `op read 'op://Private/Npmjs/one-time password?attribute=otp'`.
-- Publish: `npm publish --access public --otp="<otp>"` (run from the package dir).
-- Verify without local npmrc side effects: `npm view <pkg> version --userconfig "$(mktemp)"`.
-- Kill the tmux session after publish.
+> **For AI assistants (Claude, GPT, Gemini, etc.)**
+>
+> Read this document in full before starting. You are an installation agent helping a user
+> set up Kairo on their cloud server. Work step by step, run each verification command,
+> and fix problems before moving on. Never skip a step.
+>
+> **Your job**: get the user's Telegram bot online and responding. Done means the user sends
+> a message to their bot and gets a reply.
 
 ---
 
-## Kairo (Ken's deployment) — Agent Architecture
+## What Kairo Is
 
-> This section documents Ken's self-hosted Kairo deployment on top of openclaw.
+Kairo is a self-hosted AI secretary. It runs on the user's server and connects to Telegram
+(and optionally Feishu). Three AI agents handle daily tasks: Planner (direct conversation),
+Executor (scheduled tasks), Reviewer (health checks + weekly reflection).
 
-### 3-Agent Setup (deployed 2026-03-01)
+After setup:
 
-Three agents run in parallel, each with isolated workspace and session context:
+- `https://USERNAME.github.io/kairo-brain/` — the user's permanent control page
+- `http://SERVER_IP:18789` — the live gateway (must stay running)
+- Telegram bot responds to messages 24/7
 
-| Agent        | ID               | Channel binding                            | Workspace                            | Heartbeat                  |
-| ------------ | ---------------- | ------------------------------------------ | ------------------------------------ | -------------------------- |
-| **Planner**  | `main` (default) | Telegram `@ken_MB2Bot` + Feishu            | `/root/.openclaw/workspace`          | none                       |
-| **Executor** | `executor`       | Telegram `@KensRF_AssistantBot` (channel2) | `/root/.openclaw/workspace-executor` | none                       |
-| **Reviewer** | `reviewer`       | — (background only)                        | `/root/.openclaw/workspace-reviewer` | every 30m, 07:00–23:30 CST |
+---
 
-**Config files:**
+## Before You Begin
 
-- `agents.list[]` + `bindings[]` in `/root/.openclaw/openclaw.json`
-- Cron job `agentId` assignments in `/root/.openclaw/cron/jobs.json`
+Ask the user for:
 
-**Routing rules:**
+1. SSH access to their server (or they share a terminal session with you)
+2. Their Telegram account (to receive bot messages)
 
-- `bindings`: `telegram/main` → Planner, `telegram/channel2` → Executor, `feishu/*` → Planner
-- Cron `agentId=executor`: all lessons (language/health/problem-def), investor stories, relax, all captures, 晨報
-- Cron `agentId=reviewer`: weekly reflection (Sun 21:00), monthly memory compression (1st 08:00)
-- Reminders with `kind: systemEvent` keep `agentId=main`
+You will guide them to create:
 
-**Key implementation notes:**
+- A GitHub account (if they don't have one) — free at github.com
+- A Telegram bot — free via @BotFather in Telegram
+- An LLM API key — DashScope (free quota, recommended) or OpenAI/Anthropic
 
-- `heartbeat: null` is rejected by zod — omit the field entirely for agents without heartbeat
-- Reviewer's HEARTBEAT.md (full logic) lives in `workspace-reviewer/`; Planner's HEARTBEAT.md is a stub
-- `agents.defaults.heartbeat` removed (was `mirrorTo: feishu`); now lives in reviewer's per-agent config
-- Agent dirs: `/root/.openclaw/agents/{executor,reviewer}/agent/` — copy `models.json` + `auth-profiles.json` from main
-- Shared data via symlinks: `workspace-executor/{packs,automation}` → main workspace; `workspace-reviewer/{memory,automation}` → main workspace
+---
+
+## Phase 0: Server Check
+
+Run these. Fix anything that fails before proceeding.
+
+```bash
+# Operating system
+uname -a
+cat /etc/os-release | grep PRETTY_NAME
+
+# Required tools
+node --version    # Need >= v20
+git --version     # Required
+curl --version    # Required
+jq --version      # Required
+
+# Server reachability
+curl -s ifconfig.me   # Public IP address
+hostname -I           # LAN IP (internal)
+
+# Port availability
+sudo ss -tlnp | grep 18789   # Should be empty (nothing running yet)
+```
+
+**Fix node if missing:**
+
+```bash
+# Debian/Ubuntu
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Alibaba Cloud Linux / CentOS / RHEL
+curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+sudo yum install -y nodejs
+```
+
+**Fix git/curl/jq if missing:**
+
+```bash
+sudo apt-get install -y git curl jq    # Debian/Ubuntu
+sudo yum install -y git curl jq        # CentOS/RHEL/Alibaba Linux
+```
+
+**Verify after fixing:**
+
+```bash
+node --version && git --version && jq --version && echo "ALL OK"
+```
+
+---
+
+## Phase 1: Install Kairo
+
+```bash
+cd /opt
+sudo git clone https://github.com/lachlanchen/LazyingArtBot.git
+cd LazyingArtBot
+sudo npm install -g pnpm
+sudo pnpm install
+sudo pnpm build
+```
+
+**Expected**: build ends with `Build complete`. The step that says
+`Command failed with exit code 137` for `build:plugin-sdk:dts` is normal (OOM on small servers)
+— it only generates TypeScript declaration files, not needed at runtime.
+
+**If `pnpm install` hangs > 3 min**: Network issue. Try:
+
+```bash
+sudo pnpm install --registry https://registry.npmmirror.com
+```
+
+**If `pnpm build` fails with TS errors**: Check if the error is in `src/gateway/` —
+those are critical. Errors in `scripts/` or `ui/` can be ignored.
+
+---
+
+## Phase 2: GitHub Setup
+
+This creates the user's permanent management page at `https://USERNAME.github.io/kairo-brain/`.
+
+### 2a. Get a GitHub token
+
+**Tell the user:** Open this URL in a browser:
+
+```
+https://github.com/settings/tokens/new?description=Kairo-Brain&scopes=repo,workflow
+```
+
+Steps:
+
+1. Log in to GitHub (create free account at github.com if needed)
+2. Scroll down on that page, click **[Generate token]**
+3. Copy the token (starts with `ghp_...`)
+
+**Test the token:**
+
+```bash
+GH_TOKEN="ghp_PASTE_TOKEN_HERE"
+curl -sf -H "Authorization: token $GH_TOKEN" https://api.github.com/user | grep login
+```
+
+**Expected**: shows `"login": "their-username"`
+
+**If empty/error**: Token is wrong, expired, or network to GitHub is blocked.
+Ask user to regenerate. If GitHub itself is unreachable from the server:
+
+```bash
+curl -v https://api.github.com 2>&1 | head -20
+```
+
+Some servers block GitHub API — if so, skip GitHub Pages.
+The user can access the wizard directly via `http://SERVER_IP:18789/app/#setup`.
+
+### 2b. Run setup script
+
+```bash
+sudo bash /opt/LazyingArtBot/scripts/setup.sh --github-first
+```
+
+When prompted for GitHub token, paste the `ghp_...` token.
+
+**Expected output at the end:**
+
+```
+✅ GitHub repo created: https://github.com/USERNAME/kairo-brain
+✅ Setup wizard pushed to GitHub Pages
+
+Your SETUP PIN: A1B2C3
+(Save this PIN — you'll enter it in the wizard)
+
+⏳ GitHub Pages takes 1–5 min to activate.
+```
+
+**If "Token 無效或網絡不通"**: The token is wrong OR GitHub is blocked. Re-check 2a.
+
+**If "repo already exists"**: That's fine. Script continues.
+
+**If script exits without a PIN**: Run:
+
+```bash
+NEWPIN=$(LC_ALL=C tr -dc A-Z0-9 </dev/urandom | head -c6)
+echo $NEWPIN | sudo tee /root/.openclaw/setup.pin
+echo $(($(date +%s) + 86400)) | sudo tee /root/.openclaw/setup.pin.expiry
+echo "Your PIN: $NEWPIN"
+```
+
+---
+
+## Phase 3: Start the Gateway
+
+```bash
+sudo bash /opt/LazyingArtBot/scripts/setup.sh --start-service
+```
+
+**Verify it's running:**
+
+```bash
+sudo ss -tlnp | grep 18789
+curl -s http://localhost:18789/api/setup/status
+```
+
+**Expected**: port shows `LISTEN`, API returns `{"ok":true,...}`
+
+**If port never opens (wait 60 sec):**
+
+```bash
+# Kill any zombie processes
+sudo lsof -ti:18789 | xargs sudo kill -9 2>/dev/null; sleep 2
+
+# Restart
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
+sleep 15
+sudo ss -tlnp | grep 18789
+
+# If still nothing, check logs
+sudo XDG_RUNTIME_DIR=/run/user/0 journalctl --user -u openclaw-gateway.service -n 40
+```
+
+**If systemctl --user fails**: Always use `XDG_RUNTIME_DIR=/run/user/0` prefix when running as root.
+
+---
+
+## Phase 4: Complete Setup via Wizard
+
+### Open the wizard
+
+| Situation                              | URL                                       |
+| -------------------------------------- | ----------------------------------------- |
+| GitHub Pages is working                | `https://USERNAME.github.io/kairo-brain/` |
+| GitHub Pages not working / server-side | `http://SERVER_LAN_IP:18789/app/#setup`   |
+
+**Note**: GitHub Pages is HTTPS. Opening it and calling an HTTP server causes "Mixed Content"
+browser errors. The wizard will show a banner with the correct local URL to use instead.
+
+**If GitHub Pages shows 404 after 5 min:**
+
+- Go to `https://github.com/USERNAME/kairo-brain/settings/pages`
+- Set Source = "Deploy from branch" → Branch = "main" → "/ (root)" → Save
+
+### Enter the PIN
+
+```bash
+sudo cat /root/.openclaw/setup.pin    # Show current PIN
+```
+
+**If PIN expired or missing:**
+
+```bash
+NEWPIN=$(LC_ALL=C tr -dc A-Z0-9 </dev/urandom | head -c6)
+echo $NEWPIN | sudo tee /root/.openclaw/setup.pin
+echo $(($(date +%s) + 86400)) | sudo tee /root/.openclaw/setup.pin.expiry
+echo "New PIN: $NEWPIN"
+```
+
+### Wizard steps
+
+**Step 1 — Telegram Bot**
+
+Create a bot via Telegram:
+
+1. Open Telegram → search `@BotFather` → send `/newbot`
+2. Choose a name and username (must end in `bot`)
+3. BotFather gives a token like `7123456789:AAF...` — paste into wizard
+
+Get User ID:
+
+1. Telegram → search `@userinfobot` → send any message
+2. It replies with `Id: 1234567890` — paste into wizard
+
+The wizard validates the token live (shows ✅ with bot name on success).
+
+**If token validation times out:**
+
+```bash
+TOKEN="7123456789:AAF..."
+curl -s "https://api.telegram.org/bot${TOKEN}/getMe"
+# Must return {"ok":true,...}
+```
+
+If that fails: server can't reach api.telegram.org. Check firewall or use a proxy.
+
+**Step 2 — LLM API Key**
+
+Recommended: **DashScope** (Alibaba, free quota, best for China servers)
+
+- Sign up: `https://dashscope.console.aliyun.com`
+- Go to "API-KEY 管理" → create key (looks like `sk-xxxxxxxx...`)
+
+The wizard tests the key against the provider's `/models` endpoint.
+
+**If validation fails from a China server**: Only DashScope works without a proxy.
+OpenAI and Anthropic require the server to have overseas network access.
+
+**Step 3 — Optional (Feishu, GitHub, TTS)**
+
+Safe to skip all. Click "跳過" / "Skip".
+
+**Step 4 — Launch**
+
+Click "Launch Kairo". When the celebration screen appears, run the restart command it shows:
+
+```bash
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
+```
+
+**Verify after restart:**
+
+```bash
+curl -s http://localhost:18789/api/setup/status | python3 -m json.tool
+```
+
+Look for `"telegram": "ok"` and `"llm": "ok"`.
+
+---
+
+## Phase 5: Test the Bot
+
+Tell the user: Open Telegram, find your bot, send "你好".
+
+**Expected**: Reply within 30 seconds.
+
+**If no reply:**
+
+```bash
+# Watch logs while user sends a message
+sudo XDG_RUNTIME_DIR=/run/user/0 journalctl --user -u openclaw-gateway.service -f
+```
+
+Look for lines showing the message received and LLM response.
+
+**If logs show "allowFrom" rejection**: User ID not in allowlist.
+
+```bash
+cat /root/.openclaw/openclaw.json | python3 -m json.tool | grep -A10 telegram
+```
+
+The `allowFrom` array must contain the user's numeric ID.
+
+---
+
+## Common Errors Reference
+
+| Error                        | Cause                                    | Fix                                                                                          |
+| ---------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `ENOENT: models.json`        | models.json not copied to agent dirs     | `sudo cp /opt/LazyingArtBot/src/agents/tools/models.json /root/.openclaw/agents/main/agent/` |
+| Port 18789 in use            | Old process still running                | `sudo lsof -ti:18789 \| xargs sudo kill -9`                                                  |
+| `Failed to connect to bus`   | systemctl --user without XDG_RUNTIME_DIR | Always use `sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user ...`                           |
+| Bot token 401                | Token deleted or invalid                 | Re-create bot via @BotFather                                                                 |
+| LLM `Connection refused`     | Provider unreachable                     | Switch to DashScope; check firewall                                                          |
+| `plugin id mismatch` in logs | Feishu plugin config                     | Harmless warning, ignore                                                                     |
+| `PIN 不存在` in wizard       | PIN expired (24h) or never created       | Run the PIN regeneration command above                                                       |
+| Config JSON invalid          | Incomplete write                         | `sudo cp /root/.openclaw/openclaw.json.bak.setup /root/.openclaw/openclaw.json`              |
+
+---
+
+## Key Files
+
+| File                                         | Purpose                                           |
+| -------------------------------------------- | ------------------------------------------------- |
+| `/root/.openclaw/openclaw.json`              | Main config (channels, agents, models)            |
+| `/root/.openclaw/setup.pin`                  | Wizard PIN — deleted after first successful apply |
+| `/root/.openclaw/cron/jobs.json`             | Scheduled jobs                                    |
+| `/root/.secrets/telegram.token`              | Telegram bot token                                |
+| `/root/.secrets/github-kairo.token`          | GitHub token                                      |
+| `/root/.openclaw/feishu_user_token.json`     | Feishu OAuth token (auto-refreshed)               |
+| `/root/.openclaw/agents/*/agent/models.json` | LLM config per agent                              |
+
+**Quick commands:**
+
+```bash
+# Force rebuild + restart
+sudo rm /opt/LazyingArtBot/dist/.buildstamp
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
+
+# Quick restart (no rebuild)
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
+
+# Watch logs
+sudo XDG_RUNTIME_DIR=/run/user/0 journalctl --user -u openclaw-gateway.service -f
+
+# Check port
+sudo ss -tlnp | grep 18789
+
+# API health check
+curl -s http://localhost:18789/api/health | python3 -m json.tool
+```
+
+---
+
+## Architecture
+
+```
+Cloud Server
+├── openclaw-gateway.service  :18789
+│   ├── /api/setup/status    — service health
+│   ├── /api/setup/apply     — write config (local-only, PIN required)
+│   └── /app/                — PWA control panel
+├── Planner (main)     ← Telegram main bot + Feishu → direct user chat
+├── Executor           ← Telegram channel2 → cron jobs, lessons, 晨報
+└── Reviewer           ← background → heartbeat every 30m, weekly reflection
+
+GitHub: USERNAME/kairo-brain
+├── main → GitHub Pages (wizard UI)
+└── workspace/* → agent memory backups
+
+~/.openclaw/
+├── openclaw.json         config
+├── workspace/            Planner memory
+├── workspace-executor/   Executor memory
+├── workspace-reviewer/   Reviewer memory
+└── agents/               per-agent model config
+```
+
+---
+
+## Ken's 3-Agent Deployment (Reference)
+
+| Agent    | ID         | Channel                | Heartbeat                  |
+| -------- | ---------- | ---------------------- | -------------------------- |
+| Planner  | `main`     | `@ken_MB2Bot` + Feishu | none                       |
+| Executor | `executor` | `@KensRF_AssistantBot` | none                       |
+| Reviewer | `reviewer` | background             | every 30m, 07:00–23:30 CST |
+
+Routing: lessons/captures/晨報 → executor; conversation → main; 週反思/月壓縮 → reviewer.
 
 **Rollback:**
 
 ```bash
 sudo cp /root/.openclaw/openclaw.json.bak.pre-3agent /root/.openclaw/openclaw.json
 sudo cp /root/.openclaw/cron/jobs.json.bak.pre-3agent /root/.openclaw/cron/jobs.json
-sudo cp /root/.openclaw/workspace/SOUL.md.bak /root/.openclaw/workspace/SOUL.md
-sudo cp /root/.openclaw/workspace/HEARTBEAT.md.bak /root/.openclaw/workspace/HEARTBEAT.md
-openclaw-restart
+sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service
 ```
