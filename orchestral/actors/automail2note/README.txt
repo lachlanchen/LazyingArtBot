@@ -16,3 +16,8 @@ install_automail2note.sh
 
 [missing]
 (none)
+
+[permissions bootstrap]
+If reminders/notes/calendar creation hangs or fails because Automation permission was not granted,
+run:
+  /Users/lachlan/Local/Clawbot/orchestral/actors/automail2note/request_automation_permissions.sh --open-settings
