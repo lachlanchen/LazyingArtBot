@@ -1,25 +1,27 @@
 [English](README.md) · [العربية](i18n/README.ar.md) · [Español](i18n/README.es.md) · [Français](i18n/README.fr.md) · [日本語](i18n/README.ja.md) · [한국어](i18n/README.ko.md) · [Tiếng Việt](i18n/README.vi.md) · [中文 (简体)](i18n/README.zh-Hans.md) · [中文（繁體）](i18n/README.zh-Hant.md) · [Deutsch](i18n/README.de.md) · [Русский](i18n/README.ru.md)
 
-[![LazyingArt banner](https://github.com/lachlanchen/lachlanchen/raw/main/figs/banner.png)](https://github.com/lachlanchen/lachlanchen/blob/main/figs/banner.png)
+[![LazyingArt banner](README-header.png)](README-header.png)
 
 # 🐼 LazyingArtBot (LAB)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb.svg)](LICENSE)
-[![Node >= 22.12.0](https://img.shields.io/badge/Node-%3E%3D22.12.0-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1f6feb.svg?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Node >= 22.12.0](https://img.shields.io/badge/node-%3E%3D22.12.0-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![pnpm workspace](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](pnpm-workspace.yaml)
 [![Upstream: openclaw/openclaw](https://img.shields.io/badge/upstream-openclaw%2Fopenclaw-111827?logo=github)](https://github.com/openclaw/openclaw)
-[![Gateway Default Port](https://img.shields.io/badge/Gateway-18789-0ea5e9)](#quick-start)
+[![Gateway](https://img.shields.io/badge/gateway-127.0.0.1%3A18789-0ea5e9)](#quick-start)
 [![Version](https://img.shields.io/badge/version-2026.2.10-16a34a)](package.json)
-[![i18n README](https://img.shields.io/badge/i18n-10_languages-8b5cf6)](i18n)
+[![skills/](https://img.shields.io/badge/skills-55_local-22c55e)](#skills-and-orchestration-surfaces)
+[![.agents/skills](https://img.shields.io/badge/.agents%2Fskills-4_workflows-0284c7)](#skills-and-orchestration-surfaces)
+[![orchestral/prompt_tools](https://img.shields.io/badge/orchestral%2Fprompt__tools-10_groups-f59e0b)](#skills-and-orchestration-surfaces)
+[![Git submodules](https://img.shields.io/badge/submodules-11_recursive-8b5cf6)](#git-submodules)
+[![i18n README](https://img.shields.io/badge/i18n-10_languages-0ea5e9)](i18n)
 [![Docs](https://img.shields.io/badge/docs-Mintlify-06b6d4)](docs)
-[![GitHub stars](https://img.shields.io/badge/GitHub-stars-0ea5e9?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
-[![GitHub issues](https://img.shields.io/badge/GitHub-issues-ef4444?logo=github&logoColor=white)](https://github.com/lachlanchen/LazyingArtBot/issues)
+[![GitHub stars](https://img.shields.io/github/stars/lachlanchen/LazyingArtBot?logo=github)](https://github.com/lachlanchen/LazyingArtBot/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/lachlanchen/LazyingArtBot?logo=github)](https://github.com/lachlanchen/LazyingArtBot/issues)
 
-> 🌍 **i18n status:** `i18n/` exists and currently includes localized README files for Arabic, German, Spanish, French, Japanese, Korean, Russian, Vietnamese, Simplified Chinese, and Traditional Chinese. This English draft remains the canonical source for incremental updates.
+> 🌍 **i18n status:** `i18n/` exists and currently includes localized README files for Arabic, German, Spanish, French, Japanese, Korean, Russian, Vietnamese, Simplified Chinese, and Traditional Chinese. This English README is the canonical source for incremental updates.
 
-**LazyingArtBot** is my personal AI assistant stack for **lazying.art**:
-
-**LazyingArtBot** is built on top of OpenClaw and adapted for my daily workflows: multi-channel chat, local-first control, and email → calendar/reminder/notes automation.
+**LazyingArtBot** is my personal AI assistant stack for **lazying.art**, built on top of OpenClaw and adapted for daily workflows: multi-channel chat, local-first control, and email -> calendar/reminder/notes automation.
 
 | 🔗 Link          | URL                                          | Focus                               |
 | ---------------- | -------------------------------------------- | ----------------------------------- |
@@ -36,7 +38,10 @@
 - [At a glance](#at-a-glance)
 - [Features](#features)
 - [Core capabilities](#core-capabilities)
+- [Repository topology (Mermaid)](#repository-topology-mermaid)
 - [Project structure](#project-structure)
+- [Skills and orchestration surfaces](#skills-and-orchestration-surfaces)
+- [Git submodules](#git-submodules)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
 - [Installation](#installation)
@@ -75,16 +80,18 @@ In short: less busywork, better execution.
 
 ## At a glance
 
-| Area                      | Current baseline in this repo              |
-| ------------------------- | ------------------------------------------ |
-| Runtime                   | Node.js `>=22.12.0`                        |
-| Package manager           | `pnpm@10.23.0`                             |
-| Core CLI                  | `openclaw`                                 |
-| Default local gateway     | `127.0.0.1:18789`                          |
-| Default bridge port       | `127.0.0.1:18790`                          |
-| Primary docs              | `docs/` (Mintlify)                         |
-| Primary LAB orchestration | `orchestral/` + `orchestral/prompt_tools/` |
-| README i18n location      | `i18n/README.*.md`                         |
+| Area                            | Current baseline in this repo                             |
+| ------------------------------- | --------------------------------------------------------- |
+| Runtime                         | Node.js `>=22.12.0`                                       |
+| Package manager                 | `pnpm@10.23.0`                                            |
+| Core CLI                        | `openclaw`                                                |
+| Default local gateway           | `127.0.0.1:18789`                                         |
+| Default bridge port             | `127.0.0.1:18790`                                         |
+| Primary docs                    | `docs/` (Mintlify)                                        |
+| Primary LAB orchestration       | `orchestral/` + `orchestral/prompt_tools/`                |
+| Skill surfaces                  | `skills/` (55 local skills) + `.agents/skills/` workflows |
+| README i18n location            | `i18n/README.*.md`                                        |
+| Git submodules (recursive view) | 11 entries (top-level + nested)                           |
 
 ---
 
@@ -96,6 +103,9 @@ In short: less busywork, better execution.
 - 📨 Email triage and conversion into Notes, Reminders, and Calendar actions.
 - 🧩 Plugin/extension ecosystem (`extensions/*`) for channels/providers/integrations.
 - 📱 Multi-platform surfaces in-repo (`apps/macos`, `apps/ios`, `apps/android`, `ui`).
+- 🧠 Layered skill system:
+  - user-facing local skill catalog in `skills/`
+  - maintainer workflow skills in `.agents/skills/`
 
 ---
 
@@ -117,33 +127,223 @@ Pipeline steps preserved from current workflow:
 
 ---
 
+## Repository topology (Mermaid)
+
+This section is the fast system map for operators. It explicitly highlights `skills/`, `.agents/skills/`, `orchestral/prompt_tools/`, and git submodules (including nested submodules visible in this checkout).
+
+### System map
+
+```mermaid
+flowchart TD
+  REPO["LazyingArtBot Repository"]
+
+  REPO --> CORE["src/ + extensions/ + ui/ + apps/ + docs/"]
+  REPO --> SKILLS["skills/\n(local skill catalog)"]
+  REPO --> AGSKILLS[".agents/skills/\n(maintainer workflows)"]
+  REPO --> ORCH["orchestral/"]
+  REPO --> SUBS["git submodules (recursive)"]
+
+  ORCH --> ORCH_PIPE["pipelines/ + pipelines.yml"]
+  ORCH --> ORCH_PROMPTS["prompt_tools/"]
+  ORCH --> ORCH_ACTORS["actors/ + scripts/ + config/ + references/"]
+
+  ORCH_PROMPTS --> PT_RUNTIME["runtime/"]
+  ORCH_PROMPTS --> PT_COMPANY["company/"]
+  ORCH_PROMPTS --> PT_WEB["websearch/"]
+  ORCH_PROMPTS --> PT_EMAIL["email/"]
+  ORCH_PROMPTS --> PT_NOTES["notes/"]
+  ORCH_PROMPTS --> PT_CAL["calendar/"]
+  ORCH_PROMPTS --> PT_REM["reminders/"]
+  ORCH_PROMPTS --> PT_MIG["migration/"]
+  ORCH_PROMPTS --> PT_GIT["git/"]
+  ORCH_PROMPTS --> PT_DOCS["docs/"]
+
+  SUBS --> SUB_AGINTI["AgInTi/"]
+  SUBS --> SUB_COOKBOOK["vendor/openai-cookbook"]
+  SUBS --> SUB_STWS["vendor/SillyTavern-WebSearch-Selenium"]
+
+  SUB_AGINTI --> SA_APPDEV["AutoAppDev"]
+  SUB_AGINTI --> SA_NOVEL["AutoNovelWriter"]
+  SUB_AGINTI --> SA_ORG["OrganoidAgent"]
+  SUB_AGINTI --> SA_PAPER["PaperAgent"]
+  SUB_AGINTI --> SA_LRE["LifeReverseEngineering"]
+
+  SA_LRE --> SA_LEARN["learn (LazyLearn)"]
+  SA_LRE --> SA_EARN["earn (LazyEarn)"]
+  SA_LRE --> SA_IDEAS["IDEAS"]
+
+  classDef core fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E;
+  classDef orchestral fill:#FEF3C7,stroke:#D97706,color:#78350F;
+  classDef skills fill:#DCFCE7,stroke:#16A34A,color:#14532D;
+  classDef submodule fill:#F3E8FF,stroke:#7C3AED,color:#4C1D95;
+
+  class REPO,CORE core;
+  class ORCH,ORCH_PIPE,ORCH_PROMPTS,ORCH_ACTORS,PT_RUNTIME,PT_COMPANY,PT_WEB,PT_EMAIL,PT_NOTES,PT_CAL,PT_REM,PT_MIG,PT_GIT,PT_DOCS orchestral;
+  class SKILLS,AGSKILLS skills;
+  class SUBS,SUB_AGINTI,SUB_COOKBOOK,SUB_STWS,SA_APPDEV,SA_NOVEL,SA_ORG,SA_PAPER,SA_LRE,SA_LEARN,SA_EARN,SA_IDEAS submodule;
+```
+
+### Operator navigation map
+
+```mermaid
+flowchart LR
+  START["Need to edit behavior?"] --> CHOICE{"What kind of change?"}
+
+  CHOICE -->|Skill behavior| S1["skills/"]
+  CHOICE -->|Maintainer workflow| S2[".agents/skills/"]
+  CHOICE -->|Prompt-tool chain| S3["orchestral/prompt_tools/"]
+  CHOICE -->|Runtime pipeline| S4["orchestral/pipelines/ or orchestral/actors/"]
+  CHOICE -->|Dependency source| S5["git submodules\n(git submodule status --recursive)"]
+
+  S1 --> S1A["Open SKILL.md + local scripts/references"]
+  S2 --> S2A["review-pr -> prepare-pr -> merge-pr"]
+  S3 --> S3A["Pick group: email/notes/calendar/reminders/websearch/company/git/docs/runtime"]
+  S4 --> S4A["Check pipeline shell entrypoints + run artifacts"]
+  S5 --> S5A["Inspect AgInTi + vendor/* nested repos"]
+```
+
+Assumption notes (from current local snapshot):
+
+- `AgInTi/AutoNovelWriter`, `AgInTi/OrganoidAgent`, and `AgInTi/PaperAgent` are declared nested submodules but currently uninitialized.
+- `AgInTi/LifeReverseEngineering` is initialized and present, but checked out at a commit that differs from the parent-recorded commit.
+- `vendor/a2ui` exists as a vendored directory, not a declared git submodule in `.gitmodules`.
+
+---
+
 ## Project structure
 
 High-level repository layout:
 
 ```text
 .
-├─ src/                 # core runtime, gateway, channels, CLI, infra
-├─ extensions/          # optional channel/provider/auth plugins
-├─ orchestral/          # LAB orchestration pipelines + prompt tools
-├─ scripts/             # build/dev/test/release helpers
-├─ ui/                  # web dashboard UI package
-├─ apps/                # macOS / iOS / Android apps
-├─ docs/                # Mintlify documentation
-├─ references/          # LAB references and operating notes
-├─ test/                # test suites
-├─ i18n/                # localized README files
-├─ .env.example         # environment template
-├─ docker-compose.yml   # gateway + CLI containers
-├─ README_OPENCLAW.md   # larger upstream-style reference README
-└─ README.md            # this LAB-focused README
+├─ src/                     # core runtime, gateway, channels, CLI, infra
+├─ extensions/              # optional channel/provider/auth plugins
+├─ skills/                  # local skill catalog (55 skill directories)
+├─ .agents/skills/          # maintainer workflow skills + PR_WORKFLOW.md
+├─ orchestral/              # LAB orchestration pipelines + prompt tools
+├─ scripts/                 # build/dev/test/release/helpers
+├─ ui/                      # web dashboard UI package
+├─ apps/                    # macOS / iOS / Android apps
+├─ docs/                    # Mintlify documentation
+├─ references/              # LAB references and operating notes
+├─ test/                    # test suites
+├─ i18n/                    # localized README files
+├─ vendor/                  # vendored and submodule-backed dependencies
+├─ AgInTi/                  # ecosystem submodule tree
+├─ .env.example             # environment template
+├─ docker-compose.yml       # gateway + CLI containers
+├─ README_OPENCLAW.md       # larger upstream-style reference README
+└─ README.md                # this LAB-focused README
 ```
 
 Notes:
 
-- `orchestral/prompt_tools` points to orchestral prompt-tool implementation.
+- `orchestral/prompt_tools` is the canonical location for LAB Codex prompt-tooling.
 - Root `i18n/` contains localized README variants.
 - `.github/workflows.disabled/` is present in this snapshot; active CI behavior should be verified before relying on workflow assumptions.
+
+---
+
+## Skills and orchestration surfaces
+
+### Quick navigation table
+
+| Surface                    | Path                       | What to open first                                      | Typical reason                                     |
+| -------------------------- | -------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| Local skill catalog        | `skills/`                  | `skills/<skill-name>/SKILL.md`                          | User-facing skill behavior and local automations   |
+| Maintainer workflow skills | `.agents/skills/`          | `.agents/skills/PR_WORKFLOW.md`                         | PR triage/review/prepare/merge flow                |
+| Orchestral pipelines       | `orchestral/pipelines/`    | shell entrypoint for the pipeline                       | Scheduled and deterministic runs                   |
+| Prompt-tool groups         | `orchestral/prompt_tools/` | target group folder (`email`, `notes`, `runtime`, etc.) | Tool contracts and chain composition               |
+| Submodule roots            | `AgInTi/`, `vendor/*`      | `.gitmodules` + `git submodule status --recursive`      | Cross-repo dependency and upstream source tracking |
+
+### `skills/` (local skill catalog)
+
+- Contains 55 skill directories in this snapshot.
+- Each skill is typically anchored by `SKILL.md` and may include scripts/references.
+- Examples: `skills/github`, `skills/discord`, `skills/voice-call`, `skills/session-logs`.
+
+### `.agents/skills/` (maintainer workflow skills)
+
+- Current workflow skills:
+  - `review-pr`
+  - `prepare-pr`
+  - `merge-pr`
+  - `mintlify`
+- `PR_WORKFLOW.md` defines the script-first maintainer sequence:
+  - `review-pr` -> `prepare-pr` -> `merge-pr`
+
+### `orchestral/` and `orchestral/prompt_tools/`
+
+`orchestral/` currently includes:
+
+- `pipelines/` (sync/async daily pipeline entrypoints + cron setup)
+- `pipelines.yml` (pipeline manifest)
+- `actors/` (automation actors, including automail2note)
+- `scripts/` (calendar/reminder migration helpers)
+- `config/` and `references/`
+- `prompt_tools/` (Codex prompt tooling groups + runtime runners)
+
+`orchestral/prompt_tools/` functional group layout:
+
+- `runtime/`
+- `company/`
+- `websearch/`
+- `email/`
+- `notes/`
+- `calendar/`
+- `reminders/`
+- `migration/`
+- `git/`
+- `docs/`
+
+Runtime center for structured runs:
+
+- `orchestral/prompt_tools/runtime/codex-json-runner.py`
+- `orchestral/prompt_tools/runtime/run_auto_ops.sh`
+
+---
+
+## Git submodules
+
+### Submodule inventory
+
+| Mount path                              | Repository URL                                                      | Purpose summary                                        | State in current checkout                                       |
+| --------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------- |
+| `AgInTi`                                | `git@github.com:lachlanchen/AgInTi.git`                             | Ecosystem umbrella submodule for adjacent LAB projects | initialized (`heads/main`)                                      |
+| `AgInTi/AutoAppDev`                     | `git@github.com:lachlanchen/AutoAppDev.git`                         | Auto app-development project                           | initialized (`heads/main`)                                      |
+| `AgInTi/AutoNovelWriter`                | `git@github.com:lachlanchen/AutoNovelWriter.git`                    | Automatic novel-writing project                        | uninitialized (`-` status)                                      |
+| `AgInTi/OrganoidAgent`                  | `git@github.com:lachlanchen/OrganoidAgent.git`                      | Organoid research agent project                        | uninitialized (`-` status)                                      |
+| `AgInTi/PaperAgent`                     | `git@github.com:lachlanchen/PaperAgent.git`                         | Paper/research automation project                      | uninitialized (`-` status)                                      |
+| `AgInTi/LifeReverseEngineering`         | `git@github.com:lachlanchen/LifeReverseEngineering.git`             | LifeReverseEngineering workspace                       | initialized, locally diverged from recorded commit (`+` status) |
+| `AgInTi/LifeReverseEngineering/learn`   | `https://github.com/lachlanchen/LazyLearn.git`                      | Learning subsystem under LifeReverseEngineering        | initialized (`heads/main`)                                      |
+| `AgInTi/LifeReverseEngineering/earn`    | `https://github.com/lachlanchen/LazyEarn.git`                       | Earning subsystem under LifeReverseEngineering         | initialized (`heads/main`)                                      |
+| `AgInTi/LifeReverseEngineering/IDEAS`   | `git@github.com:lachlanchen/IDEAS.git`                              | Ideas/planning subsystem under LifeReverseEngineering  | initialized (`heads/main`)                                      |
+| `vendor/openai-cookbook`                | `https://github.com/openai/openai-cookbook.git`                     | OpenAI cookbook reference content                      | initialized (`heads/main`)                                      |
+| `vendor/SillyTavern-WebSearch-Selenium` | `https://github.com/SillyTavern/SillyTavern-WebSearch-Selenium.git` | Selenium-based web-search integration base             | initialized (`heads/main`)                                      |
+
+### Submodule status legend
+
+| Symbol              | Meaning                                                                  |
+| ------------------- | ------------------------------------------------------------------------ |
+| ` ` (leading space) | submodule checked out at expected commit                                 |
+| `-`                 | submodule declared but not initialized                                   |
+| `+`                 | submodule checked out at commit different from recorded superproject SHA |
+
+### Submodule commands
+
+Initialize all submodules (including nested):
+
+```bash
+git submodule update --init --recursive
+```
+
+Check status recursively:
+
+```bash
+git submodule status --recursive
+```
+
+If private SSH submodules fail, confirm your SSH keys and GitHub access first.
 
 ---
 
@@ -345,6 +545,17 @@ Core orchestral chains:
 - Web search chain:
   results-page capture -> targeted deep reads with screenshot/content extraction -> evidence-backed synthesis.
 
+### Orchestral workflow sketch
+
+```mermaid
+flowchart LR
+  IN["Inbound Signals\n(email, notes, tasks)"] --> PIPE["orchestral/pipelines/*.sh"]
+  PIPE --> TOOLS["orchestral/prompt_tools/runtime/codex-json-runner.py"]
+  TOOLS --> GROUPS["Prompt Groups\ncompany/websearch/email/notes/calendar/reminders"]
+  GROUPS --> OUT["Artifacts + Notes + Calendar + Reminders"]
+  OUT --> REVIEW["Logs + follow-up actions"]
+```
+
 ---
 
 ## Prompt tools in LAB
@@ -362,6 +573,18 @@ They can run independently or as linked stages in a larger workflow.
 Primary location:
 
 - `orchestral/prompt_tools/`
+
+Runtime entrypoints:
+
+- `orchestral/prompt_tools/runtime/codex-noninteractive.sh`
+- `orchestral/prompt_tools/runtime/codex-email-cli.py`
+- `orchestral/prompt_tools/runtime/codex-json-runner.py`
+- `orchestral/prompt_tools/runtime/run_auto_ops.sh`
+
+Constraint preserved from `orchestral/prompt_tools/README.md`:
+
+- Top-level compatibility wrappers under `orchestral/prompt_tools/*.sh|*.py` were removed.
+- New implementations should remain in grouped folders (runtime/company/websearch/etc.).
 
 ---
 
@@ -394,6 +617,17 @@ pnpm gateway:watch
 cp .env.example .env
 docker compose up -d
 docker compose logs -f openclaw-gateway
+```
+
+### Example: prompt-tool JSON runner
+
+```bash
+python3 orchestral/prompt_tools/runtime/codex-json-runner.py \
+  --input-json /tmp/task.json \
+  --output-dir /tmp/codex-runs \
+  --schema orchestral/prompt_tools/runtime/email_send_schema.json \
+  --model gpt-5.3-codex-spark \
+  --reasoning high
 ```
 
 ---
@@ -460,6 +694,12 @@ Check for port collisions and daemon conflicts. If using Docker, verify mapped h
 - Re-run `pnpm install` with Node `>=22.12.0`.
 - Rebuild with `pnpm ui:build && pnpm build`.
 - If optional native peers are missing, review install logs for `@napi-rs/canvas` / `node-llama-cpp` compatibility.
+
+### Submodule issues
+
+- Run `git submodule update --init --recursive`.
+- For private SSH URLs, verify your GitHub SSH key setup.
+- If nested modules stay uninitialized, inspect child `.gitmodules` and run update from the parent module.
 
 ### General health checks
 
@@ -557,9 +797,9 @@ Thanks to the OpenClaw maintainers and community for the core platform.
 
 ## ❤️ Support
 
-| Donate                                                                                                                                                                                                                                                                                                                                                     | PayPal                                                                                                                                                                                                                                                                                                                                                          | Stripe                                                                                                                                                                                                                                                                                                                                                              |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![Donate](https://camo.githubusercontent.com/24a4914f0b42c6f435f9e101621f1e52535b02c225764b2f6cc99416926004b7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446f6e6174652d4c617a79696e674172742d3045413545393f7374796c653d666f722d7468652d6261646765266c6f676f3d6b6f2d6669266c6f676f436f6c6f723d7768697465)](https://chat.lazying.art/donate) | [![PayPal](https://camo.githubusercontent.com/d0f57e8b016517a4b06961b24d0ca87d62fdba16e18bbdb6aba28e978dc0ea21/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f50617950616c2d526f6e677a686f754368656e2d3030343537433f7374796c653d666f722d7468652d6261646765266c6f676f3d70617970616c266c6f676f436f6c6f723d7768697465)](https://paypal.me/RongzhouChen) | [![Stripe](https://camo.githubusercontent.com/1152dfe04b6943afe3a8d2953676749603fb9f95e24088c92c97a01a897b4942/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f5374726970652d446f6e6174652d3633354246463f7374796c653d666f722d7468652d6261646765266c6f676f3d737472697065266c6f676f436f6c6f723d7768697465)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
+| Donate                                                                                                                                             | PayPal                                                                                                                                               | Stripe                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Donate](https://img.shields.io/badge/Donate-LazyingArt-0EA5E9?style=for-the-badge&logo=ko-fi&logoColor=white)](https://chat.lazying.art/donate) | [![PayPal](https://img.shields.io/badge/PayPal-RongzhouChen-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/RongzhouChen) | [![Stripe](https://img.shields.io/badge/Stripe-Donate-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/aFadR8gIaflgfQV6T4fw400) |
 
 ## Contact
 
