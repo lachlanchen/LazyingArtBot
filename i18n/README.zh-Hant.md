@@ -22,7 +22,7 @@
 | 🔗 Link          | URL                                          | Focus              |
 | ---------------- | -------------------------------------------- | ------------------ |
 | 🌐 Website       | https://lazying.art                          | 主網域與狀態儀表板 |
-| 🤖 Bot domain    | https://lazying.art                          | 聊天與助手入口     |
+| 🤖 Bot domain    | https://lab.lazying.art                      | 聊天與助手入口     |
 | 🧱 Upstream base | https://github.com/openclaw/openclaw         | OpenClaw 平台基礎  |
 | 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | LAB 專屬客製化     |
 

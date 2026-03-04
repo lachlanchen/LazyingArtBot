@@ -24,7 +24,7 @@
 | 🔗 Liên kết     | URL                                          | Mục tiêu                                   |
 | --------------- | -------------------------------------------- | ------------------------------------------ |
 | 🌐 Website      | https://lazying.art                          | Domain chính và bảng điều khiển trạng thái |
-| 🤖 Miền bot     | https://lazying.art                          | Điểm vào chat và trợ lý                    |
+| 🤖 Miền bot     | https://lab.lazying.art                      | Điểm vào chat và trợ lý                    |
 | 🧱 Nền tảng gốc | https://github.com/openclaw/openclaw         | Nền tảng lõi OpenClaw                      |
 | 📦 Repo này     | https://github.com/lachlanchen/LazyingArtBot | Tùy biến của LAB                           |
 

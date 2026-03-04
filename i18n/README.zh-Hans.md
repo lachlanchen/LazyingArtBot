@@ -22,7 +22,7 @@
 | 🔗 链接     | URL                                          | 关注点            |
 | ----------- | -------------------------------------------- | ----------------- |
 | 🌐 网站     | https://lazying.art                          | 主域名与状态看板  |
-| 🤖 Bot 域名 | https://lazying.art                          | 聊天与助手入口    |
+| 🤖 Bot 域名 | https://lab.lazying.art                      | 聊天与助手入口    |
 | 🧱 上游基座 | https://github.com/openclaw/openclaw         | OpenClaw 平台基础 |
 | 📦 本仓库   | https://github.com/lachlanchen/LazyingArtBot | LAB 专属适配      |
 

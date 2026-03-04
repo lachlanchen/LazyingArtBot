@@ -24,7 +24,7 @@
 | 🔗 Enlace           | URL                                          | Enfoque                              |
 | ------------------- | -------------------------------------------- | ------------------------------------ |
 | 🌐 Sitio web        | https://lazying.art                          | Dominio principal y panel de estado  |
-| 🤖 Dominio del bot  | https://lazying.art                          | Punto de entrada de chat y asistente |
+| 🤖 Dominio del bot  | https://lab.lazying.art                      | Punto de entrada de chat y asistente |
 | 🧱 Base upstream    | https://github.com/openclaw/openclaw         | Plataforma base de OpenClaw          |
 | 📦 Este repositorio | https://github.com/lachlanchen/LazyingArtBot | Adaptaciones específicas de LAB      |
 

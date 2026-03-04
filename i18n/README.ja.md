@@ -24,7 +24,7 @@
 | 🔗 Link          | URL                                          | Focus                                    |
 | ---------------- | -------------------------------------------- | ---------------------------------------- |
 | 🌐 Website       | https://lazying.art                          | メインドメインとステータスダッシュボード |
-| 🤖 Bot domain    | https://lazying.art                          | チャットとアシスタントのエントリポイント |
+| 🤖 Bot domain    | https://lab.lazying.art                      | チャットとアシスタントのエントリポイント |
 | 🧱 Upstream base | https://github.com/openclaw/openclaw         | OpenClaw の基盤                          |
 | 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | LAB 固有の拡張                           |
 

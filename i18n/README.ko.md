@@ -24,7 +24,7 @@
 | 🔗 Link          | URL                                          | Focus                               |
 | ---------------- | -------------------------------------------- | ----------------------------------- |
 | 🌐 Website       | https://lazying.art                          | Primary domain and status dashboard |
-| 🤖 Bot domain    | https://lazying.art                          | Chat and assistant entrypoint       |
+| 🤖 Bot domain    | https://lab.lazying.art                      | Chat and assistant entrypoint       |
 | 🧱 Upstream base | https://github.com/openclaw/openclaw         | OpenClaw platform foundation        |
 | 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | LAB-specific adaptations            |
 

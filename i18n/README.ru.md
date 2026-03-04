@@ -24,7 +24,7 @@
 | 🔗 Ссылка        | URL                                          | Назначение                        |
 | ---------------- | -------------------------------------------- | --------------------------------- |
 | 🌐 Website       | https://lazying.art                          | Основной домен и панель статуса   |
-| 🤖 Bot domain    | https://lazying.art                          | Точка входа для чата и ассистента |
+| 🤖 Bot domain    | https://lab.lazying.art                      | Точка входа для чата и ассистента |
 | 🧱 Upstream base | https://github.com/openclaw/openclaw         | Базовая платформа OpenClaw        |
 | 📦 This repo     | https://github.com/lachlanchen/LazyingArtBot | Адаптации LAB                     |
 
