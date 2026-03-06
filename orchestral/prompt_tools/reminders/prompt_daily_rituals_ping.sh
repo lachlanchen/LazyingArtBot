@@ -125,7 +125,7 @@ if [[ ! -f "$PLAN_JSON" ]]; then
   exit 1
 fi
 
-python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" <<'PY'
+python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" "$REPO_DIR" <<'PY'
 import json
 import subprocess
 from datetime import datetime
@@ -137,7 +137,24 @@ PLAN_JSON = Path(sys.argv[1]).expanduser()
 STATE_JSON = Path(sys.argv[2]).expanduser()
 REPORT_JSON = Path(sys.argv[3]).expanduser()
 LIST_NAME = sys.argv[4]
-CREATE_SCRIPT = Path.home() / ".openclaw" / "workspace" / "automation" / "create_reminder.applescript"
+REPO_DIR = Path(sys.argv[5]).expanduser()
+
+
+def resolve_script(*candidates: Path) -> Path:
+  checked: list[str] = []
+  for candidate in candidates:
+    path = candidate.expanduser()
+    checked.append(str(path))
+    if path.exists():
+      return path
+  raise RuntimeError(f"AppleScript helper not found. Checked: {', '.join(checked)}")
+
+
+CREATE_SCRIPT = resolve_script(
+  Path.home() / ".openclaw" / "workspace" / "automation" / "create_reminder.applescript",
+  Path.home() / ".openclaw" / "workspace" / "automation" / "automail2note" / "create_reminder.applescript",
+  REPO_DIR / "orchestral/actors/automail2note/create_reminder.applescript",
+)
 
 
 def run_osascript(script: str, *args: str) -> str:

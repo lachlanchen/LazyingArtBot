@@ -166,7 +166,7 @@ if [[ ! -f "$PLAN_JSON" ]]; then
   exit 1
 fi
 
-python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" "$TARGET_NOTE" "$NOTE_FOLDER" "$CALENDAR_NAME" "$TIMEZONE" <<'PY'
+python3 - "$PLAN_JSON" "$STATE_JSON" "$REPORT_JSON" "$LIST_NAME" "$TARGET_NOTE" "$NOTE_FOLDER" "$CALENDAR_NAME" "$TIMEZONE" "$REPO_DIR" <<'PY'
 import json
 import subprocess
 import sys
@@ -183,10 +183,35 @@ DEFAULT_NOTE = sys.argv[5]
 DEFAULT_FOLDER = sys.argv[6]
 DEFAULT_CALENDAR = sys.argv[7]
 TIMEZONE = sys.argv[8]
+REPO_DIR = Path(sys.argv[9]).expanduser()
 LOCAL_TZ = ZoneInfo(TIMEZONE)
-CREATE_NOTE_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_note.applescript")
-CREATE_CALENDAR_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_calendar_event.applescript")
-CREATE_REMINDER_SCRIPT = str(Path.home() / ".openclaw/workspace/automation/create_reminder.applescript")
+
+
+def resolve_script(*candidates: Path) -> str:
+    checked: list[str] = []
+    for candidate in candidates:
+        path = candidate.expanduser()
+        checked.append(str(path))
+        if path.exists():
+            return str(path)
+    raise RuntimeError(f"AppleScript helper not found. Checked: {', '.join(checked)}")
+
+
+CREATE_NOTE_SCRIPT = resolve_script(
+    Path.home() / ".openclaw/workspace/automation/create_note.applescript",
+    Path.home() / ".openclaw/workspace/automation/automail2note/create_note.applescript",
+    REPO_DIR / "orchestral/actors/automail2note/create_note.applescript",
+)
+CREATE_CALENDAR_SCRIPT = resolve_script(
+    Path.home() / ".openclaw/workspace/automation/create_calendar_event.applescript",
+    Path.home() / ".openclaw/workspace/automation/automail2note/create_calendar_event.applescript",
+    REPO_DIR / "orchestral/actors/automail2note/create_calendar_event.applescript",
+)
+CREATE_REMINDER_SCRIPT = resolve_script(
+    Path.home() / ".openclaw/workspace/automation/create_reminder.applescript",
+    Path.home() / ".openclaw/workspace/automation/automail2note/create_reminder.applescript",
+    REPO_DIR / "orchestral/actors/automail2note/create_reminder.applescript",
+)
 
 
 def run_osascript_with_args(script: str, *args: str) -> str:
